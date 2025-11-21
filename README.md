@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Laravel + Livewire Starter Kit
 
 ## Introduction
@@ -28,3 +29,7 @@ In order to ensure that the Laravel community is welcoming to all, please review
 ## License
 
 The Laravel + Livewire starter kit is open-sourced software licensed under the MIT license.
+=======
+# FarmaCorp
+Sistema de Farmacia modularizado - Proyecto Final Universitario para Taller de Integración
+>>>>>>> 208126526fe66c9e5ca7b9aa5168464fb38f7c16
