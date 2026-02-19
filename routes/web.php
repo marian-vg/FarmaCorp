@@ -1,17 +1,43 @@
 <?php
 
+use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Components\Dashboard as UserDashboard;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+    return view('livewire.auth.login');
+})->name('principal-page')->middleware(['guest']);
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
 
+// This will make the login and register routes available to guests and not for users that are already logged in
+Route::middleware(['guest'])->group(function () {
+    Route::get('login', function () {
+        return view('livewire.auth.login');
+    })->name('login');
+    Route::get('register', function () {
+        return view('livewire.auth.register');
+    })->name('register');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', function () {
+        if (auth()->user()->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return redirect()->route('user.dashboard');
+    })->name('dashboard');
+
+    Route::middleware(['role:admin'])->group(function () {
+        Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
+    });
+
+    Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
+});
+
+// Starter Kit Routes
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
 
