@@ -53,44 +53,4 @@ class UserFactory extends Factory
             'is_active' => false,
         ]);
     }
-
-    /**
-     * Indicate that the user is an administrator.
-     */
-    public function administrador(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'Administrador',
-        ]);
-    }
-
-    /**
-     * Indicate that the user is an employee.
-     */
-    public function empleado(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => 'Empleado',
-        ]);
-    }
-
-    /**
-     * Indicate that the user is active.
-     */
-    public function active(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'is_active' => true,
-        ]);
-    }
-
-    /**
-     * Indicate that the user is inactive.
-     */
-    public function inactive(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'is_active' => false,
-        ]);
-    }
 }
