@@ -23,6 +23,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $adminRole = Role::create(['name' => 'admin']);
+        $employeRole = Role::create(['name' => 'empleado']);
+        
         Permission::create(['name' => 'create-user']);
         Permission::create(['name' => 'modify-user']);
 
@@ -30,11 +32,13 @@ class DatabaseSeeder extends Seeder
 
         $user->assignRole($adminRole);
 
-        User::factory()->create([
+        $employeUser = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@test.com',
             'password' => 'password',
             'is_active' => true,
         ]);
+
+        $employeUser->assignRole($employeRole);
     }
 }

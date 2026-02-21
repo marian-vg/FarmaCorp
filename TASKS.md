@@ -2,8 +2,9 @@
 
 ## Modulo de Usuario
 
+*Dashboard de adminsitrador*:
 - creacion, edicion y eliminacion de usuarios (gestionar permisos, roles, agregar usuarios, etc.)
-- creacion, edicion y eliminacion de perfiles (por ejemplo; Perfil de Caja, Perfil de Cobranza, etc. Se puede entender a perfiles como roles).
+- creacion, edicion y eliminacion de perfiles (por ejemplo; Perfil de Caja, Perfil de Cobranza, etc.).
 - creacion, edicion y eliminacion de permisos (por ejemplo; 'Permiso para ingresar a la pantalla de caja', 'Permiso para ingresar a la pantalla de cobranza', etc.).
 
 - diseño completo del dashboard del usuario administrador.

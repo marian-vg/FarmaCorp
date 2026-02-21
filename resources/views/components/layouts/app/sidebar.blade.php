@@ -17,6 +17,18 @@
                 </flux:navlist.group>
             </flux:navlist>
 
+            @auth
+                @if(auth()->user()->hasRole('admin'))
+                    <flux:navlist variant="outline">
+                        <flux:navlist.group :heading="__('Administración')" class="grid">
+                            <flux:navlist.item icon="users" :href="route('admin.users')" :current="request()->routeIs('admin.users')" wire:navigate>{{ __('Gestión de Usuarios') }}</flux:navlist.item>
+                            <flux:navlist.item icon="identification" :href="route('admin.profiles')" :current="request()->routeIs('admin.profiles')" wire:navigate>{{ __('Gestión de Perfiles') }}</flux:navlist.item>
+                            <flux:navlist.item icon="key" :href="route('admin.permissions')" :current="request()->routeIs('admin.permissions')" wire:navigate>{{ __('Gestión de Permisos') }}</flux:navlist.item>
+                        </flux:navlist.group>
+                    </flux:navlist>
+                @endif
+            @endauth
+
             <flux:spacer />
 
             <flux:navlist variant="outline">

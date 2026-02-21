@@ -1,6 +1,9 @@
 <?php
 
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\PermissionManagement;
+use App\Livewire\Admin\ProfileManagement;
+use App\Livewire\Admin\UserManagement;
 use App\Livewire\Components\Dashboard as UserDashboard;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -32,6 +35,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['role:admin'])->group(function () {
         Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
+        Route::get('admin/users', UserManagement::class)->name('admin.users');
+        Route::get('admin/profiles', ProfileManagement::class)->name('admin.profiles');
+        Route::get('admin/permissions', PermissionManagement::class)->name('admin.permissions');
     });
 
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
