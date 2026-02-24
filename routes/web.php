@@ -1,7 +1,9 @@
 <?php
 
+use App\Livewire\Admin\ClientManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
-use App\Livewire\Components\Dashboard as UserDashboard;
+use App\Livewire\Admin\ProfileManager;
+use App\Livewire\User\Dashboard as UserDashboard;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
@@ -32,7 +34,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['role:admin'])->group(function () {
         Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
-        Route::get('admin/profiles', \App\Livewire\Admin\ProfileManager::class)->name('admin.profiles');
+        Route::get('admin/profiles', ProfileManager::class)->name('admin.profiles');
+        Route::get('admin/clients', ClientManager::class)->name('admin.clients');
     });
 
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');

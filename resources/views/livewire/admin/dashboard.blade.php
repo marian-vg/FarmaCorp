@@ -35,8 +35,9 @@
             <thead class="bg-gray-50 dark:bg-zinc-800">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Usuario</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Perfil</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Permiso</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Rol</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Permisos</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Perfiles</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
                 </tr>
@@ -58,13 +59,13 @@
                         <td class="px-6 py-4 whitespace-nowrap max-48">
                             <div class="flex gap-2">
                                 
-                                <flux:select class="w-40" aria-label="Perfiles del usuario" size="sm" disabled>
+                                <flux:select class="w-40" aria-label="Perfiles del usuario" size="sm">
                                     @forelse ($user->roles as $role)
                                         <flux:select.option size="sm" value="{{ $role->name }}">
                                             {{ str($role->name)->headline() }}
                                         </flux:select.option>
                                     @empty
-                                        <flux:select.option size="sm" value="" disabled selected>Sin rol</flux:select.option>
+                                        <flux:select.option size="sm" value="" selected>Sin rol</flux:select.option>
                                     @endforelse
                                 </flux:select>
 
@@ -74,13 +75,13 @@
 
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex gap-2">
-                                <flux:select class="w-40" aria-label="Permisos del usuario" size="sm" disabled>
+                                <flux:select class="w-40" aria-label="Permisos del usuario" size="sm">
                                     @forelse($user->getDirectPermissions() as $permission)
                                         <flux:select.option size="sm" value="{{ $permission->name }}">
                                             {{ str($permission->name)->headline() }}
                                         </flux:select.option>
                                     @empty
-                                        <flux:select.option size="sm" value="" disabled selected>Sin permisos directos</flux:select.option>
+                                        <flux:select.option size="sm" value="" selected>Ningun Permiso</flux:select.option>
                                     @endforelse
                                 </flux:select>
 
@@ -90,13 +91,13 @@
 
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex gap-2">
-                                <flux:select class="w-40" aria-label="Perfiles Personalizados" size="sm" disabled>
+                                <flux:select class="w-40" aria-label="Perfiles Personalizados" size="sm">
                                     @forelse($user->profiles as $profile)
                                         <flux:select.option size="sm" value="{{ $profile->id }}">
                                             {{ str($profile->name)->headline() }}
                                         </flux:select.option>
                                     @empty
-                                        <flux:select.option size="sm" value="" disabled selected>Sin perfiles</flux:select.option>
+                                        <flux:select.option size="sm" value="" selected>Ningun Perfil</flux:select.option>
                                     @endforelse
                                 </flux:select>
 
@@ -148,7 +149,7 @@
                                         </div>
 
                                         <flux:text class="text-left whitespace-normal">
-                                            ¿Estás seguro? El usuario <strong>{{ $user->name }}</strong> será marcado como INACTIVO en el sistema y no podrá iniciar sesión, pero su historial de operaciones se mantendrá intacto.
+                                            ¿Estás seguro? El usuario <strong>{{ $user->name }}</strong> no podrá iniciar sesión.
                                         </flux:text>
 
                                         <div class="flex justify-end gap-2">
