@@ -4,7 +4,7 @@
         <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
 
         <div class="flex justify-end items-center gap-4">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center space-x-4">
                 <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar usuario..." class="w-64" />
                 
                 <flux:select wire:model.live="statusFilter" class="w-32" aria-label="Filtrar por estado">
@@ -58,44 +58,49 @@
                         <td class="px-6 py-4 whitespace-nowrap max-48">
                             <div class="flex gap-2">
                                 
-                                <flux:select class="w-40" aria-label="Perfiles del usuario" size="sm">
-                                    @forelse ($user->getRoleNames() as $role)
-                                        <flux:select.option size="sm" value="{{ $role }}">
-                                            {{ str($role) }}
+                                <flux:select class="w-40" aria-label="Perfiles del usuario" size="sm" disabled>
+                                    @forelse ($user->roles as $role)
+                                        <flux:select.option size="sm" value="{{ $role->name }}">
+                                            {{ str($role->name)->headline() }}
                                         </flux:select.option>
                                     @empty
-                                        <flux:select.option size="sm" value="" disabled selected>none</flux:select.option>
+                                        <flux:select.option size="sm" value="" disabled selected>Sin rol</flux:select.option>
                                     @endforelse
                                 </flux:select>
 
-                                <flux:modal.trigger name="edit-profile-{{ $user->id }}">
-                                    <flux:button size="sm" icon="pencil-square" variant="ghost"></flux:button>
-                                </flux:modal.trigger>
-
-                                <x-edit-profile :user="$user"/>
-
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editRoles({{ $user->id }})" />
                             </div>
                         </td>
 
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex gap-2">
-                                <flux:select class="w-40" aria-label="Permisos del usuario" size="sm">
-                                    @forelse($user->getPermissionsViaRoles() as $permission)
+                                <flux:select class="w-40" aria-label="Permisos del usuario" size="sm" disabled>
+                                    @forelse($user->getDirectPermissions() as $permission)
                                         <flux:select.option size="sm" value="{{ $permission->name }}">
                                             {{ str($permission->name)->headline() }}
                                         </flux:select.option>
                                     @empty
-                                        <flux:select.option size="sm" value="" disabled selected>
-                                            none
-                                        </flux:select.option>
+                                        <flux:select.option size="sm" value="" disabled selected>Sin permisos directos</flux:select.option>
                                     @endforelse
                                 </flux:select>
 
-                                <flux:modal.trigger name="edit-permission-{{ $user->id }}">
-                                    <flux:button size="sm" icon="pencil-square" variant="ghost"></flux:button>
-                                </flux:modal.trigger>
-    
-                                <x-edit-permission :user="$user"/>
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editPermissions({{ $user->id }})" />
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex gap-2">
+                                <flux:select class="w-40" aria-label="Perfiles Personalizados" size="sm" disabled>
+                                    @forelse($user->profiles as $profile)
+                                        <flux:select.option size="sm" value="{{ $profile->id }}">
+                                            {{ str($profile->name)->headline() }}
+                                        </flux:select.option>
+                                    @empty
+                                        <flux:select.option size="sm" value="" disabled selected>Sin perfiles</flux:select.option>
+                                    @endforelse
+                                </flux:select>
+
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProfiles({{ $user->id }})" />
                             </div>
 
                         </td>
@@ -110,9 +115,13 @@
                                     <flux:button size="sm" icon="key" variant="ghost" />
                                 </flux:modal.trigger>
                                 
-                                <flux:modal.trigger name="confirm-deactivation-{{ $user->id }}">
-                                    <flux:button size="sm" icon="trash" variant="danger" ghost />
-                                </flux:modal.trigger>
+                                @if($user->is_active)
+                                    <flux:modal.trigger name="confirm-deactivation-{{ $user->id }}">
+                                        <flux:button size="sm" icon="trash" variant="danger" ghost />
+                                    </flux:modal.trigger>
+                                @else
+                                    <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateUser({{ $user->id }})" />
+                                @endif
 
                                 <flux:modal name="reset-password-{{ $user->id }}" class="min-w-[22rem]">
                                     <div class="space-y-6">
@@ -161,4 +170,72 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Centralized Modals -->
+    <flux:modal name="edit-roles" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Roles del Usuario</flux:heading>
+                <flux:subheading>Asignar roles base al usuario actual.</flux:subheading>
+            </div>
+
+            <div class="space-y-2 max-h-60 overflow-y-auto">
+                @foreach($this->roles as $role)
+                    <flux:checkbox wire:model="selectedRoles" value="{{ $role->name }}" label="{{ str($role->name)->headline() }}" />
+                @endforeach
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+                <flux:button variant="primary" wire:click="saveRoles">Guardar Cambios</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <flux:modal name="edit-permissions" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Permisos Directos</flux:heading>
+                <flux:subheading>Asignar permisos excepcionales directos.</flux:subheading>
+            </div>
+
+            <div class="space-y-2 max-h-60 overflow-y-auto">
+                @foreach($this->permissions as $permission)
+                    <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->name)->headline() }}" />
+                @endforeach
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+                <flux:button variant="primary" wire:click="savePermissions">Guardar Cambios</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <flux:modal name="edit-profiles" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Perfiles Activos</flux:heading>
+                <flux:subheading>Asignar perfiles para otorgar sus permisos al usuario.</flux:subheading>
+            </div>
+
+            <div class="space-y-2 max-h-60 overflow-y-auto">
+                @foreach($this->allProfiles as $profile)
+                    <flux:checkbox wire:model="selectedProfiles" value="{{ $profile->id }}" label="{{ str($profile->name)->headline() }}" />
+                @endforeach
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+                <flux:button variant="primary" wire:click="saveProfiles">Guardar Cambios</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
 </div>

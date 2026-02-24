@@ -7,6 +7,9 @@ use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Computed;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use App\Models\Profile;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Lazy;
 use Livewire\Component;
@@ -29,6 +32,74 @@ class Dashboard extends Component
         'password' => '',
         'password_confirmation' => '',
     ];
+
+    public ?User $editingUser = null;
+    public array $selectedRoles = [];
+    public array $selectedPermissions = [];
+    public array $selectedProfiles = [];
+
+    #[Computed]
+    public function roles()
+    {
+        return Role::all();
+    }
+
+    #[Computed]
+    public function permissions()
+    {
+        return Permission::all();
+    }
+
+    #[Computed]
+    public function allProfiles()
+    {
+        return Profile::all();
+    }
+
+    public function editRoles(User $user)
+    {
+        $this->editingUser = $user;
+        $this->selectedRoles = $user->roles->pluck('name')->toArray();
+        Flux::modal('edit-roles')->show();
+    }
+
+    public function saveRoles()
+    {
+        if ($this->editingUser) {
+            $this->editingUser->syncRoles($this->selectedRoles);
+            Flux::modal('edit-roles')->close();
+        }
+    }
+
+    public function editPermissions(User $user)
+    {
+        $this->editingUser = $user;
+        $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
+        Flux::modal('edit-permissions')->show();
+    }
+
+    public function savePermissions()
+    {
+        if ($this->editingUser) {
+            $this->editingUser->syncPermissions($this->selectedPermissions);
+            Flux::modal('edit-permissions')->close();
+        }
+    }
+
+    public function editProfiles(User $user)
+    {
+        $this->editingUser = $user;
+        $this->selectedProfiles = $user->profiles->pluck('id')->toArray();
+        Flux::modal('edit-profiles')->show();
+    }
+
+    public function saveProfiles()
+    {
+        if ($this->editingUser) {
+            $this->editingUser->profiles()->sync($this->selectedProfiles);
+            Flux::modal('edit-profiles')->close();
+        }
+    }
 
     public function createUser()
     {
@@ -61,6 +132,12 @@ class Dashboard extends Component
         $user->save();
     }
 
+    public function reactivateUser(User $user)
+    {
+        $user->is_active = true;
+        $user->save();
+    }
+
     public function updatePassword(User $user)
     {
         $this->validate([
@@ -76,12 +153,6 @@ class Dashboard extends Component
     public function placeholder()
     {
         return view('livewire.placeholders.skeleton-table');
-    }
-
-    #[Computed]
-    public function roles()
-    {
-        return \Spatie\Permission\Models\Role::all();
     }
 
     public function render()

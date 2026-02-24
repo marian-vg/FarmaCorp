@@ -32,6 +32,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['role:admin'])->group(function () {
         Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
+        Route::get('admin/profiles', \App\Livewire\Admin\ProfileManager::class)->name('admin.profiles');
     });
 
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');

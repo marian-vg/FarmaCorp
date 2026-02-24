@@ -7,11 +7,20 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use App\Models\Profile;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        Role::firstOrCreate(['name' => 'admin']);
+    }
 
     public function test_renders_successfully()
     {
@@ -123,5 +132,59 @@ class DashboardTest extends TestCase
             'id' => $userToDeactivate->id,
             'is_active' => false,
         ]);
+    }
+
+    public function test_admin_can_save_roles()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        
+        $user = User::factory()->create();
+        Role::firstOrCreate(['name' => 'editor']);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->call('editRoles', $user->id)
+            ->set('selectedRoles', ['editor'])
+            ->call('saveRoles')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($user->fresh()->hasRole('editor'));
+    }
+
+    public function test_admin_can_save_permissions()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        
+        $user = User::factory()->create();
+        Permission::firstOrCreate(['name' => 'publish-articles']);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->call('editPermissions', $user->id)
+            ->set('selectedPermissions', ['publish-articles'])
+            ->call('savePermissions')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($user->fresh()->hasDirectPermission('publish-articles'));
+    }
+
+    public function test_admin_can_save_profiles()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        
+        $user = User::factory()->create();
+        $profile = Profile::create(['name' => 'Biller', 'description' => 'Billing profile']);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->call('editProfiles', $user->id)
+            ->set('selectedProfiles', [$profile->id])
+            ->call('saveProfiles')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($user->fresh()->profiles->contains($profile->id));
     }
 }

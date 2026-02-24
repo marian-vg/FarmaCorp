@@ -64,4 +64,12 @@ class User extends Authenticatable
             ->map(fn ($word) => Str::substr($word, 0, 1))
             ->implode('');
     }
+
+    /**
+     * The profiles that belong to the user.
+     */
+    public function profiles()
+    {
+        return $this->belongsToMany(Profile::class);
+    }
 }
