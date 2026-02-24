@@ -1,0 +1,57 @@
+# Plan de Desarrollo - Módulo de Usuarios y Dashboard Admin (Plex 25 / FarmaCorp)
+
+**Stack Tecnológico:** Laravel 12, Livewire 4, PostgreSQL (Supabase).
+**UI/UX:** Tailwind CSS + Flux UI (Exclusivamente versión Gratuita. Las tablas se maquetan con HTML nativo y clases de Tailwind).
+**Metodología:** Desarrollo ágil por Sprints, priorizando optimización de consultas (Eager Loading) para mitigar latencia de red.
+
+---
+
+## Fase 1: Perfeccionamiento del CRUD de Usuarios
+*Objetivo: Consolidar la gestión básica de empleados asegurando la trazabilidad operativa y el cumplimiento de seguridad.*
+
+* [cite_start]**Búsqueda Avanzada y Filtros (RF-06)[cite: 63]:**
+    * Implementar buscador en tiempo real (Live Search) por nombre/DNI utilizando `wire:model.live.debounce`.
+    * Añadir filtros desplegables por Estado (Activo/Inactivo) y por Perfil (Rol).
+* [cite_start]**Desactivación Lógica (RNF-04)[cite: 145]:**
+    * Implementar un botón de "Eliminar" (icono de papelera) que dispare un modal de confirmación.
+    * La acción no ejecutará un `DELETE` físico en la base de datos, sino un cambio de estado (`is_active = false`) para preservar el historial de facturación y caja.
+* [cite_start]**Gestión de Claves (RF-03)[cite: 58]:**
+    * Integrar campos de contraseña en el formulario de alta de usuarios.
+    * Añadir funcionalidad para que el administrador pueda resetear o establecer nuevas contraseñas a los empleados desde el panel.
+
+---
+
+## Fase 2: Gestión Integral de Perfiles y Accesos (Spatie)
+*Objetivo: Escalar la seguridad del sistema mediante roles dinámicos, eliminando la asignación estática de permisos.*
+
+* [cite_start]**CRUD de Perfiles / Roles (RF-04)[cite: 59]:**
+    * Desarrollar un componente independiente (`RoleManager`) para crear, editar y eliminar roles (ej. "Administrador", "Farmacéutico", "Cajero").
+* [cite_start]**Asignación de Permisos a Perfiles (RF-05)[cite: 61, 62]:**
+    * Integrar una matriz de *checkboxes* en los modales de creación/edición de Perfiles para asignar permisos masivos (ej. `abrir_caja`, `vender_psicotropicos`).
+* **Modales Dinámicos de Edición en Tabla de Usuarios:**
+    * Actualizar los modales `x-edit-role` y `x-edit-permission` para que sean formularios funcionales.
+    * Al abrirse, deben mostrar **todos** los perfiles/permisos del sistema, dejando pre-seleccionados los que el usuario ya posee.
+    * Implementar métodos `syncRoles` y `syncPermissions` para guardar los cambios.
+* **Reactivación de Usuarios:**
+    * Añadir un botón de acción rápida (icono de recarga/flecha) junto al botón de eliminar, visible solo en usuarios inactivos, para devolverles el estado `is_active = true`.
+
+---
+
+## Fase 3: Módulo de Gestión de Clientes
+*Objetivo: Separar lógicamente a los clientes de los empleados, preparándolos para el módulo de facturación.*
+
+* [cite_start]**CRUD de Clientes (RF-10, RF-07)[cite: 67, 114]:**
+    * [cite_start]Crear el ABM (Alta, Baja, Modificación) para clientes, requiriendo: nombre, apellido, correo, teléfono y dirección[cite: 114].
+    * [cite_start]Aplicar la misma lógica de "desactivación" (Soft Delete) utilizada en los usuarios[cite: 117].
+* [cite_start]**Buscador Ágil (RF-08)[cite: 115]:**
+    * Implementar búsqueda filtrada por nombre completo o teléfono para agilizar el proceso en el mostrador.
+
+---
+
+## Fase 4: Widgets del Dashboard Principal (Panel de Control)
+*Objetivo: Transformar la pantalla de inicio del administrador en un centro de monitoreo proactivo cruzando datos con el Módulo de Medicamentos.*
+
+* [cite_start]**Configurador de Alertas (RF-08)[cite: 65]:**
+    * Desarrollar una tarjeta de configuración donde el admin defina el "período de anticipación" (en días) para el control de vencimientos.
+* [cite_start]**Lista Automática de Próximos Vencimientos (RF-09)[cite: 66]:**
+    * Generar una tabla de alerta rápida en el dashboard principal que cruce el valor configurado con el stock real, mostrando los medicamentos críticos que requieren atención inmediata.
