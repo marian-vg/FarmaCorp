@@ -8,10 +8,11 @@
             <flux:sidebar.toggle class="flex items-center" size="sm" icon="bars-3" />
 
             @hasrole('admin')
-                <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Dashboard</flux:sidebar.item>
-                <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
-                <flux:sidebar.item icon="user-group" href="{{ route('admin.clients') }}" :current="request()->routeIs('admin.clients')">Módulo de Clientes</flux:sidebar.item>
-            @endhasrole
+    <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Dashboard</flux:sidebar.item>
+    <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
+    <flux:sidebar.item icon="shield-check" href="{{ route('admin.permissions') }}" :current="request()->routeIs('admin.permissions')">Permisos del Sistema</flux:sidebar.item>
+    <flux:sidebar.item icon="user-group" href="{{ route('admin.clients') }}" :current="request()->routeIs('admin.clients')">Módulo de Clientes</flux:sidebar.item>
+@endhasrole
 
             <flux:spacer/>
 

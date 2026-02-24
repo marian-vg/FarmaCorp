@@ -15,8 +15,8 @@
 
                 <flux:select wire:model.live="roleFilter" class="w-40" aria-label="Filtrar por perfil">
                     <flux:select.option value="">Perfiles: Todos</flux:select.option>
-                    @foreach($this->roles as $role)
-                        <flux:select.option value="{{ $role->name }}">{{ str($role->name)->headline() }}</flux:select.option>
+                    @foreach($this->allProfiles as $profile)
+                        <flux:select.option value="{{ $profile->name }}">{{ str($profile->name)->headline() }}</flux:select.option>
                     @endforeach
                 </flux:select>
             </div>
