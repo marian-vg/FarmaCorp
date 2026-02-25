@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Admin;
+namespace App\Livewire\Clients;
 
 use App\Models\Client;
 use Livewire\Attributes\Layout;
@@ -38,12 +38,27 @@ class ClientManager extends Component
 
     public function createClient()
     {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         $this->reset(['clientContext', 'editingClient']);
         Flux::modal('client-form')->show();
     }
 
+    public function viewClient(Client $client)
+    {
+        $this->editingClient = $client;
+        $this->clientContext = [
+            'first_name' => $client->first_name,
+            'last_name' => $client->last_name,
+            'email' => $client->email,
+            'phone' => $client->phone,
+            'address' => $client->address,
+        ];
+        Flux::modal('view-client-modal')->show();
+    }
+
     public function editClient(Client $client)
     {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         $this->editingClient = $client;
         $this->clientContext = [
             'first_name' => $client->first_name,
@@ -57,6 +72,8 @@ class ClientManager extends Component
 
     public function saveClient()
     {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
+
         $rules = [
             'clientContext.first_name' => 'required|string|max:255',
             'clientContext.last_name' => 'required|string|max:255',
@@ -79,12 +96,14 @@ class ClientManager extends Component
 
     public function confirmDeactivate(Client $client)
     {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         $this->editingClient = $client;
         Flux::modal('confirm-deactivation-client')->show();
     }
 
     public function deactivateClient()
     {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         if ($this->editingClient) {
             $this->editingClient->update(['is_active' => false]);
             Flux::modal('confirm-deactivation-client')->close();
@@ -94,6 +113,7 @@ class ClientManager extends Component
 
     public function reactivateClient(Client $client)
     {
+        abort_unless(auth()->user()->hasRole('admin'), 403);
         $client->update(['is_active' => true]);
     }
 
@@ -119,7 +139,7 @@ class ClientManager extends Component
 
         $clients = $query->paginate(15);
 
-        return view('livewire.admin.client-manager', [
+        return view('livewire.clients.client-manager', [
             'clients' => $clients,
         ]);
     }

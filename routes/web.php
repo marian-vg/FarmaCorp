@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Admin\ClientManager;
+use App\Livewire\Clients\ClientManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\ProfileManager;
 use App\Livewire\User\Dashboard as UserDashboard;
@@ -35,7 +35,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:admin'])->group(function () {
         Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
         Route::get('admin/profiles', ProfileManager::class)->name('admin.profiles');
-        Route::get('admin/clients', ClientManager::class)->name('admin.clients');
+    });
+
+    Route::middleware(['role:admin|empleado'])->group(function () {
+        Route::get('clients', ClientManager::class)->name('clients.index');
     });
 
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');

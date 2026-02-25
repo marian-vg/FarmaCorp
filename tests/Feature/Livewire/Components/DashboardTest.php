@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Livewire\Components;
 
-use App\Livewire\Components\Dashboard;
+use App\Livewire\User\Dashboard;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;

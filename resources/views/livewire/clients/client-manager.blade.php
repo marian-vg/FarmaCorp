@@ -9,7 +9,9 @@
                 <flux:select.option value="active">Activos</flux:select.option>
                 <flux:select.option value="inactive">Inactivos</flux:select.option>
             </flux:select>
-            <flux:button icon="plus" wire:click="createClient" variant="primary">Nuevo Cliente</flux:button>
+            @role('admin')
+                <flux:button icon="plus" wire:click="createClient" variant="primary">Nuevo Cliente</flux:button>
+            @endrole
         </div>
     </div>
 
@@ -47,12 +49,16 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right">
                             <div class="flex justify-end gap-2">
-                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editClient({{ $client->id }})" />
-                                @if($client->is_active)
-                                    <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDeactivate({{ $client->id }})" />
-                                @else
-                                    <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateClient({{ $client->id }})" />
-                                @endif
+                                <flux:button size="sm" icon="eye" variant="ghost" wire:click="viewClient({{ $client->id }})" />
+                                
+                                @role('admin')
+                                    <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editClient({{ $client->id }})" />
+                                    @if($client->is_active)
+                                        <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDeactivate({{ $client->id }})" />
+                                    @else
+                                        <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateClient({{ $client->id }})" />
+                                    @endif
+                                @endrole
                             </div>
                         </td>
                     </tr>
@@ -113,6 +119,31 @@
                     <flux:button variant="ghost">Mantener Activo</flux:button>
                 </flux:modal.close>
                 <flux:button wire:click="deactivateClient" variant="danger">Desactivar</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <flux:modal name="view-client-modal" class="min-w-[40rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Detalles del Cliente</flux:heading>
+                <flux:subheading>Información de solo lectura.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <flux:input wire:model="clientContext.first_name" label="Nombres" disabled />
+                <flux:input wire:model="clientContext.last_name" label="Apellidos" disabled />
+                
+                <flux:input wire:model="clientContext.email" type="email" label="Correo Electrónico" disabled />
+                <flux:input wire:model="clientContext.phone" label="Teléfono de Contacto" disabled />
+            </div>
+
+            <flux:input wire:model="clientContext.address" label="Dirección Física" disabled />
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="primary">Cerrar</flux:button>
+                </flux:modal.close>
             </div>
         </div>
     </flux:modal>

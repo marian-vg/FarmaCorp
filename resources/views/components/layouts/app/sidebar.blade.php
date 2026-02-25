@@ -10,8 +10,10 @@
             @hasrole('admin')
                 <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Dashboard</flux:sidebar.item>
                 <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
-                <flux:sidebar.item icon="user-group" href="{{ route('admin.clients') }}" :current="request()->routeIs('admin.clients')">Módulo de Clientes</flux:sidebar.item>
             @endhasrole
+            @hasanyrole('admin|empleado')
+                <flux:sidebar.item icon="user-group" href="{{ route('clients.index') }}" :current="request()->routeIs('clients.index')">Módulo de Clientes</flux:sidebar.item>
+            @endhasanyrole
 
             <flux:spacer/>
 
