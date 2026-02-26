@@ -15,6 +15,8 @@
                 <flux:table.column>Usuario (Credencial)</flux:table.column>
                 <flux:table.column>Apertura</flux:table.column>
                 <flux:table.column>Monto Inicial</flux:table.column>
+                <flux:table.column>Cierre</flux:table.column>
+                <flux:table.column>Monto Final</flux:table.column>
                 <flux:table.column>Estado</flux:table.column>
                 <flux:table.column align="end">Acciones</flux:table.column>
             </flux:table.columns>
@@ -30,6 +32,20 @@
                         </flux:table.cell>
                         <flux:table.cell>{{ $caja->fecha_apertura->format('d/m/Y H:i') }}</flux:table.cell>
                         <flux:table.cell>${{ number_format($caja->monto_inicial, 2) }}</flux:table.cell>
+                        <flux:table.cell>
+                            @if($caja->fecha_cierre)
+                                {{ $caja->fecha_cierre->format('d/m H:i') }}
+                            @else
+                                <flux:badge color="zinc" size="sm">Pendiente</flux:badge>
+                            @endif
+                        </flux:table.cell>
+                        <flux:table.cell>
+                            @if($caja->fecha_cierre)
+                                ${{ number_format($caja->monto_final, 2) }}
+                            @else
+                                -
+                            @endif
+                        </flux:table.cell>
                         <flux:table.cell>
                             @if($caja->fecha_cierre)
                                 <flux:badge color="zinc" inset="top bottom">Cerrada</flux:badge>
@@ -48,7 +64,7 @@
                     </flux:table.row>
                 @empty
                     <flux:table.row>
-                        <flux:table.cell colspan="5" class="text-center py-10 text-zinc-500">
+                        <flux:table.cell colspan="7" class="text-center py-10 text-zinc-500">
                             No hay registros de caja creados todavía.
                         </flux:table.cell>
                     </flux:table.row>
@@ -105,10 +121,15 @@
                     <flux:subheading>Responsable: {{ $cajaSeleccionada->user->name }}</flux:subheading>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-3 gap-4">
                     <flux:card>
                         <flux:text size="sm" class="mb-2 block text-zinc-500">Monto Inicial</flux:text>
                         <flux:heading size="lg">${{ number_format($cajaSeleccionada->monto_inicial, 2) }}</flux:heading>
+                    </flux:card>
+                    
+                    <flux:card class="bg-zinc-50 dark:bg-zinc-800/50 border-zinc-300 dark:border-zinc-600">
+                        <flux:text size="sm" class="mb-2 block text-zinc-600 dark:text-zinc-400">Saldo Actual</flux:text>
+                        <flux:heading size="xl" class="text-indigo-600 dark:text-indigo-400">${{ number_format($this->saldoActual, 2) }}</flux:heading>
                     </flux:card>
                     
                     <flux:card>
@@ -123,15 +144,55 @@
 
                 <flux:separator />
 
-                <flux:heading size="md">Movimientos de la Caja</flux:heading>
-                {{-- Aquí es donde el agente luego pondrá la tabla de ingresos/egresos --}}
-                <div class="p-8 border border-dashed border-zinc-300 rounded-lg text-center text-zinc-500">
-                    Acá aparecerán los movimientos una vez programados.
+                <div class="flex justify-between items-center mt-6 mb-4">
+                    <flux:heading size="md">Movimientos de la Caja</flux:heading>
+                    
+                    @if(!$cajaSeleccionada->fecha_cierre)
+                    <div class="flex gap-2">
+                        <flux:button size="sm" icon="arrow-down-circle" variant="ghost" class="text-green-600 hover:text-green-700" wire:click="prepararMovimiento('INGRESO')">Registrar Ingreso</flux:button>
+                        <flux:button size="sm" icon="arrow-up-circle" variant="ghost" class="text-red-600 hover:text-red-700" wire:click="prepararMovimiento('EGRESO')">Registrar Egreso</flux:button>
+                    </div>
+                    @endif
+                </div>
+
+                <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <flux:table>
+                        <flux:table.columns>
+                            <flux:table.column>Tipo</flux:table.column>
+                            <flux:table.column>Motivo</flux:table.column>
+                            <flux:table.column>Medio de Pago</flux:table.column>
+                            <flux:table.column align="end">Monto</flux:table.column>
+                        </flux:table.columns>
+                        <flux:table.rows>
+                            @forelse($cajaSeleccionada->movimientos as $movimiento)
+                                <flux:table.row :key="$movimiento->id">
+                                    <flux:table.cell>
+                                        @if($movimiento->tipo_movimiento === 'INGRESO')
+                                            <flux:badge color="green" size="sm" inset="top bottom">Ingreso</flux:badge>
+                                        @else
+                                            <flux:badge color="red" size="sm" inset="top bottom">Egreso</flux:badge>
+                                        @endif
+                                    </flux:table.cell>
+                                    <flux:table.cell>{{ $movimiento->motivo }}</flux:table.cell>
+                                    <flux:table.cell>
+                                        {{ $movimiento->medioPago ? $movimiento->medioPago->nombre : 'N/A' }}
+                                    </flux:table.cell>
+                                    <flux:table.cell align="end">${{ number_format($movimiento->monto, 2) }}</flux:table.cell>
+                                </flux:table.row>
+                            @empty
+                                <flux:table.row>
+                                    <flux:table.cell colspan="4" class="text-center py-6 text-zinc-500">
+                                        No hay movimientos registrados.
+                                    </flux:table.cell>
+                                </flux:table.row>
+                            @endforelse
+                        </flux:table.rows>
+                    </flux:table>
                 </div>
 
                 <div class="flex justify-end gap-2 pt-4">
                     @if(!$cajaSeleccionada->fecha_cierre)
-                        <flux:button variant="danger" icon="lock-closed">Cerrar Turno (RF-07)</flux:button>
+                        <flux:button variant="danger" icon="lock-closed" wire:confirm="¿Estás seguro que deseas cerrar el turno actual? Esta acción no se puede deshacer." wire:click="cerrarCaja">Cerrar Turno (RF-07)</flux:button>
                     @endif
                     <flux:modal.close>
                         <flux:button variant="ghost">Cerrar Vista</flux:button>
@@ -139,5 +200,41 @@
                 </div>
             </div>
         @endif
+    </flux:modal>
+
+    {{-- MODAL 3: Registro de Ingresos/Egresos --}}
+    <flux:modal name="registro-movimiento-form" class="min-w-[30rem]">
+        <form wire:submit="registrarMovimiento" class="space-y-6">
+            <div>
+                <flux:heading size="lg">Registrar {{ ucfirst(strtolower($movimiento_tipo)) }}</flux:heading>
+                <flux:subheading>Por favor indíca el monto, motivo y medio de pago.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <flux:input 
+                    wire:model="movimiento_monto" 
+                    type="number" 
+                    step="0.01" 
+                    label="Monto ($)" 
+                    icon="currency-dollar" 
+                    required 
+                />
+                
+                <flux:select wire:model="movimiento_medio_pago" label="Medio de Pago" placeholder="Selecciona..." required>
+                    @foreach($this->mediosPago as $mp)
+                        <flux:select.option value="{{ $mp->id }}">{{ $mp->nombre }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+            </div>
+
+            <flux:input wire:model="movimiento_motivo" label="Motivo o Detalle" required />
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+                <flux:button type="submit" variant="primary">Guardar Movimiento</flux:button>
+            </div>
+        </form>
     </flux:modal>
 </div>

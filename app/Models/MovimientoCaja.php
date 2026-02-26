@@ -9,6 +9,7 @@ class MovimientoCaja extends Model
     protected $fillable = [
         'tipo_movimiento',
         'monto',
+        'motivo',
         'fecha_movimiento',
         'id_medio_pago',
         'id_caja',
