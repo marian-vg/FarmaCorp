@@ -1,8 +1,8 @@
 <?php
 
-use App\Livewire\Clients\ClientManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\ProfileManager;
+use App\Livewire\Clients\ClientManager;
 use App\Livewire\User\Dashboard as UserDashboard;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -11,7 +11,6 @@ use Livewire\Volt\Volt;
 Route::get('/', function () {
     return view('livewire.auth.login');
 })->name('principal-page')->middleware(['guest']);
-
 
 // This will make the login and register routes available to guests and not for users that are already logged in
 Route::middleware(['guest'])->group(function () {

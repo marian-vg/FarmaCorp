@@ -121,7 +121,7 @@ class ClientManagerTest extends TestCase
             ->call('deactivateClient')
             ->assertForbidden();
     }
-    
+
     public function test_admin_can_save_edit_and_deactivate()
     {
         $admin = User::factory()->create();

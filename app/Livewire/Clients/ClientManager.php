@@ -3,10 +3,10 @@
 namespace App\Livewire\Clients;
 
 use App\Models\Client;
+use Flux\Flux;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Clientes'])]
 class ClientManager extends Component
@@ -14,6 +14,7 @@ class ClientManager extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $statusFilter = 'all';
 
     public ?Client $editingClient = null;
@@ -77,7 +78,7 @@ class ClientManager extends Component
         $rules = [
             'clientContext.first_name' => 'required|string|max:255',
             'clientContext.last_name' => 'required|string|max:255',
-            'clientContext.email' => 'nullable|email|max:255|unique:clients,email' . ($this->editingClient ? ',' . $this->editingClient->id : ''),
+            'clientContext.email' => 'nullable|email|max:255|unique:clients,email'.($this->editingClient ? ','.$this->editingClient->id : ''),
             'clientContext.phone' => 'required|string|max:255',
             'clientContext.address' => 'required|string|max:255',
         ];
@@ -122,12 +123,12 @@ class ClientManager extends Component
         $query = Client::query();
 
         if ($this->search) {
-            $searchTerm = '%' . mb_strtolower($this->search) . '%';
+            $searchTerm = '%'.mb_strtolower($this->search).'%';
             $query->where(function ($q) use ($searchTerm) {
                 // Compatible con testing en SQLite también si es el caso
                 $q->whereRaw('LOWER(first_name) LIKE ?', [$searchTerm])
-                  ->orWhereRaw('LOWER(last_name) LIKE ?', [$searchTerm])
-                  ->orWhereRaw('LOWER(phone) LIKE ?', [$searchTerm]);
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', [$searchTerm])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', [$searchTerm]);
             });
         }
 

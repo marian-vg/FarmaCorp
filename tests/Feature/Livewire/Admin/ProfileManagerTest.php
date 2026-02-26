@@ -18,7 +18,7 @@ class ProfileManagerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         Role::firstOrCreate(['name' => 'admin']);
         Permission::firstOrCreate(['name' => 'edit-users']);
         Permission::firstOrCreate(['name' => 'delete-users']);
@@ -104,6 +104,52 @@ class ProfileManagerTest extends TestCase
 
         $this->assertDatabaseMissing('profiles', [
             'id' => $profile->id,
+        ]);
+    }
+
+    public function test_can_create_permission()
+    {
+        Livewire::test(ProfileManager::class)
+            ->set('permissionContext.name', 'test_permission')
+            ->set('permissionContext.description', 'A test permission')
+            ->call('savePermission')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('permissions', [
+            'name' => 'test_permission',
+            'description' => 'A test permission',
+        ]);
+    }
+
+    public function test_can_edit_permission()
+    {
+        $permission = Permission::create(['name' => 'old_permission']);
+
+        Livewire::test(ProfileManager::class)
+            ->call('editPermission', $permission->id)
+            ->set('permissionContext.name', 'updated_permission')
+            ->set('permissionContext.description', 'Updated description')
+            ->call('savePermission')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('permissions', [
+            'id' => $permission->id,
+            'name' => 'updated_permission',
+            'description' => 'Updated description',
+        ]);
+    }
+
+    public function test_can_delete_permission()
+    {
+        $permission = Permission::create(['name' => 'delete_permission']);
+
+        Livewire::test(ProfileManager::class)
+            ->call('confirmDeletePermission', $permission->id)
+            ->call('deletePermission')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseMissing('permissions', [
+            'id' => $permission->id,
         ]);
     }
 }

@@ -3,18 +3,25 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Profile;
-use Spatie\Permission\Models\Permission;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
-use Livewire\Component;
 use Flux\Flux;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
+use Spatie\Permission\Models\Permission;
 
 #[Layout('components.layouts.app', ['title' => 'Profile Manager'])]
 class ProfileManager extends Component
 {
     public ?Profile $editingProfile = null;
 
+    public ?Permission $editingPermission = null;
+
     public array $profileContext = [
+        'name' => '',
+        'description' => '',
+    ];
+
+    public array $permissionContext = [
         'name' => '',
         'description' => '',
     ];
@@ -60,7 +67,7 @@ class ProfileManager extends Component
     public function saveProfile()
     {
         $rules = [
-            'profileContext.name' => 'required|string|max:255|unique:profiles,name' . ($this->editingProfile ? ',' . $this->editingProfile->id : ''),
+            'profileContext.name' => 'required|string|max:255|unique:profiles,name'.($this->editingProfile ? ','.$this->editingProfile->id : ''),
             'profileContext.description' => 'nullable|string',
         ];
 
@@ -86,6 +93,62 @@ class ProfileManager extends Component
             Flux::modal('confirm-delete-profile')->close();
             $this->reset(['editingProfile']);
         }
+    }
+
+    // Permission CRUD Logic
+    public function createPermission()
+    {
+        $this->reset(['permissionContext', 'editingPermission']);
+        Flux::modal('permission-form')->show();
+    }
+
+    public function editPermission(Permission $permission)
+    {
+        $this->editingPermission = $permission;
+        $this->permissionContext = [
+            'name' => $permission->name,
+            'description' => $permission->description,
+        ];
+        Flux::modal('permission-form')->show();
+    }
+
+    public function savePermission()
+    {
+        $rules = [
+            'permissionContext.name' => 'required|string|max:255|unique:permissions,name'.($this->editingPermission ? ','.$this->editingPermission->id : ''),
+            'permissionContext.description' => 'required|string|max:255',
+        ];
+
+        $this->validate($rules);
+
+        if ($this->editingPermission) {
+            $this->editingPermission->update($this->permissionContext);
+        } else {
+            Permission::create($this->permissionContext);
+        }
+
+        Flux::modal('permission-form')->close();
+        $this->reset(['permissionContext', 'editingPermission']);
+    }
+
+    public function confirmDeletePermission(Permission $permission)
+    {
+        $this->editingPermission = $permission;
+        Flux::modal('confirm-delete-permission')->show();
+    }
+
+    public function deletePermission()
+    {
+        if ($this->editingPermission) {
+            $this->editingPermission->delete();
+            Flux::modal('confirm-delete-permission')->close();
+            $this->reset(['editingPermission']);
+        }
+    }
+
+    public function showPermissionsList()
+    {
+        Flux::modal('permissions-list')->show();
     }
 
     public function render()

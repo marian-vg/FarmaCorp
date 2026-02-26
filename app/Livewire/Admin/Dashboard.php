@@ -2,27 +2,29 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Profile;
 use App\Models\User;
 use Flux\Flux;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Computed;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
-use App\Models\Profile;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Lazy;
 use Livewire\Component;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 #[Layout('components.layouts.app', ['title' => 'Admin Dashboard'])]
 #[Lazy]
 class Dashboard extends Component
 {
     public string $search = '';
+
     public string $statusFilter = 'all'; // all, active, inactive
+
     public string $roleFilter = '';
 
     public string $newPassword = '';
+
     public string $newPasswordConfirmation = '';
 
     public array $newUserContext = [
@@ -34,8 +36,11 @@ class Dashboard extends Component
     ];
 
     public ?User $editingUser = null;
+
     public array $selectedRoles = [];
+
     public array $selectedPermissions = [];
+
     public array $selectedProfiles = [];
 
     #[Computed]
@@ -160,10 +165,10 @@ class Dashboard extends Component
         $query = User::with(['roles.permissions', 'permissions']);
 
         if ($this->search) {
-            $searchTerm = '%' . mb_strtolower($this->search) . '%';
+            $searchTerm = '%'.mb_strtolower($this->search).'%';
             $query->where(function ($q) use ($searchTerm) {
                 $q->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
-                  ->orWhereRaw('LOWER(email) LIKE ?', [$searchTerm]);
+                    ->orWhereRaw('LOWER(email) LIKE ?', [$searchTerm]);
             });
         }
 

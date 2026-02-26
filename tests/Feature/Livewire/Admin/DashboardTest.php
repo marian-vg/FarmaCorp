@@ -3,12 +3,12 @@
 namespace Tests\Feature\Livewire\Admin;
 
 use App\Livewire\Admin\Dashboard;
+use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
-use App\Models\Profile;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -18,7 +18,7 @@ class DashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         Role::firstOrCreate(['name' => 'admin']);
     }
 
@@ -63,6 +63,7 @@ class DashboardTest extends TestCase
             ->get(route('admin.dashboard'))
             ->assertStatus(403);
     }
+
     public function test_admin_can_search_users()
     {
         $admin = User::factory()->create();
@@ -138,7 +139,7 @@ class DashboardTest extends TestCase
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
-        
+
         $user = User::factory()->create();
         Role::firstOrCreate(['name' => 'editor']);
 
@@ -156,7 +157,7 @@ class DashboardTest extends TestCase
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
-        
+
         $user = User::factory()->create();
         Permission::firstOrCreate(['name' => 'publish-articles']);
 
@@ -174,7 +175,7 @@ class DashboardTest extends TestCase
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
-        
+
         $user = User::factory()->create();
         $profile = Profile::create(['name' => 'Biller', 'description' => 'Billing profile']);
 
