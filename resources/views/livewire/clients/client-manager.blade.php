@@ -9,9 +9,9 @@
                 <flux:select.option value="active">Activos</flux:select.option>
                 <flux:select.option value="inactive">Inactivos</flux:select.option>
             </flux:select>
-            @role('admin')
+            @hasanyrole('admin|empleado')
                 <flux:button icon="plus" wire:click="createClient" variant="primary">Nuevo Cliente</flux:button>
-            @endrole
+            @endhasanyrole
         </div>
     </div>
 
@@ -51,14 +51,14 @@
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="eye" variant="ghost" wire:click="viewClient({{ $client->id }})" />
                                 
-                                @role('admin')
+                                @hasanyrole('admin|empleado')
                                     <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editClient({{ $client->id }})" />
                                     @if($client->is_active)
                                         <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDeactivate({{ $client->id }})" />
                                     @else
                                         <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateClient({{ $client->id }})" />
                                     @endif
-                                @endrole
+                                @endhasanyrole
                             </div>
                         </td>
                     </tr>

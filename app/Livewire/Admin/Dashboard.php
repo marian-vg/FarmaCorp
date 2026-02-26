@@ -23,6 +23,8 @@ class Dashboard extends Component
 
     public string $roleFilter = '';
 
+    public int $alertDays = 30;
+
     public string $newPassword = '';
 
     public string $newPasswordConfirmation = '';
@@ -37,11 +39,35 @@ class Dashboard extends Component
 
     public ?User $editingUser = null;
 
+    public array $editUserContext = [
+        'name' => '',
+        'email' => '',
+        'is_active' => false,
+    ];
+
     public array $selectedRoles = [];
 
     public array $selectedPermissions = [];
 
     public array $selectedProfiles = [];
+
+    public function mount()
+    {
+        $setting = \App\Models\Setting::where('key', 'alert_days')->first();
+        if ($setting) {
+            $this->alertDays = (int) $setting->value;
+        }
+    }
+
+    public function saveAlertDays()
+    {
+        $this->validate(['alertDays' => 'required|integer|min:1|max:365']);
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'alert_days'],
+            ['value' => (string) $this->alertDays]
+        );
+        Flux::toast('Configuración guardada correctamente.');
+    }
 
     #[Computed]
     public function roles()
@@ -143,6 +169,45 @@ class Dashboard extends Component
         $user->save();
     }
 
+    public function editUser(User $user)
+    {
+        $this->editingUser = $user;
+        $this->editUserContext = [
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_active' => (bool) $user->is_active,
+        ];
+        $this->selectedRoles = $user->roles->pluck('name')->toArray();
+        $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
+
+        Flux::modal('edit-user')->show();
+    }
+
+    public function updateUser()
+    {
+        if (! $this->editingUser) {
+            return;
+        }
+
+        $this->validate([
+            'editUserContext.name' => 'required|string|max:255',
+            'editUserContext.email' => 'required|string|email|max:255|unique:users,email,'.$this->editingUser->id,
+            'editUserContext.is_active' => 'boolean',
+        ]);
+
+        $this->editingUser->update([
+            'name' => $this->editUserContext['name'],
+            'email' => $this->editUserContext['email'],
+            'is_active' => $this->editUserContext['is_active'],
+        ]);
+
+        $this->editingUser->syncRoles($this->selectedRoles);
+        $this->editingUser->syncPermissions($this->selectedPermissions);
+
+        Flux::modal('edit-user')->close();
+        $this->reset(['editUserContext', 'selectedRoles', 'selectedPermissions', 'editingUser']);
+    }
+
     public function updatePassword(User $user)
     {
         $this->validate([
@@ -186,8 +251,14 @@ class Dashboard extends Component
 
         $users = $query->get();
 
+        $expiringMedicines = \App\Models\Medicine::query()
+            ->where('expiration_date', '<=', now()->addDays($this->alertDays))
+            ->orderBy('expiration_date', 'asc')
+            ->get();
+
         return view('livewire.admin.dashboard', [
             'users' => $users,
+            'expiringMedicines' => $expiringMedicines,
         ]);
     }
 }

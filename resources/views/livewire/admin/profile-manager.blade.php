@@ -147,7 +147,7 @@
                                     <flux:text class="font-medium">{{ $permission->name }}</flux:text>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <flux:text class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-sm">{{ $permission->description }}</flux:text>
+                                    <flux:text class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-sm">{{ substr($permission->description, 0, 20) . "..." }}</flux:text>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right">
                                     <div class="flex justify-end gap-2">

@@ -69,18 +69,22 @@ class ClientManagerTest extends TestCase
             ->assertSee('John Doe');
     }
 
-    public function test_empleado_cannot_save_client()
+    public function test_empleado_can_save_client()
     {
         $empleado = User::factory()->create();
         $empleado->assignRole('empleado');
 
         Livewire::actingAs($empleado)
             ->test(ClientManager::class)
+            ->set('clientContext.first_name', 'Empleado')
+            ->set('clientContext.last_name', 'Client')
+            ->set('clientContext.phone', '5551234')
+            ->set('clientContext.address', 'New St')
             ->call('saveClient')
-            ->assertForbidden();
+            ->assertHasNoErrors();
     }
 
-    public function test_empleado_cannot_edit_client()
+    public function test_empleado_can_edit_client()
     {
         $client = Client::create([
             'first_name' => 'Old',
@@ -95,10 +99,10 @@ class ClientManagerTest extends TestCase
         Livewire::actingAs($empleado)
             ->test(ClientManager::class)
             ->call('editClient', $client->id)
-            ->assertForbidden();
+            ->assertHasNoErrors();
     }
 
-    public function test_empleado_cannot_deactivate_client()
+    public function test_empleado_can_deactivate_client()
     {
         $client = Client::create([
             'first_name' => 'Logical',
@@ -114,12 +118,13 @@ class ClientManagerTest extends TestCase
         Livewire::actingAs($empleado)
             ->test(ClientManager::class)
             ->call('confirmDeactivate', $client->id)
-            ->assertForbidden();
+            ->assertHasNoErrors();
 
         Livewire::actingAs($empleado)
             ->test(ClientManager::class)
+            ->set('editingClient', $client)
             ->call('deactivateClient')
-            ->assertForbidden();
+            ->assertHasNoErrors();
     }
 
     public function test_admin_can_save_edit_and_deactivate()

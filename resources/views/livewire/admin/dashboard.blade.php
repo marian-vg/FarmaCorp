@@ -1,4 +1,53 @@
 <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
+    <div class="grid grid-cols-1 gap-4 mb-2 mt-4">
+        <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">
+            <flux:heading size="lg">Configuración de Alertas</flux:heading>
+            <flux:subheading>Define con cuántos días de anticipación deseas ver los medicamentos próximos a vencer.</flux:subheading>
+    
+            <form wire:submit.prevent="saveAlertDays" class="mt-4 flex items-end gap-4">
+                <flux:input type="number" wire:model="alertDays" label="Período de anticipación (en días)" min="1" max="365" class="w-48" />
+                <flux:button type="submit" variant="primary">Guardar Configuración</flux:button>
+            </form>
+    
+            <div class="mt-6 w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+                    <thead class="bg-gray-50 dark:bg-zinc-800">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Lote</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+                        @forelse($expiringMedicines as $medicine)
+                            @php
+                                $expireDate = \Carbon\Carbon::parse($medicine->expiration_date)->startOfDay();
+                                $daysLeft = (int) now()->startOfDay()->diffInDays($expireDate, false);
+                                $isCritical = $daysLeft <= 15; // critical if 15 days or less
+                            @endphp
+                            <tr class="{{ $isCritical ? 'bg-red-50 dark:bg-red-900/20' : '' }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $isCritical ? 'text-red-700 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $medicine->name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $medicine->batch_number }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isCritical ? 'text-red-600 dark:text-red-400 font-bold' : 'text-zinc-500 dark:text-zinc-400' }}">
+                                    {{ \Carbon\Carbon::parse($medicine->expiration_date)->format('d/m/Y') }}
+                                    <span class="ml-2 text-xs">({{ $daysLeft > 0 ? "en $daysLeft días" : ($daysLeft === 0 ? 'hoy' : 'vencido') }})</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $medicine->stock }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                                    No hay medicamentos próximos a vencer en los próximos {{ $alertDays }} días.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 
     <div class="flex justify-between items-center">
         <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
@@ -112,6 +161,7 @@
 
                         <td class="px-6 py-4 whitespace-nowrap text-right">
                             <div class="flex justify-end gap-2">
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editUser({{ $user->id }})" />
                                 <flux:modal.trigger name="reset-password-{{ $user->id }}">
                                     <flux:button size="sm" icon="key" variant="ghost" />
                                 </flux:modal.trigger>
@@ -173,6 +223,51 @@
     </div>
 
     <!-- Centralized Modals -->
+    <flux:modal name="edit-user" class="min-w-[40rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Editar Usuario</flux:heading>
+                <flux:subheading>Actualiza la información básica, estado, perfiles y permisos directos del usuario.</flux:subheading>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <flux:input wire:model="editUserContext.name" label="Nombre completo" required />
+                <flux:input wire:model="editUserContext.email" type="email" label="Correo electrónico" required />
+            </div>
+
+            <flux:switch wire:model="editUserContext.is_active" label="Estado Activo" description="Permite o bloquea el acceso al sistema." />
+
+            <flux:separator />
+
+            <div class="grid grid-cols-2 gap-6">
+                <div class="space-y-3">
+                    <flux:heading size="sm">Roles de Spatie (Perfiles)</flux:heading>
+                    <div class="space-y-2 max-h-60 overflow-y-auto">
+                        @foreach($this->roles as $role)
+                            <flux:checkbox wire:model="selectedRoles" value="{{ $role->name }}" label="{{ str($role->name)->headline() }}" />
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <flux:heading size="sm">Permisos Directos</flux:heading>
+                    <div class="space-y-2 max-h-60 overflow-y-auto">
+                        @foreach($this->permissions as $permission)
+                            <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->name)->headline() }}" />
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cancelar</flux:button>
+                </flux:modal.close>
+                <flux:button variant="primary" wire:click="updateUser">Guardar Cambios</flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
     <flux:modal name="edit-roles" class="min-w-[22rem]">
         <div class="space-y-6">
             <div>

@@ -39,7 +39,7 @@ class ClientManager extends Component
 
     public function createClient()
     {
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $this->reset(['clientContext', 'editingClient']);
         Flux::modal('client-form')->show();
     }
@@ -59,7 +59,7 @@ class ClientManager extends Component
 
     public function editClient(Client $client)
     {
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $this->editingClient = $client;
         $this->clientContext = [
             'first_name' => $client->first_name,
@@ -73,7 +73,7 @@ class ClientManager extends Component
 
     public function saveClient()
     {
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
 
         $rules = [
             'clientContext.first_name' => 'required|string|max:255',
@@ -97,14 +97,14 @@ class ClientManager extends Component
 
     public function confirmDeactivate(Client $client)
     {
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $this->editingClient = $client;
         Flux::modal('confirm-deactivation-client')->show();
     }
 
     public function deactivateClient()
     {
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         if ($this->editingClient) {
             $this->editingClient->update(['is_active' => false]);
             Flux::modal('confirm-deactivation-client')->close();
@@ -114,7 +114,7 @@ class ClientManager extends Component
 
     public function reactivateClient(Client $client)
     {
-        abort_unless(auth()->user()->hasRole('admin'), 403);
+        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $client->update(['is_active' => true]);
     }
 

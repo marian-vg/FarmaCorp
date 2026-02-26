@@ -188,4 +188,50 @@ class DashboardTest extends TestCase
 
         $this->assertTrue($user->fresh()->profiles->contains($profile->id));
     }
+
+    public function test_admin_can_edit_and_update_user()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $targetUser = User::factory()->create([
+            'name' => 'Old Name',
+            'email' => 'old@mail.com',
+            'is_active' => true,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->call('editUser', $targetUser->id)
+            ->assertSet('editUserContext.name', 'Old Name')
+            ->set('editUserContext.name', 'New Name')
+            ->set('editUserContext.email', 'new@mail.com')
+            ->set('editUserContext.is_active', false)
+            ->call('updateUser')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('users', [
+            'id' => $targetUser->id,
+            'name' => 'New Name',
+            'email' => 'new@mail.com',
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_admin_can_save_alert_days()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->set('alertDays', 15)
+            ->call('saveAlertDays')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('settings', [
+            'key' => 'alert_days',
+            'value' => '15',
+        ]);
+    }
 }
