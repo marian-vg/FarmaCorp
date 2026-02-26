@@ -22,7 +22,7 @@ class ProfileManager extends Component
     ];
 
     public array $permissionContext = [
-        'name' => '',
+        'display_name' => '',
         'description' => '',
     ];
 
@@ -106,7 +106,7 @@ class ProfileManager extends Component
     {
         $this->editingPermission = $permission;
         $this->permissionContext = [
-            'name' => $permission->name,
+            'display_name' => $permission->display_name ?? $permission->name,
             'description' => $permission->description,
         ];
         Flux::modal('permission-form')->show();
@@ -115,17 +115,36 @@ class ProfileManager extends Component
     public function savePermission()
     {
         $rules = [
-            'permissionContext.name' => 'required|string|max:255|unique:permissions,name'.($this->editingPermission ? ','.$this->editingPermission->id : ''),
+            'permissionContext.display_name' => 'required|string|max:255',
             'permissionContext.description' => 'required|string|max:255',
         ];
 
         $this->validate($rules);
 
         if ($this->editingPermission) {
-            $this->editingPermission->update($this->permissionContext);
+            $this->editingPermission->update([
+                'display_name' => $this->permissionContext['display_name'],
+                'description' => $this->permissionContext['description'],
+            ]);
         } else {
-            Permission::create($this->permissionContext);
+            // Generar el slug para el nombre interno
+            $slugName = \Illuminate\Support\Str::slug($this->permissionContext['display_name']);
+            
+            // Si el slug ya existe, lanzar error de validación manual
+            if (Permission::where('name', $slugName)->exists()) {
+                $this->addError('permissionContext.display_name', 'Ya existe un permiso con este nombre base.');
+                return;
+            }
+
+            Permission::create([
+                'name' => $slugName,
+                'display_name' => $this->permissionContext['display_name'],
+                'description' => $this->permissionContext['description'],
+            ]);
         }
+
+        // Limpiar la caché de Spatie según la documentación oficial
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         Flux::modal('permission-form')->close();
         $this->reset(['permissionContext', 'editingPermission']);

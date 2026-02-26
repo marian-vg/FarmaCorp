@@ -69,7 +69,7 @@
                 <flux:text class="font-medium mb-2 block">Permisos del Sistema</flux:text>
                 <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 border border-solid border-gray-200 dark:border-zinc-700 rounded-md">
                     @foreach($this->permissions as $permission)
-                        <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->name)->headline() }}" />
+                        <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->display_name ?? $permission->name)->headline() }}" />
                     @endforeach
                 </div>
             </div>
@@ -111,7 +111,7 @@
             </div>
 
             <div class="space-y-4">
-                <flux:input wire:model="permissionContext.name" label="Nombre (Slug)" placeholder="ej. editar_usuarios" required />
+                <flux:input wire:model="permissionContext.display_name" label="Nombre del Permiso" placeholder="ej. Crear Usuario" required />
                 <flux:input wire:model="permissionContext.description" label="Descripción" placeholder="Breve descripción humana" required />
             </div>
 
@@ -144,7 +144,7 @@
                         @forelse($this->permissions as $permission)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <flux:text class="font-medium">{{ $permission->name }}</flux:text>
+                                    <flux:text class="font-medium">{{ $permission->display_name ?? $permission->name }}</flux:text>
                                 </td>
                                 <td class="px-6 py-4">
                                     <flux:text class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-sm">{{ substr($permission->description, 0, 20) . "..." }}</flux:text>
@@ -183,7 +183,7 @@
             </div>
 
             <flux:text class="text-left whitespace-normal">
-                Esta acción borrará el permiso <strong>{{ $editingPermission?->name }}</strong>. Los perfiles que lo tengan asignado perderán esta capacidad.
+                Esta acción borrará el permiso <strong>{{ $editingPermission?->display_name ?? $editingPermission?->name }}</strong>. Los perfiles que lo tengan asignado perderán esta capacidad.
             </flux:text>
 
             <div class="flex justify-end gap-2">

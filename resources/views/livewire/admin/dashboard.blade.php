@@ -127,7 +127,7 @@
                                 <flux:select class="w-40" aria-label="Permisos del usuario" size="sm">
                                     @forelse($user->getDirectPermissions() as $permission)
                                         <flux:select.option size="sm" value="{{ $permission->name }}">
-                                            {{ str($permission->name)->headline() }}
+                                            {{ str($permission->display_name ?? $permission->name)->headline() }}
                                         </flux:select.option>
                                     @empty
                                         <flux:select.option size="sm" value="" selected>Ningun Permiso</flux:select.option>
@@ -235,7 +235,7 @@
                 <flux:input wire:model="editUserContext.email" type="email" label="Correo electrónico" required />
             </div>
 
-            <flux:switch wire:model="editUserContext.is_active" label="Estado Activo" description="Permite o bloquea el acceso al sistema." />
+            <flux:switch wire:model="editUserContext.is_active" label="Estado {{ $user->is_active ? 'Activo' : 'Inactivo' }}" description="Permite o bloquea el acceso al sistema." />
 
             <flux:separator />
 
@@ -299,7 +299,7 @@
 
             <div class="space-y-2 max-h-60 overflow-y-auto">
                 @foreach($this->permissions as $permission)
-                    <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->name)->headline() }}" />
+                    <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->display_name ?? $permission->name)->headline() }}" />
                 @endforeach
             </div>
 

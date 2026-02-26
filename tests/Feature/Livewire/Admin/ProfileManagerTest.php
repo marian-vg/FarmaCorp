@@ -110,31 +110,36 @@ class ProfileManagerTest extends TestCase
     public function test_can_create_permission()
     {
         Livewire::test(ProfileManager::class)
-            ->set('permissionContext.name', 'test_permission')
+            ->set('permissionContext.display_name', 'Test Permission')
             ->set('permissionContext.description', 'A test permission')
             ->call('savePermission')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('permissions', [
-            'name' => 'test_permission',
+            'name' => 'test-permission', // Slugified
+            'display_name' => 'Test Permission',
             'description' => 'A test permission',
         ]);
     }
 
     public function test_can_edit_permission()
     {
-        $permission = Permission::create(['name' => 'old_permission']);
+        $permission = Permission::create([
+            'name' => 'old-permission',
+            'display_name' => 'Old Permission'
+        ]);
 
         Livewire::test(ProfileManager::class)
             ->call('editPermission', $permission->id)
-            ->set('permissionContext.name', 'updated_permission')
+            ->set('permissionContext.display_name', 'Updated Permission')
             ->set('permissionContext.description', 'Updated description')
             ->call('savePermission')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('permissions', [
             'id' => $permission->id,
-            'name' => 'updated_permission',
+            'name' => 'old-permission', // Immutable slug
+            'display_name' => 'Updated Permission',
             'description' => 'Updated description',
         ]);
     }
@@ -151,5 +156,45 @@ class ProfileManagerTest extends TestCase
         $this->assertDatabaseMissing('permissions', [
             'id' => $permission->id,
         ]);
+    }
+
+    public function test_permission_update_clears_cache_and_keeps_slug_intact()
+    {
+        $user = User::factory()->create();
+        
+        $permission = Permission::create([
+            'name' => 'crear-usuario',
+            'display_name' => 'Crear Usuario',
+            'description' => 'Permite crear'
+        ]);
+
+        $user->givePermissionTo($permission);
+        
+        $this->assertTrue($user->hasPermissionTo('crear-usuario'));
+
+        Livewire::actingAs($user)
+            ->test(ProfileManager::class)
+            ->call('editPermission', $permission->id)
+            ->set('permissionContext.display_name', 'Crear Nuevo Usuario')
+            ->set('permissionContext.description', 'Nueva descripcion')
+            ->call('savePermission')
+            ->assertHasNoErrors();
+
+        $permission->refresh();
+        $this->assertEquals('crear-usuario', $permission->name); // slug unchanged
+        $this->assertEquals('Crear Nuevo Usuario', $permission->display_name);
+        
+        // El cache ha sido invalidado automáticamente en Livewire. Resfresh del usuario para comprobar.
+        $user->refresh();
+        $this->assertTrue($user->hasPermissionTo('crear-usuario'));
+        
+        // Assert we don't have a newly named permission giving access falsely
+        // Spatie throws an exception if the permission doesn't exist in the DB at all
+        try {
+            $user->hasPermissionTo('crear-nuevo-usuario');
+            $this->fail('Expected PermissionDoesNotExist exception was not thrown.');
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist $e) {
+            $this->assertTrue(true);
+        }
     }
 }
