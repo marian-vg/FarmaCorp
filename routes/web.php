@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\CajaManager;
 use App\Livewire\Admin\ClientManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\ProfileManager;
@@ -38,6 +39,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/profiles', ProfileManager::class)->name('admin.profiles');
     Route::get('admin/permissions', PermissionManager::class)->name('admin.permissions');
     Route::get('admin/clients', ClientManager::class)->name('admin.clients');
+    Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
     });
 
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
