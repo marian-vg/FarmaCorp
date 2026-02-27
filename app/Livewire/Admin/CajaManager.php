@@ -8,11 +8,14 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed; // Para los datos reactivos
 use Livewire\Component;
+use Livewire\WithPagination;
 use Flux\Flux;
 
 #[Layout('components.layouts.app')]
 class CajaManager extends Component
 {
+    use WithPagination;
+
     public $monto_inicial = '';
     public $user_id = ''; // Nueva propiedad para elegir el usuario
 
@@ -22,12 +25,44 @@ class CajaManager extends Component
     public $movimiento_medio_pago = '';
     public $movimiento_tipo = ''; // INGRESO o EGRESO
 
-    // 1. OBTENER TODAS LAS CAJAS PARA LA TABLA
+    // Propiedades para Filtros Paginados (RF-04)
+    public string $search = '';
+    public string $filtro_usuario = '';
+    public string $fecha_desde = '';
+    public string $fecha_hasta = '';
+
+    public function updatedSearch() { $this->resetPage(); }
+    public function updatedFiltroUsuario() { $this->resetPage(); }
+    public function updatedFechaDesde() { $this->resetPage(); }
+    public function updatedFechaHasta() { $this->resetPage(); }
+
+    public function limpiarFiltros()
+    {
+        $this->reset(['search', 'filtro_usuario', 'fecha_desde', 'fecha_hasta']);
+        $this->resetPage();
+    }
+
+    // 1. OBTENER TODAS LAS CAJAS PARA LA TABLA (Paginado y Filtrado)
     #[Computed]
     public function cajas()
     {
-        // Traemos las cajas con sus usuarios (relación Credencial del PDF)
-        return Caja::with('user')->orderBy('fecha_apertura', 'desc')->get();
+        return Caja::with('user')
+            ->when($this->search, function ($query) {
+                $query->whereHas('user', function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->filtro_usuario, function ($query) {
+                $query->where('user_id', $this->filtro_usuario);
+            })
+            ->when($this->fecha_desde, function ($query) {
+                $query->whereDate('fecha_apertura', '>=', $this->fecha_desde);
+            })
+            ->when($this->fecha_hasta, function ($query) {
+                $query->whereDate('fecha_apertura', '<=', $this->fecha_hasta);
+            })
+            ->orderBy('fecha_apertura', 'desc')
+            ->paginate(10);
     }
 
     // 2. OBTENER USUARIOS PARA EL DROPDOWN

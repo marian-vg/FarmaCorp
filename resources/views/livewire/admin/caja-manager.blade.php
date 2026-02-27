@@ -8,6 +8,25 @@
         </flux:modal.trigger>
     </div>
 
+    {{-- Filtros y Búsqueda (RF-04) --}}
+    <div class="flex flex-wrap items-end gap-4 mb-2">
+        <div class="flex-1">
+            <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por usuario..." class="min-w-64" />
+        </div>
+        
+        <flux:select wire:model.live="filtro_usuario" placeholder="Filtrar por Empleado" class="w-48">
+            <flux:select.option value="">Todos los empleados</flux:select.option>
+            @foreach($this->usuarios as $u)
+                <flux:select.option value="{{ $u->id }}">{{ $u->name }}</flux:select.option>
+            @endforeach
+        </flux:select>
+
+        <flux:input wire:model.live="fecha_desde" type="date" label="Desde" class="w-40" />
+        <flux:input wire:model.live="fecha_hasta" type="date" label="Hasta" class="w-40" />
+
+        <flux:button wire:click="limpiarFiltros" variant="outline" icon="trash">Limpiar</flux:button>
+    </div>
+
     {{-- Tabla Principal --}}
     <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
         <flux:table>
@@ -71,6 +90,11 @@
                 @endforelse
             </flux:table.rows>
         </flux:table>
+    </div>
+
+    {{-- Paginación --}}
+    <div class="mt-4">
+        {{ $this->cajas->links() }}
     </div>
 
     {{-- MODAL 1: Formulario de Apertura (RF-01) --}}
