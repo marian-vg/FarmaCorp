@@ -47,7 +47,15 @@ class Dashboard extends Component
     #[Computed]
     public function permissions()
     {
-        return Permission::all();
+        $allPermissions = Permission::all();
+        
+        if ($this->editingUser && $this->editingUser->hasRole('empleado')) {
+            return $allPermissions->filter(function ($permission) {
+                return !str($permission->name)->contains(['user', 'role', 'permission', 'profile']);
+            });
+        }
+        
+        return $allPermissions;
     }
 
     #[Computed]
@@ -81,6 +89,18 @@ class Dashboard extends Component
     public function savePermissions()
     {
         if ($this->editingUser) {
+            if ($this->editingUser->hasRole('empleado')) {
+                $hasAdminPermissions = collect($this->selectedPermissions)->contains(function ($name) {
+                    return str($name)->contains(['user', 'role', 'permission', 'profile']);
+                });
+
+                if ($hasAdminPermissions) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'selectedPermissions' => 'Bloqueo de Seguridad: No se pueden asignar permisos administrativos a un perfil de empleado.',
+                    ]);
+                }
+            }
+
             $this->editingUser->syncPermissions($this->selectedPermissions);
             Flux::modal('edit-permissions')->close();
         }

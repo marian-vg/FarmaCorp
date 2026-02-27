@@ -30,11 +30,15 @@ class DatabaseSeeder extends Seeder
 
         $user->assignRole($adminRole);
 
-        User::factory()->create([
+        $user2 =User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@test.com',
             'password' => 'password',
             'is_active' => true,
         ]);
+
+        $empleadoRole = Role::create(['name' => 'empleado']);
+
+        $user2->assignRole($empleadoRole);
     }
 }

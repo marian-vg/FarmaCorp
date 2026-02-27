@@ -8,7 +8,7 @@
         <flux:input wire:model="newUserContext.name" label="Nombre" placeholder="Andres Calamaro" required />
         <flux:input wire:model="newUserContext.email" type="email" label="Correo Electrónico" placeholder="andres@farmacorp.com" required />
         
-        <flux:select wire:model="newUserContext.role" label="Perfil" placeholder="Selecciona un perfil" required>
+        <flux:select wire:model="newUserContext.role" label="Rol" placeholder="Selecciona un rol" required>
             @foreach($this->roles as $role)
                 <flux:select.option value="{{ $role->name }}">{{ str($role->name)->headline() }}</flux:select.option>
             @endforeach

@@ -13,6 +13,7 @@
             <thead class="bg-gray-50 dark:bg-zinc-800">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Identificador</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nivel de Acceso</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Descripción Funcional</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
                 </tr>
@@ -23,6 +24,13 @@
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <flux:text class="font-mono text-xs font-bold text-indigo-600 dark:text-indigo-400">{{ $permission->name }}</flux:text>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            @if(str($permission->name)->contains(['user', 'role', 'permission', 'profile']))
+                                <flux:badge color="red" inset="top bottom">Administrativo</flux:badge>
+                            @else
+                                <flux:badge color="green" inset="top bottom">Operativo</flux:badge>
+                            @endif
                         </td>
                         <td class="px-6 py-4">
                             <flux:text class="text-sm">{{ $permission->description ?: 'Sin descripción' }}</flux:text>
@@ -36,7 +44,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3" class="px-6 py-4 text-center">
+                        <td colspan="4" class="px-6 py-4 text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No hay permisos creados.</flux:text>
                         </td>
                     </tr>
