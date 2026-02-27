@@ -7,28 +7,28 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Producto extends Model
+class Product extends Model
 {
-    /** @use HasFactory<\Database\Factories\ProductoFactory> */
+    /** @use HasFactory<\Database\Factories\ProductFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'nombre',
-        'descripcion',
-        'precio',
-        'estado',
+        'name',
+        'description',
+        'price',
+        'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'precio' => 'decimal:2',
-            'estado' => 'boolean',
+            'price' => 'decimal:2',
+            'status' => 'boolean',
         ];
     }
 
-    public function medicamento(): HasOne
+    public function medicine(): HasOne
     {
-        return $this->hasOne(Medicamento::class);
+        return $this->hasOne(Medicine::class);
     }
 }
