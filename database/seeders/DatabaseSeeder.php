@@ -40,5 +40,9 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $testUser->assignRole($empleadoRole);
+
+        $this->call([
+            ProductoSeeder::class,
+        ]);
     }
 }

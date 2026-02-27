@@ -1,4 +1,6 @@
 <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
+    <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
+    
     <div class="grid grid-cols-1 gap-4 mb-2 mt-4">
         <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">
             <flux:heading size="lg">Configuración de Alertas</flux:heading>
@@ -50,7 +52,7 @@
 
 
     <div class="flex justify-between items-center">
-        <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
+        
 
         <div class="flex justify-end items-center gap-4">
             <div class="flex items-center space-x-4">

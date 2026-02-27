@@ -13,6 +13,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Permisos</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Perfiles</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
                     </tr>
                 </thead>
 
@@ -35,6 +36,10 @@
 
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <flux:skeleton.line class="w-24" />
+                            </td>
+
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <flux:skeleton class="w-16 h-6 rounded-md" />
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap">
