@@ -40,6 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/groups', GroupManager::class)->name('admin.groups');
         Route::get('admin/products', ProductManager::class)->name('admin.products');
         Route::get('admin/medicines', MedicineManager::class)->name('admin.medicines');
+        Route::get('admin/stock/ingresos', \App\Livewire\Admin\StockIngresoManager::class)->name('admin.stock.ingresos');
     });
 
     Route::middleware(['role:admin|empleado'])->group(function () {

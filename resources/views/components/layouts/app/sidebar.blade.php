@@ -12,6 +12,7 @@
                 <flux:sidebar.item icon="folder" href="{{ route('admin.groups') }}" :current="request()->routeIs('admin.groups')">Catálogo - Grupos</flux:sidebar.item>
                 <flux:sidebar.item icon="beaker" href="{{ route('admin.products') }}" :current="request()->routeIs('admin.products')">Catálogo - Productos</flux:sidebar.item>
                 <flux:sidebar.item icon="clipboard-document-list" href="{{ route('admin.medicines') }}" :current="request()->routeIs('admin.medicines')">Alta de Medicamento</flux:sidebar.item>
+                <flux:sidebar.item icon="arrow-down-tray" href="{{ route('admin.stock.ingresos') }}" :current="request()->routeIs('admin.stock.ingresos')">Stock - Ingreso Física</flux:sidebar.item>
                 <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
             @endhasrole
             @hasanyrole('admin|empleado')
