@@ -2,6 +2,8 @@
 
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\ProfileManager;
+use App\Livewire\Admin\GroupManager;
+use App\Livewire\Admin\ProductManager;
 use App\Livewire\Clients\ClientManager;
 use App\Livewire\User\Dashboard as UserDashboard;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +36,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:admin'])->group(function () {
         Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
         Route::get('admin/profiles', ProfileManager::class)->name('admin.profiles');
+        Route::get('admin/groups', GroupManager::class)->name('admin.groups');
+        Route::get('admin/products', ProductManager::class)->name('admin.products');
     });
 
     Route::middleware(['role:admin|empleado'])->group(function () {

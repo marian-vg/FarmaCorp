@@ -35,4 +35,9 @@ class Medicine extends Model
     {
         return $this->belongsTo(Product::class, 'product_id');
     }
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(Group::class);
+    }
 }
