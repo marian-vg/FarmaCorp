@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Laravel\Scout\Searchable;
 
 class Medicine extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, Searchable;
 
     protected $primaryKey = 'product_id';
     public $incrementing = false;
@@ -39,5 +40,16 @@ class Medicine extends Model
     public function group(): BelongsTo
     {
         return $this->belongsTo(Group::class);
+    }
+
+    public function toSearchableArray(): array
+    {
+        return [
+            'level' => $this->level,
+            'leaflet' => $this->leaflet,
+            // Include related data to enable searching by product or group name via DB engine
+            'products.name' => $this->product ? $this->product->name : '',
+            'groups.name' => $this->group ? $this->group->name : '',
+        ];
     }
 }
