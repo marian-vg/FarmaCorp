@@ -4,12 +4,13 @@ namespace App\Livewire\Admin;
 
 use App\Models\Caja;
 use App\Models\User; // Importamos User
-use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Flux\Flux;
+use Illuminate\Support\Facades\Auth; // Para los datos reactivos
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed; // Para los datos reactivos
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
 
 #[Layout('components.layouts.app')]
 class CajaManager extends Component
@@ -17,24 +18,51 @@ class CajaManager extends Component
     use WithPagination;
 
     public $monto_inicial = '';
+
     public $user_id = ''; // Nueva propiedad para elegir el usuario
 
     // Propiedades para registro de movimientos administrativos
     public $movimiento_monto = '';
+
     public $movimiento_motivo = '';
+
     public $movimiento_medio_pago = '';
+
     public $movimiento_tipo = ''; // INGRESO o EGRESO
+
+    // Propiedad para justificación del cierre (Fase 7)
+    public $observaciones_cierre = '';
 
     // Propiedades para Filtros Paginados (RF-04)
     public string $search = '';
+
     public string $filtro_usuario = '';
+
     public string $fecha_desde = '';
+
     public string $fecha_hasta = '';
 
-    public function updatedSearch() { $this->resetPage(); }
-    public function updatedFiltroUsuario() { $this->resetPage(); }
-    public function updatedFechaDesde() { $this->resetPage(); }
-    public function updatedFechaHasta() { $this->resetPage(); }
+    public string $tabActiva = 'gestion'; // Soporte UI para Tabs
+
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFiltroUsuario()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFechaDesde()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFechaHasta()
+    {
+        $this->resetPage();
+    }
 
     public function limpiarFiltros()
     {
@@ -42,14 +70,25 @@ class CajaManager extends Component
         $this->resetPage();
     }
 
-    // 1. OBTENER TODAS LAS CAJAS PARA LA TABLA (Paginado y Filtrado)
+    // 1. OBTENER CAJAS ABIERTAS PARA LA PESTAÑA DE GESTIÓN
     #[Computed]
     public function cajas()
     {
         return Caja::with('user')
+            ->whereNull('fecha_cierre') // SÓLO ABIERTAS
+            ->orderBy('fecha_apertura', 'desc')
+            ->get(); // Quitamos paginación aquí para más simpleza operativa
+    }
+
+    // 1.1 OBTENER CAJAS CERRADAS PARA EL HISTORIAL (Paginado y Filtrado)
+    #[Computed]
+    public function historialCajas()
+    {
+        return Caja::with('user')
+            ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
             ->when($this->search, function ($query) {
                 $query->whereHas('user', function ($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%');
+                    $q->where('name', 'like', '%'.$this->search.'%');
                 });
             })
             ->when($this->filtro_usuario, function ($query) {
@@ -61,8 +100,8 @@ class CajaManager extends Component
             ->when($this->fecha_hasta, function ($query) {
                 $query->whereDate('fecha_apertura', '<=', $this->fecha_hasta);
             })
-            ->orderBy('fecha_apertura', 'desc')
-            ->paginate(10);
+            ->orderBy('fecha_cierre', 'desc')
+            ->paginate(10, ['*'], 'historialPage');
     }
 
     // 2. OBTENER USUARIOS PARA EL DROPDOWN
@@ -70,6 +109,37 @@ class CajaManager extends Component
     public function usuarios()
     {
         return User::where('is_active', true)->get();
+    }
+
+    // 2.1 ESTADÍSTICAS PARA EL GRÁFICO (Fase 7)
+    #[Computed]
+    public function estadisticasSieteDias()
+    {
+        // Últimos 7 días
+        $fechas = collect();
+        for ($i = 6; $i >= 0; $i--) {
+            $fechas->push(now()->subDays($i)->format('Y-m-d'));
+        }
+
+        // Consultar sumatorias por fecha de cierre
+        $estadisticas = Caja::whereNotNull('fecha_cierre')
+            ->whereDate('fecha_cierre', '>=', now()->subDays(6)->toDateString())
+            ->selectRaw('DATE(fecha_cierre) as fecha, SUM(monto_final) as total')
+            ->groupBy('fecha')
+            ->pluck('total', 'fecha');
+
+        // Formatear array final asociando 0 a los días sin cierres
+        $datosFinales = [];
+        $labels = [];
+        foreach ($fechas as $fecha) {
+            $labels[] = \Carbon\Carbon::parse($fecha)->format('d/m');
+            $datosFinales[] = isset($estadisticas[$fecha]) ? (float) $estadisticas[$fecha] : 0;
+        }
+
+        return [
+            'labels' => $labels,
+            'datos' => $datosFinales,
+        ];
     }
 
     // 3. OBTENER MEDIOS DE PAGO PARA MOVIMIENTOS
@@ -86,13 +156,14 @@ class CajaManager extends Component
             'user_id' => 'required|exists:users,id', // Validamos el usuario elegido
         ]);
 
-        // Verificación RNF-02: Una caja abierta por turno por ese usuario 
+        // Verificación RNF-02: Una caja abierta por turno por ese usuario
         $cajaAbierta = Caja::where('user_id', $this->user_id)
             ->whereNull('fecha_cierre')
             ->exists();
 
         if ($cajaAbierta) {
             $this->addError('caja_status', 'Este usuario ya tiene una caja abierta actualmente.');
+
             return;
         }
 
@@ -115,7 +186,9 @@ class CajaManager extends Component
     #[Computed]
     public function saldoActual()
     {
-        if (!$this->cajaSeleccionada) return 0;
+        if (! $this->cajaSeleccionada) {
+            return 0;
+        }
 
         $ingresos = $this->cajaSeleccionada->movimientos->where('tipo_movimiento', 'INGRESO')->sum('monto');
         $egresos = $this->cajaSeleccionada->movimientos->where('tipo_movimiento', 'EGRESO')->sum('monto');
@@ -129,14 +202,14 @@ class CajaManager extends Component
     {
         // Buscamos la caja con sus movimientos y el medio de pago de cada uno
         $this->cajaSeleccionada = Caja::with('movimientos.medioPago')->find($id);
-        
+
         // Disparamos el panel lateral de Flux
         Flux::modal('detalle-caja-panel')->show();
     }
 
     public function prepararMovimiento($tipo)
     {
-        $this->reset(['movimiento_monto', 'movimiento_motivo', 'movimiento_medio_pago']);
+        $this->reset(['movimiento_monto', 'movimiento_motivo', 'movimiento_medio_pago', 'observaciones_cierre']);
         $this->movimiento_tipo = $tipo;
         Flux::modal('registro-movimiento-form')->show();
     }
@@ -168,7 +241,11 @@ class CajaManager extends Component
 
     public function cerrarCaja()
     {
-        if (!$this->cajaSeleccionada || $this->cajaSeleccionada->fecha_cierre) {
+        $this->validate([
+            'observaciones_cierre' => 'nullable|string|max:1000',
+        ]);
+
+        if (! $this->cajaSeleccionada || $this->cajaSeleccionada->fecha_cierre) {
             return;
         }
 
@@ -176,7 +253,7 @@ class CajaManager extends Component
         $ingresos = \App\Models\MovimientoCaja::where('id_caja', $this->cajaSeleccionada->id)
             ->where('tipo_movimiento', 'INGRESO')
             ->sum('monto');
-            
+
         $egresos = \App\Models\MovimientoCaja::where('id_caja', $this->cajaSeleccionada->id)
             ->where('tipo_movimiento', 'EGRESO')
             ->sum('monto');
@@ -186,10 +263,91 @@ class CajaManager extends Component
         $this->cajaSeleccionada->update([
             'fecha_cierre' => now(),
             'monto_final' => $monto_final,
+            'observaciones' => $this->observaciones_cierre,
         ]);
 
         Flux::modal('detalle-caja-panel')->close();
         Flux::toast('Caja cerrada con éxito.', variant: 'success');
+        $this->reset('observaciones_cierre');
         $this->cajaSeleccionada = null; // Reset selection
+    }
+
+    #[Computed]
+    public function totalesPorMedio()
+    {
+        if (! $this->cajaSeleccionada) {
+            return collect();
+        }
+
+        // Agrupamos los movimientos por el nombre del medio de pago y sumamos/restamos
+        return $this->cajaSeleccionada->movimientos()
+            ->with('medioPago')
+            ->get()
+            ->groupBy('medioPago.nombre')
+            ->map(function ($movimientos) {
+                $ingresos = $movimientos->where('tipo_movimiento', 'INGRESO')->sum('monto');
+                $egresos = $movimientos->where('tipo_movimiento', 'EGRESO')->sum('monto');
+
+                return $ingresos - $egresos;
+            });
+    }
+
+    // Fase 7: Reporte en PDF (RF-07)
+    public function descargarReporte($id)
+    {
+        $caja = Caja::with(['user', 'movimientos.medioPago'])->findOrFail($id);
+
+        // El administrador puede imprimir cualquier caja cerrada.
+        if (! $caja->fecha_cierre) {
+            Flux::toast('Solo puedes emitir reportes de cajas que ya han sido cerradas.', variant: 'danger');
+
+            return;
+        }
+
+        // Estructurar desglose por medio de pago
+        $totalesMp = [];
+        foreach ($caja->movimientos->groupBy('medioPago.nombre') as $nombre => $movs) {
+            $ingresos = $movs->where('tipo_movimiento', 'INGRESO')->sum('monto');
+            $egresos = $movs->where('tipo_movimiento', 'EGRESO')->sum('monto');
+            $totalesMp[$nombre] = [
+                'ingresos' => $ingresos,
+                'egresos' => $egresos,
+                'neto' => $ingresos - $egresos,
+            ];
+        }
+
+        $pdf = Pdf::loadView('pdf.reporte-caja', [
+            'caja' => $caja,
+            'totales' => $totalesMp,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print ($pdf->output()),
+            "Cierre-Caja-{$caja->id}.pdf"
+        );
+    }
+
+    #[Computed]
+    public function analiticaResumen()
+    {
+        $stats = $this->estadisticasSieteDias;
+        $datos = collect($stats['datos']);
+        
+        if ($datos->isEmpty() || $datos->sum() == 0) {
+            return [
+                'mejor_monto' => 0,
+                'mejor_dia' => 'N/A',
+                'promedio' => 0
+            ];
+        }
+
+        // Buscamos el índice del valor más alto
+        $maxIndice = $datos->search($datos->max());
+        
+        return [
+            'mejor_monto' => $datos->max(),
+            'mejor_dia' => $stats['labels'][$maxIndice],
+            'promedio' => $datos->avg()
+        ];
     }
 }

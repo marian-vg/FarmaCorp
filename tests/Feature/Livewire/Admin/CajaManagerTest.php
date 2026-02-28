@@ -2,9 +2,9 @@
 
 namespace Tests\Feature\Livewire\Admin;
 
+use App\Livewire\Admin\CajaManager;
 use App\Models\Caja;
 use App\Models\User;
-use App\Livewire\Admin\CajaManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -29,7 +29,7 @@ class CajaManagerTest extends TestCase
             'user_id' => $cajero->id,
             'monto_inicial' => 1500.50,
         ]);
-        
+
         $this->assertDatabaseCount('cajas', 1);
     }
 
@@ -63,13 +63,14 @@ class CajaManagerTest extends TestCase
         $user1 = User::factory()->create(['name' => 'John Doe']);
         $user2 = User::factory()->create(['name' => 'Jane Smith']);
 
-        Caja::create(['fecha_apertura' => now(), 'monto_inicial' => 100, 'user_id' => $user1->id]);
-        Caja::create(['fecha_apertura' => now(), 'monto_inicial' => 200, 'user_id' => $user2->id]);
+        Caja::create(['fecha_apertura' => now(), 'fecha_cierre' => now(), 'monto_inicial' => 100, 'monto_final' => 100, 'user_id' => $user1->id]);
+        Caja::create(['fecha_apertura' => now(), 'fecha_cierre' => now(), 'monto_inicial' => 200, 'monto_final' => 200, 'user_id' => $user2->id]);
 
         Livewire::actingAs($admin)
             ->test(CajaManager::class)
+            ->set('tabActiva', 'historial')
             ->set('search', 'John')
-            ->assertCount('cajas', 1);
+            ->assertCount('historialCajas', 1);
     }
 
     public function test_can_filter_tills_by_user_id(): void
@@ -78,13 +79,14 @@ class CajaManagerTest extends TestCase
         $user1 = User::factory()->create(['name' => 'Alice']);
         $user2 = User::factory()->create(['name' => 'Bob']);
 
-        Caja::create(['fecha_apertura' => now(), 'monto_inicial' => 100, 'user_id' => $user1->id]);
-        Caja::create(['fecha_apertura' => now(), 'monto_inicial' => 200, 'user_id' => $user2->id]);
+        Caja::create(['fecha_apertura' => now(), 'fecha_cierre' => now(), 'monto_inicial' => 100, 'monto_final' => 100, 'user_id' => $user1->id]);
+        Caja::create(['fecha_apertura' => now(), 'fecha_cierre' => now(), 'monto_inicial' => 200, 'monto_final' => 200, 'user_id' => $user2->id]);
 
         Livewire::actingAs($admin)
             ->test(CajaManager::class)
+            ->set('tabActiva', 'historial')
             ->set('filtro_usuario', $user2->id)
-            ->assertCount('cajas', 1);
+            ->assertCount('historialCajas', 1);
     }
 
     public function test_clear_filters_resets_properties(): void

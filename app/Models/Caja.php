@@ -12,6 +12,7 @@ class Caja extends Model
         'monto_inicial',
         'monto_final',
         'user_id',
+        'observaciones',
     ];
 
     protected function casts(): array

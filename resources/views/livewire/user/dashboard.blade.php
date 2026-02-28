@@ -14,6 +14,25 @@
         </div>
     </div>
 
+    {{-- Tabs Manuales usando Livewire (Flux UI Free no provee Tabs) --}}
+    <div class="flex gap-4 border-b border-zinc-200 dark:border-zinc-700 mb-6 mt-4">
+        <button 
+            wire:click="$set('tabActiva', 'gestion')" 
+            class="px-4 py-2 font-medium text-sm {{ $tabActiva === 'gestion' ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+        >
+            Turno Actual
+        </button>
+        <button 
+            wire:click="$set('tabActiva', 'historial')" 
+            class="px-4 py-2 font-medium text-sm {{ $tabActiva === 'historial' ? 'border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300' }}"
+        >
+            Mis Turnos Anteriores
+        </button>
+    </div>
+
+    @if($tabActiva === 'gestion')
+    <div class="space-y-4">
+
     @if(!$this->cajaAbierta)
         <div class="flex flex-col items-center justify-center p-12 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 mt-4">
             <flux:icon.archive-box class="w-16 h-16 text-zinc-400 mb-4" />
@@ -96,42 +115,65 @@
         </div>
 
         <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700 mt-2">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Hora</flux:table.column>
-                    <flux:table.column>Tipo</flux:table.column>
-                    <flux:table.column>Medio de Pago</flux:table.column>
-                    <flux:table.column>Motivo</flux:table.column>
-                    <flux:table.column align="end">Monto</flux:table.column>
-                </flux:table.columns>
+    <flux:table>
+        <flux:table.columns>
+            <flux:table.column>Hora</flux:table.column>
+            <flux:table.column>Tipo</flux:table.column>
+            <flux:table.column>Responsable</flux:table.column> {{-- NUEVA COLUMNA --}}
+            <flux:table.column>Medio de Pago</flux:table.column>
+            <flux:table.column>Motivo</flux:table.column>
+            <flux:table.column align="end">Monto</flux:table.column>
+        </flux:table.columns>
 
-                <flux:table.rows>
-                    @forelse($this->cajaAbierta->movimientos()->orderBy('fecha_movimiento', 'desc')->get() as $movimiento)
-                        <flux:table.row>
-                            <flux:table.cell>{{ \Carbon\Carbon::parse($movimiento->fecha_movimiento)->format('H:i:s') }}</flux:table.cell>
-                            <flux:table.cell>
-                                @if($movimiento->tipo_movimiento === 'INGRESO')
-                                    <flux:badge color="green" size="sm" inset="top bottom">Ingreso</flux:badge>
-                                @else
-                                    <flux:badge color="red" size="sm" inset="top bottom">Egreso</flux:badge>
-                                @endif
-                            </flux:table.cell>
-                            <flux:table.cell>{{ $movimiento->medioPago->nombre }}</flux:table.cell>
-                            <flux:table.cell>{{ $movimiento->motivo }}</flux:table.cell>
-                            <flux:table.cell align="end" class="font-medium {{ $movimiento->tipo_movimiento === 'INGRESO' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">
-                                {{ $movimiento->tipo_movimiento === 'INGRESO' ? '+' : '-' }} ${{ number_format($movimiento->monto, 2) }}
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @empty
-                        <flux:table.row>
-                            <flux:table.cell colspan="5" class="py-8 text-center text-zinc-500">
-                                Sin movimientos registrados en este turno.
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforelse
-                </flux:table.rows>
-            </flux:table>
-        </div>
+        <flux:table.rows>
+            {{-- Añadimos with('user') para que sea más rápido cargar los nombres --}}
+            @forelse($this->cajaAbierta->movimientos()->with('user')->orderBy('fecha_movimiento', 'desc')->get() as $movimiento)
+                <flux:table.row :key="$movimiento->id">
+                    <flux:table.cell class="text-xs font-mono">
+                        {{ \Carbon\Carbon::parse($movimiento->fecha_movimiento)->format('H:i:s') }}
+                    </flux:table.cell>
+                    
+                    <flux:table.cell>
+                        @if($movimiento->tipo_movimiento === 'INGRESO')
+                            <flux:badge color="green" size="sm" inset="top bottom">Ingreso</flux:badge>
+                        @else
+                            <flux:badge color="red" size="sm" inset="top bottom">Egreso</flux:badge>
+                        @endif
+                    </flux:table.cell>
+
+                    {{-- Celda del Responsable con Avatar --}}
+                    <flux:table.cell>
+                        <div class="flex items-center gap-2">
+                            <flux:avatar size="xs" initials="{{ collect(explode(' ', $movimiento->user->name))->map(fn($n) => $n[0])->join('') }}" />
+                            <span class="text-xs">{{ $movimiento->user->name }}</span>
+                        </div>
+                    </flux:table.cell>
+
+                    <flux:table.cell class="text-xs">
+                        {{ $movimiento->medioPago->nombre }}
+                    </flux:table.cell>
+                    
+                    <flux:table.cell class="text-xs">
+                        {{ $movimiento->motivo }}
+                    </flux:table.cell>
+                    
+                    <flux:table.cell align="end" class="font-bold text-sm">
+                        <span class="{{ $movimiento->tipo_movimiento === 'INGRESO' ? 'text-green-600' : 'text-red-600' }}">
+                            {{ $movimiento->tipo_movimiento === 'INGRESO' ? '+' : '-' }}${{ number_format($movimiento->monto, 2) }}
+                        </span>
+                    </flux:table.cell>
+                </flux:table.row>
+            @empty
+                <flux:table.row>
+                    {{-- Aumentamos el colspan a 6 porque agregamos una columna --}}
+                    <flux:table.cell colspan="6" class="py-8 text-center text-zinc-500">
+                        Sin movimientos registrados en este turno.
+                    </flux:table.cell>
+                </flux:table.row>
+            @endforelse
+        </flux:table.rows>
+    </flux:table>
+</div>
 
         {{-- MODAL Registro de Movimientos --}}
 <flux:modal name="registro-movimiento-form" class="min-w-[32rem]">
@@ -189,30 +231,110 @@
     </form>
 </flux:modal>
 
-        {{-- MODAL Confirmar Cierre --}}
-        <flux:modal name="confirm-close-caja" class="min-w-[22rem]">
-            <div class="space-y-6">
-                <div>
-                    <flux:heading size="lg" class="text-red-600 dark:text-red-400">¿Cerrar Turno Definitivamente?</flux:heading>
+        {{-- MODAL Confirmar Cierre (Mejorado) --}}
+<flux:modal name="confirm-close-caja" class="min-w-[25rem]">
+    <form wire:submit="cerrarMiTurno" class="space-y-6">
+        <flux:heading size="lg" class="text-red-600">Resumen de Arqueo para Cierre</flux:heading>
+
+        <div class="space-y-3">
+            <flux:text size="sm">Verifica los totales antes de cerrar el turno:</flux:text>
+            
+            <div class="bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 divide-y divide-zinc-200 dark:divide-zinc-700">
+                {{-- Fila de Monto Inicial --}}
+                <div class="flex justify-between p-3">
+                    <flux:text size="sm">Monto Inicial (Efectivo)</flux:text>
+                    <flux:text size="sm" class="font-medium">${{ number_format($this->cajaAbierta->monto_inicial, 2) }}</flux:text>
                 </div>
 
-                <div class="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-lg text-center space-y-2">
-                    <flux:text class="text-sm font-medium">Deberías tener depositado en caja un total de:</flux:text>
-                    <flux:heading size="2xl" class="text-indigo-600 dark:text-indigo-400 font-bold">${{ number_format($this->saldoActual, 2) }}</flux:heading>
-                </div>
+                {{-- Desglose por Medios de Pago --}}
+                @foreach($this->totalesPorMedio as $nombre => $total)
+                    <div class="flex justify-between p-3">
+                        <flux:text size="sm">{{ $nombre }}</flux:text>
+                        <flux:text size="sm" class="font-medium {{ $total >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                            ${{ number_format($total, 2) }}
+                        </flux:text>
+                    </div>
+                @endforeach
 
-                <flux:text class="text-sm text-zinc-600 dark:text-zinc-400">
-                    Una vez que cierres tu turno, el balance será registrado por auditoría y no podrás seguir operando hasta abrir una nueva caja.
-                </flux:text>
-
-                <div class="flex justify-end gap-2">
-                    <flux:modal.close>
-                        <flux:button variant="ghost">Continuar Operando</flux:button>
-                    </flux:modal.close>
-                    <flux:button wire:click="cerrarMiTurno" variant="danger">Confirmar Cierre de Caja</flux:button>
+                {{-- Gran Total Final --}}
+                <div class="flex justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20">
+                    <flux:text size="sm" class="font-bold text-indigo-900 dark:text-indigo-100">TOTAL A ENTREGAR</flux:text>
+                    <flux:text size="sm" class="font-bold text-indigo-900 dark:text-indigo-100">${{ number_format($this->saldoActual, 2) }}</flux:text>
                 </div>
             </div>
-        </flux:modal>
+        </div>
 
+        <flux:textarea 
+            wire:model="observaciones_cierre" 
+            label="Detalles o Justificaciones (Opcional)" 
+            placeholder="Ej: Faltante de $10 debido a cambio suelto, sobrante de $5..."
+            rows="2"
+        ></flux:textarea>
+
+        <flux:text size="xs" class="text-zinc-500">
+            * El total en Efectivo debe ser: Monto Inicial + Movimientos en Efectivo.
+        </flux:text>
+
+        <div class="flex justify-end gap-2">
+            <flux:modal.close>
+                <flux:button variant="ghost">Revisar de nuevo</flux:button>
+            </flux:modal.close>
+            <flux:button type="submit" variant="danger">Confirmar y Cerrar</flux:button>
+        </div>
+    </form>
+</flux:modal>
+
+    @endif
+    </div>
+    @endif
+
+    {{-- PESTAÑA HISTORIAL DEL EMPLEADO --}}
+    @if($tabActiva === 'historial')
+    <div>
+        <div class="flex items-center justify-between gap-4 mb-4">
+            <div>
+                <flux:heading size="lg">Historial de Turnos</flux:heading>
+                <flux:subheading>Listado de todas tus operaciones de caja pasadas y cerradas.</flux:subheading>
+            </div>
+        </div>
+
+        <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <flux:table>
+                <flux:table.columns>
+                    <flux:table.column>Apertura</flux:table.column>
+                    <flux:table.column>Cierre</flux:table.column>
+                    <flux:table.column>Monto Declarado</flux:table.column>
+                    <flux:table.column>Recaudación Final</flux:table.column>
+                    <flux:table.column align="end">Acciones</flux:table.column>
+                </flux:table.columns>
+
+                <flux:table.rows>
+                    @forelse($this->historialCajas as $caja)
+                        <flux:table.row :key="$caja->id">
+                            <flux:table.cell>{{ $caja->fecha_apertura->format('d/m/Y H:i') }}</flux:table.cell>
+                            <flux:table.cell>{{ $caja->fecha_cierre->format('d/m/Y H:i') }}</flux:table.cell>
+                            <flux:table.cell>${{ number_format($caja->monto_inicial, 2) }}</flux:table.cell>
+                            <flux:table.cell class="font-bold text-indigo-600 dark:text-indigo-400">
+                                ${{ number_format($caja->monto_final, 2) }}
+                            </flux:table.cell>
+                            <flux:table.cell align="end">
+                                <flux:button size="sm" variant="ghost" icon="document-arrow-down" wire:click="descargarReporte({{ $caja->id }})" class="text-indigo-600 hover:text-indigo-700" />
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @empty
+                        <flux:table.row>
+                            <flux:table.cell colspan="5" class="text-center py-10 text-zinc-500">
+                                Aún no tienes cierres de caja registrados en el sistema.
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforelse
+                </flux:table.rows>
+            </flux:table>
+        </div>
+
+        <div class="mt-4">
+            {{ $this->historialCajas->links() }}
+        </div>
+    </div>
     @endif
 </div>
