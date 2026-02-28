@@ -102,3 +102,60 @@
     * Permitir a los empleados hacer clic en un medicamento y ver la lista de lotes actuales con sus respectivas fechas de caducidad.
 * **Conexión con el Dashboard Admin (RF-08 y RF-09 de Usuarios):**
     * Conectar la base de datos de medicamentos con el widget del "Dashboard de Administrador" creado en la fase anterior, para que la tabla de alertas lea directamente las fechas de vencimiento de este módulo y muestre los que están en zona de riesgo.
+
+
+# Plan de Desarrollo - Módulo de Stock (Plex 25 / FarmaCorp)
+
+**Contexto Arquitectónico:** El control de inventario en una farmacia no se maneja por producto global, sino por **Lotes** (RF-06). Cada lote tiene su propia cantidad y fecha de vencimiento. Además, todo cambio en la cantidad debe dejar una huella de auditoría mediante **Movimientos de Stock** (RF-03, RF-04).
+
+**Stack Tecnológico:** Laravel 12, Livewire 4, PostgreSQL (Supabase).
+**UI/UX:** Tailwind CSS + Flux UI (Versión Gratuita. Tablas maquetadas con HTML nativo).
+
+---
+
+## Fase 0: Arquitectura de Lotes, Movimientos y Corrección del Dashboard
+*Objetivo: Sentar las bases de datos transaccionales y corregir el bug lógico del Dashboard del Administrador (falsos positivos de stock cero).*
+
+* **Migraciones de Lotes y Movimientos:**
+    * Crear tabla `lotes`: `id`, `medicamento_id`, `numero_lote`, `fecha_vencimiento`, `cantidad_inicial`, `cantidad_actual`, `stock_minimo`.
+    * Crear tabla `movimientos_stock`: `id`, `lote_id`, `usuario_id`, `tipo` (ingreso, egreso), `motivo` (compra, venta, merma, vencimiento), `cantidad`.
+* **Refactorización del Dashboard (Corrección del Bug):**
+    * Modificar la consulta del widget de vencimientos (desarrollado en el Módulo de Usuarios/Medicamentos).
+    * La consulta debe leer ahora de la tabla `lotes`, aplicando la condición: `where('cantidad_actual', '>', 0)` y calculando la proximidad de la `fecha_vencimiento`.
+
+---
+
+## Fase 1: Ingresos de Stock y Gestión de Lotes (RF-01, RF-02, RF-06)
+*Objetivo: Permitir al administrador registrar las compras a proveedores y dar de alta los lotes físicos en el sistema.*
+
+* **Componente de Ingreso de Mercadería (`StockIngresoManager`):**
+    * UI con formulario (`<flux:modal>` o vista dedicada) para registrar una entrada.
+    * Seleccionar Medicamento (usando buscador Scout).
+    * Ingresar los datos del Lote: Número de lote, Fecha de vencimiento (RF-06), Cantidad recibida (RF-01), y Stock mínimo deseado.
+* **Lógica Transaccional (Livewire):**
+    * Al guardar, el sistema debe crear/actualizar el registro en `lotes` y registrar automáticamente un `movimiento_stock` de tipo "ingreso" por "compra a proveedor" (RF-02).
+
+---
+
+## Fase 2: Egresos Manuales y Ajustes (RF-03, RNF-04)
+*Objetivo: Permitir la salida de stock por razones operativas ajenas a la venta en caja (mermas, robos, destrucción por vencimiento).*
+
+* **Componente de Ajuste de Inventario (`StockEgresoManager`):**
+    * Tabla HTML/Tailwind que liste el stock actual (solo lotes con `cantidad_actual > 0`).
+    * Botón de acción (ej. icono de ajuste) que abra un `<flux:modal>`.
+    * El formulario debe solicitar la cantidad a retirar y obligar a seleccionar un **motivo** (devolución, merma, robo, destrucción).
+* **Protección Transaccional:**
+    * Validar que la cantidad a retirar no supere la `cantidad_actual` del lote.
+    * Registrar el `movimiento_stock` de tipo "egreso" y descontar la cantidad del lote.
+
+---
+
+## Fase 3: Trazabilidad, Alertas y Bloqueos (RF-04, RF-05, RF-07)
+*Objetivo: Proveer herramientas de auditoría (Kardex) y asegurar el cumplimiento de las normativas de salud restringiendo la venta de productos caducados.*
+
+* **Historial de Movimientos / Kardex (RF-04):**
+    * Vista de solo lectura con una tabla detallada que muestre el historial cronológico de un medicamento (quién movió qué lote, cuándo, por qué motivo y cuánta cantidad).
+* **Alertas de Stock Mínimo (RF-05):**
+    * Añadir un nuevo widget al Dashboard del Administrador o una pestaña en la vista de Stock que liste los lotes cuya `cantidad_actual` sea menor o igual a su `stock_minimo`.
+* **Bloqueo Lógico de Vencidos (RF-07):**
+    * Implementar un método global o un *Scope* en el modelo `Lote` que oculte o marque como "no vendibles" aquellos lotes cuya `fecha_vencimiento` sea menor a la fecha actual, preparándolo para que el Módulo de Facturación (que hará tu compañero) no pueda seleccionarlos.
