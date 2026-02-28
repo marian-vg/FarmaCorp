@@ -120,25 +120,15 @@ class ClientManager extends Component
 
     public function render()
     {
-        $query = Client::query();
-
-        if ($this->search) {
-            $searchTerm = '%'.mb_strtolower($this->search).'%';
-            $query->where(function ($q) use ($searchTerm) {
-                // Compatible con testing en SQLite también si es el caso
-                $q->whereRaw('LOWER(first_name) LIKE ?', [$searchTerm])
-                    ->orWhereRaw('LOWER(last_name) LIKE ?', [$searchTerm])
-                    ->orWhereRaw('LOWER(phone) LIKE ?', [$searchTerm]);
-            });
-        }
-
-        if ($this->statusFilter === 'active') {
-            $query->where('is_active', true);
-        } elseif ($this->statusFilter === 'inactive') {
-            $query->where('is_active', false);
-        }
-
-        $clients = $query->paginate(15);
+        $clients = Client::search($this->search)
+            ->query(function ($query) {
+                if ($this->statusFilter === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($this->statusFilter === 'inactive') {
+                    $query->where('is_active', false);
+                }
+            })
+            ->paginate(12);
 
         return view('livewire.clients.client-manager', [
             'clients' => $clients,

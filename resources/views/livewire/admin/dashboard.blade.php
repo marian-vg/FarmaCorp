@@ -224,6 +224,10 @@
         </table>
     </div>
 
+    <div class="mt-4">
+        {{ $users->links() }}
+    </div>
+
     <!-- Centralized Modals -->
     <flux:modal name="edit-user" class="min-w-[40rem]">
         <div class="space-y-6">

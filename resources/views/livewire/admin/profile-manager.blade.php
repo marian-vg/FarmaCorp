@@ -2,10 +2,13 @@
     <div class="flex justify-between items-center">
         <flux:heading level="1" size="lg">Gestión de Perfiles</flux:heading>
 
-        <div class="flex justify-end items-center gap-2">
-            <flux:button icon="plus" wire:click="createProfile">Crear Perfil</flux:button>
-            <flux:button icon="plus" wire:click="createPermission">Crear Permiso</flux:button>
-            <flux:button icon="list-bullet" wire:click="showPermissionsList">Lista de Permisos</flux:button>
+        <div class="flex items-center gap-4">
+            <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar perfil..." class="w-64" />
+            <div class="flex justify-end items-center gap-2">
+                <flux:button icon="plus" wire:click="createProfile">Crear Perfil</flux:button>
+                <flux:button icon="plus" wire:click="createPermission">Crear Permiso</flux:button>
+                <flux:button icon="list-bullet" wire:click="showPermissionsList">Lista de Permisos</flux:button>
+            </div>
         </div>
     </div>
 
@@ -50,6 +53,10 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    <div class="mt-4">
+        {{ $this->profiles->links() }}
     </div>
 
     <!-- Modals -->

@@ -7,11 +7,16 @@ use Flux\Flux;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 
 #[Layout('components.layouts.app', ['title' => 'Profile Manager'])]
 class ProfileManager extends Component
 {
+    use WithPagination;
+
+    public string $search = '';
+
     public ?Profile $editingProfile = null;
 
     public ?Permission $editingPermission = null;
@@ -28,10 +33,17 @@ class ProfileManager extends Component
 
     public array $selectedPermissions = [];
 
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
     #[Computed]
     public function profiles()
     {
-        return Profile::with('permissions')->get();
+        return Profile::search($this->search)
+            ->query(fn ($query) => $query->with('permissions'))
+            ->paginate(12);
     }
 
     #[Computed]

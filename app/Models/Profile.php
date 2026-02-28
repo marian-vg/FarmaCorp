@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Permission\Traits\HasPermissions;
+use Laravel\Scout\Searchable;
 
 class Profile extends Model
 {
-    use HasPermissions;
+    use HasPermissions, Searchable;
 
     protected $fillable = ['name', 'description'];
 
@@ -16,5 +17,13 @@ class Profile extends Model
     public function users()
     {
         return $this->belongsToMany(User::class);
+    }
+
+    public function toSearchableArray()
+    {
+        return [
+            'name' => $this->name,
+            'description' => $this->description,
+        ];
     }
 }

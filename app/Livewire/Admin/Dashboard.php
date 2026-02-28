@@ -10,6 +10,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Lazy;
 use Livewire\Component;
+use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
@@ -17,6 +18,8 @@ use Spatie\Permission\Models\Role;
 #[Lazy]
 class Dashboard extends Component
 {
+    use WithPagination;
+
     public string $search = '';
 
     public string $statusFilter = 'all'; // all, active, inactive
@@ -50,6 +53,10 @@ class Dashboard extends Component
     public array $selectedPermissions = [];
 
     public array $selectedProfiles = [];
+
+    public function updatedSearch() { $this->resetPage(); }
+    public function updatedStatusFilter() { $this->resetPage(); }
+    public function updatedRoleFilter() { $this->resetPage(); }
 
     public function mount()
     {
@@ -227,29 +234,23 @@ class Dashboard extends Component
 
     public function render()
     {
-        $query = User::with(['roles.permissions', 'permissions']);
+        $users = User::search($this->search)
+            ->query(function ($query) {
+                $query->with(['roles.permissions', 'permissions']);
 
-        if ($this->search) {
-            $searchTerm = '%'.mb_strtolower($this->search).'%';
-            $query->where(function ($q) use ($searchTerm) {
-                $q->whereRaw('LOWER(name) LIKE ?', [$searchTerm])
-                    ->orWhereRaw('LOWER(email) LIKE ?', [$searchTerm]);
-            });
-        }
+                if ($this->statusFilter === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($this->statusFilter === 'inactive') {
+                    $query->where('is_active', false);
+                }
 
-        if ($this->statusFilter === 'active') {
-            $query->where('is_active', true);
-        } elseif ($this->statusFilter === 'inactive') {
-            $query->where('is_active', false);
-        }
-
-        if ($this->roleFilter) {
-            $query->whereHas('roles', function ($q) {
-                $q->where('name', $this->roleFilter);
-            });
-        }
-
-        $users = $query->get();
+                if ($this->roleFilter) {
+                    $query->whereHas('roles', function ($q) {
+                        $q->where('name', $this->roleFilter);
+                    });
+                }
+            })
+            ->paginate(12);
 
         $expiringMedicines = \App\Models\Medicine::query()
             ->where('expiration_date', '<=', now()->addDays($this->alertDays))
