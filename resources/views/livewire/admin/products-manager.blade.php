@@ -55,11 +55,11 @@
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProduct({{ $product->id }})" />
                                 
-                                {{-- RF-02: Botón para Desactivar/Reactivar --}}
+                                {{-- RF-02: Botón para Desactivar/Reactivar corregido --}}
                                 <flux:button 
                                     size="sm" 
                                     icon="{{ $product->status ? 'eye-slash' : 'arrow-path' }}" 
-                                    variant="{{ $product->status ? 'danger' : 'success' }}" 
+                                    variant="{{ $product->status ? 'danger' : 'primary' }}" {{-- Cambiado 'success' por 'primary' --}}
                                     ghost 
                                     wire:click="toggleStatus({{ $product->id }})" 
                                     title="{{ $product->status ? 'Desactivar' : 'Reactivar' }}"
