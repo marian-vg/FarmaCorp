@@ -3,6 +3,7 @@
 use App\Livewire\Admin\Dashboard;
 use App\Models\Group;
 use App\Models\Medicine;
+use App\Models\Batch;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
@@ -21,35 +22,51 @@ class DashboardAlertTest extends TestCase
         Role::firstOrCreate(['name' => 'admin']);
     }
 
-    public function test_dashboard_renders_only_medicines_expiring_within_alert_days()
+    public function test_dashboard_renders_only_batches_expiring_within_alert_days_with_positive_stock()
     {
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
         $group = Group::create(['name' => 'TestGroup']);
 
-        // Medicine expiring in 10 days
         $prod1 = Product::factory()->create(['name' => 'FastExpiringMed']);
-        Medicine::create([
-            'product_id' => $prod1->id,
-            'group_id' => $group->id,
-            'expiration_date' => now()->addDays(10)
+        $med1 = Medicine::create(['product_id' => $prod1->id, 'group_id' => $group->id]);
+
+        // Batch expiring in 10 days, quantity > 0 MUST appear
+        Batch::create([
+            'medicine_id' => $med1->product_id,
+            'batch_number' => 'LT-001',
+            'expiration_date' => now()->addDays(10),
+            'initial_quantity' => 10,
+            'current_quantity' => 10,
         ]);
 
-        // Medicine expiring in 60 days
+        // Batch expiring in 10 days, quantity == 0 MUST NOT appear
+        Batch::create([
+            'medicine_id' => $med1->product_id,
+            'batch_number' => 'LT-002-ZERO',
+            'expiration_date' => now()->addDays(10),
+            'initial_quantity' => 10,
+            'current_quantity' => 0,
+        ]);
+
         $prod2 = Product::factory()->create(['name' => 'LongExpiringMed']);
-        Medicine::create([
-            'product_id' => $prod2->id,
-            'group_id' => $group->id,
-            'expiration_date' => now()->addDays(60)
+        $med2 = Medicine::create(['product_id' => $prod2->id, 'group_id' => $group->id]);
+
+        // Batch expiring in 60 days, quantity > 0 MUST NOT appear (exceeds default 30 days)
+        Batch::create([
+            'medicine_id' => $med2->product_id,
+            'batch_number' => 'LT-003',
+            'expiration_date' => now()->addDays(60),
+            'initial_quantity' => 10,
+            'current_quantity' => 10,
         ]);
 
-        // Default alertDays is 30, so 'LongExpiringMed' shouldn't appear
-        // Trigger saveAlertDays to bypass #[Lazy] placeholder rendering
         Livewire::actingAs($admin)->test(Dashboard::class)
             ->call('saveAlertDays')
-            ->assertSee('FastExpiringMed')
-            ->assertDontSee('LongExpiringMed');
+            ->assertSee('LT-001')
+            ->assertDontSee('LT-002-ZERO')
+            ->assertDontSee('LT-003');
     }
 
     public function test_admin_can_update_alert_days_setting()
@@ -60,18 +77,22 @@ class DashboardAlertTest extends TestCase
         $group = Group::create(['name' => 'TestGroup']);
 
         $prod = Product::factory()->create(['name' => 'MediumExpiringMed']);
-        Medicine::create([
-            'product_id' => $prod->id,
-            'group_id' => $group->id,
-            'expiration_date' => now()->addDays(40)
+        $med = Medicine::create(['product_id' => $prod->id, 'group_id' => $group->id]);
+
+        Batch::create([
+            'medicine_id' => $med->product_id,
+            'batch_number' => 'LT-MED',
+            'expiration_date' => now()->addDays(40),
+            'initial_quantity' => 10,
+            'current_quantity' => 10,
         ]);
 
         // Using default 30 days, shouldn't see it
         Livewire::actingAs($admin)->test(Dashboard::class)
-            ->assertDontSee('MediumExpiringMed')
+            ->assertDontSee('LT-MED')
             ->set('alertDays', 45) // Changing the threshold
             ->call('saveAlertDays')
-            ->assertSee('MediumExpiringMed'); // Should see it now
+            ->assertSee('LT-MED'); // Should see it now
 
         // Check it persisted to the Settings table
         $this->assertDatabaseHas('settings', [

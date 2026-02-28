@@ -252,16 +252,17 @@ class Dashboard extends Component
             })
             ->paginate(12);
 
-        $expiringMedicines = \App\Models\Medicine::query()
-            ->with('product')
+        $expiringBatches = \App\Models\Batch::query()
+            ->with('medicine.product')
             ->whereNotNull('expiration_date')
+            ->where('current_quantity', '>', 0)
             ->where('expiration_date', '<=', now()->addDays($this->alertDays))
             ->orderBy('expiration_date', 'asc')
             ->get();
 
         return view('livewire.admin.dashboard', [
             'users' => $users,
-            'expiringMedicines' => $expiringMedicines,
+            'expiringBatches' => $expiringBatches,
         ]);
     }
 }
