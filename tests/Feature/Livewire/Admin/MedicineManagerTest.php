@@ -106,4 +106,65 @@ class MedicineManagerTest extends TestCase
         $this->assertFalse($availableProducts->contains('id', $productWithMedicine->id));
         $this->assertFalse($availableProducts->contains('id', $inactiveProduct->id));
     }
+
+    public function test_can_filter_psychotropic_medicines()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $prod1 = Product::factory()->create(['name' => 'NormalMed']);
+        $prod2 = Product::factory()->create(['name' => 'PsychoMed']);
+        $group = Group::create(['name' => 'General']);
+
+        Medicine::create(['product_id' => $prod1->id, 'group_id' => $group->id, 'is_psychotropic' => false]);
+        Medicine::create(['product_id' => $prod2->id, 'group_id' => $group->id, 'is_psychotropic' => true]);
+
+        Livewire::actingAs($admin)->test(MedicineManager::class)
+            ->assertSee('NormalMed')
+            ->assertSee('PsychoMed')
+            ->set('filterPsychotropic', true)
+            ->assertDontSee('NormalMed')
+            ->assertSee('PsychoMed');
+    }
+
+    public function test_can_load_leaflet_details_into_modal()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $prod = Product::factory()->create(['name' => 'LeafletMed']);
+        $group = Group::create(['name' => 'General']);
+        $medicine = Medicine::create([
+            'product_id' => $prod->id, 
+            'group_id' => $group->id, 
+            'level' => '100mg',
+            'leaflet' => 'Este es el texto del prospecto clínico.'
+        ]);
+
+        Livewire::actingAs($admin)->test(MedicineManager::class)
+            ->call('viewLeaflet', $medicine->product_id)
+            ->assertSet('viewingMedicine.product_id', $medicine->product_id)
+            ->assertSee('Este es el texto del prospecto clínico.');
+    }
+
+    public function test_expiration_date_badges_render_correctly()
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $prodExpired = Product::factory()->create(['name' => 'MedVencido']);
+        $prodWarning = Product::factory()->create(['name' => 'MedPorVencer']);
+        $prodGood = Product::factory()->create(['name' => 'MedOk']);
+        $group = Group::create(['name' => 'General']);
+
+        Medicine::create(['product_id' => $prodExpired->id, 'group_id' => $group->id, 'expiration_date' => now()->subDays(5)]);
+        Medicine::create(['product_id' => $prodWarning->id, 'group_id' => $group->id, 'expiration_date' => now()->addDays(15)]);
+        Medicine::create(['product_id' => $prodGood->id, 'group_id' => $group->id, 'expiration_date' => now()->addDays(60)]);
+
+        $html = Livewire::actingAs($admin)->test(MedicineManager::class)->html();
+        Livewire::actingAs($admin)->test(MedicineManager::class)
+            ->assertSee('Vencido:')
+            ->assertSee('Vence pronto:')
+            ->assertSee('Vence:');
+    }
 }

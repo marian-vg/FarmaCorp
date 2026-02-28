@@ -3,6 +3,11 @@
         <flux:heading level="1" size="lg">Medicamentos Específicos</flux:heading>
 
         <div class="flex items-center gap-4">
+            <flux:label>Psicotrópicos</flux:label>
+            <flux:switch wire:model.live="filterPsychotropic"/>
+
+            <flux:separator vertical/>
+
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." class="w-64" />
             <flux:button icon="plus" wire:click="createMedicine" variant="primary">Registrar Medicamento</flux:button>
         </div>
@@ -17,6 +22,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nivel / Dosis</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado / Riesgo</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
                 </tr>
             </thead>
 
@@ -35,9 +41,18 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($medicine->expiration_date)
-                                <flux:text class="{{ $medicine->expiration_date->isPast() ? 'text-red-500 font-bold' : '' }}">
-                                    {{ $medicine->expiration_date->format('d/m/Y') }}
-                                </flux:text>
+                                @php
+                                    $isExpired = $medicine->expiration_date->isPast();
+                                    $isExpiringSoon = !$isExpired && $medicine->expiration_date->isBetween(now(), now()->addDays(30));
+                                @endphp
+                                
+                                @if($isExpired)
+                                    <flux:badge variant="danger" size="sm">Vencido: {{ $medicine->expiration_date->format('d/m/Y') }}</flux:badge>
+                                @elseif($isExpiringSoon)
+                                    <flux:badge variant="warning" size="sm">Vence pronto: {{ $medicine->expiration_date->format('d/m/Y') }}</flux:badge>
+                                @else
+                                    <flux:badge variant="success" size="sm">Vence: {{ $medicine->expiration_date->format('d/m/Y') }}</flux:badge>
+                                @endif
                             @else
                                 <flux:text class="text-gray-400">Sin definir</flux:text>
                             @endif
@@ -55,10 +70,13 @@
                                 @endif
                             </div>
                         </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <flux:button size="sm" icon="document-text" variant="ghost" wire:click="viewLeaflet({{ $medicine->product_id }})" aria-label="Ver Prospecto" />
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-4 text-center">
+                        <td colspan="6" class="px-6 py-4 text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No se encontraron medicamentos.</flux:text>
                         </td>
                     </tr>
@@ -120,5 +138,35 @@
                 <flux:button type="submit" variant="primary">Guardar Medicamento</flux:button>
             </div>
         </form>
+    </flux:modal>
+
+    <!-- Leaflet Modal (Visor de Prospecto) -->
+    <flux:modal name="leaflet-modal" class="min-w-[40rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ $viewingMedicine?->product?->name ?? 'Prospecto' }}</flux:heading>
+                <flux:subheading>
+                    Nivel/Dosis: <strong>{{ $viewingMedicine?->level ?: 'N/D' }}</strong>
+                    @if($viewingMedicine?->is_psychotropic)
+                        <flux:badge variant="danger" size="sm" class="ml-2">Psicotrópico</flux:badge>
+                    @endif
+                </flux:subheading>
+            </div>
+
+            <div class="bg-gray-50 dark:bg-zinc-800 p-4 rounded-lg border border-gray-200 dark:border-zinc-700">
+                <flux:heading size="sm" class="mb-2 uppercase text-gray-500 tracking-wider">Prospecto / Casos de Uso</flux:heading>
+                @if($viewingMedicine?->leaflet)
+                    <div class="text-sm space-y-2 whitespace-pre-wrap">{{ $viewingMedicine->leaflet }}</div>
+                @else
+                    <flux:text class="text-gray-400 italic">No hay información clínica registrada para este medicamento.</flux:text>
+                @endif
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="primary">Cerrar Visor</flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
     </flux:modal>
 </div>

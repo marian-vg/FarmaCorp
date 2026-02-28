@@ -16,6 +16,8 @@ class MedicineManager extends Component
     use WithPagination;
 
     public string $search = '';
+    public bool $filterPsychotropic = false;
+    public ?Medicine $viewingMedicine = null;
 
     public array $context = [
         'product_id' => '',
@@ -29,6 +31,19 @@ class MedicineManager extends Component
     public function updatedSearch()
     {
         $this->resetPage();
+    }
+
+    public function updatedFilterPsychotropic()
+    {
+        $this->resetPage();
+    }
+
+    public function viewLeaflet(Medicine $medicine)
+    {
+        // Must load the product to display the name in the modal
+        $medicine->load('product');
+        $this->viewingMedicine = $medicine;
+        Flux::modal('leaflet-modal')->show();
     }
 
     public function createMedicine()
@@ -66,7 +81,13 @@ class MedicineManager extends Component
     public function render()
     {
         $medicines = Medicine::search($this->search)
-            ->query(fn ($query) => $query->with(['product', 'group']))
+            ->query(function ($query) {
+                $query->with(['product', 'group']);
+                
+                if ($this->filterPsychotropic) {
+                    $query->where('is_psychotropic', true);
+                }
+            })
             ->paginate(12);
 
         $availableProducts = Product::where('status', true)
