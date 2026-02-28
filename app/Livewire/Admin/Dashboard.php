@@ -253,6 +253,8 @@ class Dashboard extends Component
             ->paginate(12);
 
         $expiringMedicines = \App\Models\Medicine::query()
+            ->with('product')
+            ->whereNotNull('expiration_date')
             ->where('expiration_date', '<=', now()->addDays($this->alertDays))
             ->orderBy('expiration_date', 'asc')
             ->get();

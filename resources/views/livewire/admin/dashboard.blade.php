@@ -3,8 +3,10 @@
     
     <div class="grid grid-cols-1 gap-4 mb-2 mt-4">
         <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">
-            <flux:heading size="lg">Configuración de Alertas</flux:heading>
-            <flux:subheading>Define con cuántos días de anticipación deseas ver los medicamentos próximos a vencer.</flux:subheading>
+            <div>
+                <flux:heading size="lg">Configuración de Alertas</flux:heading>
+                <flux:subheading>Define con cuántos días de anticipación deseas ver los medicamentos próximos a vencer.</flux:subheading>
+            </div>
     
             <form wire:submit.prevent="saveAlertDays" class="mt-4 flex items-end gap-4">
                 <flux:input type="number" wire:model="alertDays" label="Período de anticipación (en días)" min="1" max="365" class="w-48" />
@@ -16,9 +18,9 @@
                     <thead class="bg-gray-50 dark:bg-zinc-800">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Lote</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nivel / Dosis</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock Actual</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
@@ -28,14 +30,16 @@
                                 $daysLeft = (int) now()->startOfDay()->diffInDays($expireDate, false);
                                 $isCritical = $daysLeft <= 15; // critical if 15 days or less
                             @endphp
-                            <tr class="{{ $isCritical ? 'bg-red-50 dark:bg-red-900/20' : '' }}">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $isCritical ? 'text-red-700 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $medicine->name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $medicine->batch_number }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isCritical ? 'text-red-600 dark:text-red-400 font-bold' : 'text-zinc-500 dark:text-zinc-400' }}">
+                            <tr class="{{ $isCritical ? 'bg-red-50 dark:bg-red-900/20' : ($daysLeft <= 30 ? 'bg-yellow-50 dark:bg-yellow-900/20' : '') }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $isCritical ? 'text-red-700 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $medicine->product?->name ?? 'N/D' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $medicine->level ?: 'N/A' }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isCritical ? 'text-red-600 dark:text-red-400 font-bold' : ($daysLeft <= 30 ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-zinc-500 dark:text-zinc-400') }}">
                                     {{ \Carbon\Carbon::parse($medicine->expiration_date)->format('d/m/Y') }}
                                     <span class="ml-2 text-xs">({{ $daysLeft > 0 ? "en $daysLeft días" : ($daysLeft === 0 ? 'hoy' : 'vencido') }})</span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $medicine->stock }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                    <flux:badge variant="solid" color="zinc">{{ $medicine->product?->stock?->cantidad_actual ?? 0 }}</flux:badge>
+                                </td>
                             </tr>
                         @empty
                             <tr>

@@ -20,6 +20,8 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Producto Base</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Grupo Farmacológico</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nivel / Dosis</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock Actual</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock Mínimo</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado / Riesgo</th>
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
@@ -38,6 +40,12 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <flux:text>{{ $medicine->level ?: 'N/A' }}</flux:text>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <flux:badge variant="solid" color="zinc">{{ $medicine->product->stock?->cantidad_actual ?? 0 }}</flux:badge>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <flux:text class="text-gray-500">{{ $medicine->product->stock?->stock_minimo ?? 0 }}</flux:text>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($medicine->expiration_date)
@@ -76,7 +84,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center">
+                        <td colspan="8" class="px-6 py-4 text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No se encontraron medicamentos.</flux:text>
                         </td>
                     </tr>
