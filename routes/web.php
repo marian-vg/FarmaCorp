@@ -5,6 +5,7 @@ use App\Livewire\Admin\ClientManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\ProfileManager;
 use App\Livewire\Admin\PermissionManager;
+use App\Livewire\Admin\ProductsManager;
 use App\Livewire\User\Dashboard as UserDashboard;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('admin/permissions', PermissionManager::class)->name('admin.permissions');
     Route::get('admin/clients', ClientManager::class)->name('admin.clients');
     Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
+    Route::get('/admin/productos', ProductsManager::class)->name('admin.products');
     });
 
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
