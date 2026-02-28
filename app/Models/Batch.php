@@ -34,7 +34,7 @@ class Batch extends Model
 
     public function medicine(): BelongsTo
     {
-        return $this->belongsTo(Medicine::class);
+        return $this->belongsTo(Medicine::class, 'medicine_id', 'product_id');
     }
 
     public function movements(): HasMany
