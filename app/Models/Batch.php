@@ -33,6 +33,16 @@ class Batch extends Model
         ];
     }
 
+    /**
+     * Scope a query to only include physically available and legally sellable batches.
+     * (Quantity > 0 and expiration_date >= today)
+     */
+    public function scopeVendibles($query)
+    {
+        return $query->where('current_quantity', '>', 0)
+                     ->where('expiration_date', '>=', now()->toDateString());
+    }
+
     public function medicine(): BelongsTo
     {
         return $this->belongsTo(Medicine::class, 'medicine_id', 'product_id');

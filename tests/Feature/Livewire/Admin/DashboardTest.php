@@ -18,6 +18,10 @@ class DashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        
+        // Register/Flush View Compiler caches for Flux to avoid test re-render resolution errors
+        $this->artisan('view:clear');
+        \Illuminate\Support\Facades\Blade::component('flux::card', 'flux::components.card');
 
         Role::firstOrCreate(['name' => 'admin']);
     }

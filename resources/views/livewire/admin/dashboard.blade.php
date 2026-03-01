@@ -54,6 +54,52 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 gap-4 mb-6">
+        <div class="w-full">
+            <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <flux:icon.exclamation-triangle variant="outline" class="w-5 h-5 text-orange-500" />
+                    <flux:heading size="lg">Quiebre de Stock (Mínimos)</flux:heading>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+                        <thead class="bg-gray-50 dark:bg-zinc-800">
+                            <tr>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
+                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Lote</th>
+                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Q. Actual</th>
+                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Q. Mínimo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+                            @forelse ($lowStockBatches as $batch)
+                                <tr>
+                                    <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                        {{ $batch->medicine?->product?->name ?? 'N/D' }}
+                                    </td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                        {{ $batch->batch_number }}
+                                    </td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-bold text-orange-600">
+                                        {{ $batch->current_quantity }}
+                                    </td>
+                                    <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-zinc-500 dark:text-zinc-400">
+                                        {{ $batch->minimum_stock }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-3 py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                                        Todos los lotes se encuentran por encima de su stock mínimo.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="flex justify-between items-center">
         

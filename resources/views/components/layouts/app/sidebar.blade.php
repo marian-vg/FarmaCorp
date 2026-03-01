@@ -14,6 +14,7 @@
                 <flux:sidebar.item icon="clipboard-document-list" href="{{ route('admin.medicines') }}" :current="request()->routeIs('admin.medicines')">Alta de Medicamento</flux:sidebar.item>
                 <flux:sidebar.item icon="arrow-down-tray" href="{{ route('admin.stock.ingresos') }}" :current="request()->routeIs('admin.stock.ingresos')">Stock - Ingreso Físico</flux:sidebar.item>
                 <flux:sidebar.item icon="arrow-top-right-on-square" href="{{ route('admin.stock.egresos') }}" :current="request()->routeIs('admin.stock.egresos')">Stock - Egresos/Ajustes</flux:sidebar.item>
+                <flux:sidebar.item icon="clock" href="{{ route('admin.stock.historial') }}" :current="request()->routeIs('admin.stock.historial')">Stock - Kardex</flux:sidebar.item>
                 <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
             @endhasrole
             @hasanyrole('admin|empleado')

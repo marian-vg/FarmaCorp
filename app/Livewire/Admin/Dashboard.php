@@ -4,7 +4,9 @@ namespace App\Livewire\Admin;
 
 use App\Models\Profile;
 use App\Models\User;
+use Carbon\Carbon;
 use Flux\Flux;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -252,17 +254,26 @@ class Dashboard extends Component
             })
             ->paginate(12);
 
-        $expiringBatches = \App\Models\Batch::query()
-            ->with('medicine.product')
-            ->whereNotNull('expiration_date')
-            ->where('current_quantity', '>', 0)
-            ->where('expiration_date', '<=', now()->addDays($this->alertDays))
+        // 1. Expiring Batches (Current logic)
+        $expiringBatches = \App\Models\Batch::where('current_quantity', '>', 0)
+            ->where('expiration_date', '<=', Carbon::now()->addMonths(6))
             ->orderBy('expiration_date', 'asc')
+            ->with(['medicine.product']) // Eager loading the correct relation keys
+            ->take(10)
+            ->get();
+
+        // 2. Minimum Stock Alerts (New Logic for RF-05)
+        $lowStockBatches = \App\Models\Batch::where('current_quantity', '<=', DB::raw('minimum_stock'))
+            ->where('current_quantity', '>', 0)
+            ->orderBy('current_quantity', 'asc')
+            ->with(['medicine.product'])
+            ->take(10)
             ->get();
 
         return view('livewire.admin.dashboard', [
             'users' => $users,
             'expiringBatches' => $expiringBatches,
+            'lowStockBatches' => $lowStockBatches,
         ]);
     }
 }
