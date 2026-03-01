@@ -77,7 +77,14 @@ class StockIngresoManager extends Component
     public function render()
     {
         // Usa Scout o fallbacks a ilike para buscar medicamentos reales
-        $medicines = Medicine::search($this->search)->paginate(12);
+        $medicines = Medicine::search($this->search)
+            ->query(function($builder){
+                $builder->with(['product', 'group'])
+                    ->join('products', 'medicines.product_id', '=', 'products.id')
+                    ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
+                    ->select('medicines.*');
+            })    
+            ->paginate(12);
 
         return view('livewire.admin.stock-ingreso-manager', [
             'medicines' => $medicines

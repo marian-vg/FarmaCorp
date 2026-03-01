@@ -87,6 +87,9 @@ class MedicineManager extends Component
                 if ($this->filterPsychotropic) {
                     $query->where('is_psychotropic', true);
                 }
+                $query->join('products', 'medicines.product_id', '=', 'products.id')
+                    ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
+                    ->select('medicines.*');
             })
             ->paginate(12);
 
