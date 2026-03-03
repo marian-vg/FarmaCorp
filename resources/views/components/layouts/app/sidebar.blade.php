@@ -13,10 +13,8 @@
                 <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
                 <flux:sidebar.item icon="shield-check" href="{{ route('admin.permissions') }}" :current="request()->routeIs('admin.permissions')">Permisos del Sistema</flux:sidebar.item>
                 <flux:sidebar.item icon="user-group" href="{{ route('admin.clients') }}" :current="request()->routeIs('admin.clients')">Módulo de Clientes</flux:sidebar.item>
-                
-                {{-- NUEVA SECCIÓN: Módulo de Productos (RF-01, RF-02, RF-03) --}}
+                <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Módulo de Venta</flux:sidebar.item>
                 <flux:sidebar.item icon="shopping-bag" href="{{ route('admin.products') }}" :current="request()->routeIs('admin.products')">Módulo de Productos</flux:sidebar.item>
-                
                 <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Módulo de Caja</flux:sidebar.item>
             @endhasrole
 

@@ -103,7 +103,7 @@
                         @forelse($this->historialVentas as $venta)
                             <flux:table.row :key="'venta-'.$venta->id">
                                 <flux:table.cell class="text-xs font-mono">
-                                    {{ $venta->fecha_movimiento->format('d/m/Y H:i:s') }}
+                                    {{ $venta->fecha_emision->format('d/m/Y H:i:s') }}
                                 </flux:table.cell>
                                 
                                 @hasrole('admin')
@@ -122,7 +122,7 @@
                                 </flux:table.cell>
 
                                 <flux:table.cell align="end" class="font-bold text-indigo-600">
-                                    ${{ number_format($venta->monto, 2) }}
+                                    ${{ number_format($venta->total, 2) }}
                                 </flux:table.cell>
                             </flux:table.row>
                         @empty

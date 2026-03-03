@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Caja;
 use App\Models\MovimientoCaja;
 use App\Models\MedioPago;
+use App\Models\Factura;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,7 @@ class VentaManager extends Component
 
     public function procesarVenta()
     {
+        // 1. Validaciones iniciales
         if (!$this->cajaActiva) {
             Flux::toast('Error: Debes abrir caja antes de vender.', variant: 'danger');
             return;
@@ -66,34 +68,58 @@ class VentaManager extends Component
 
         $this->validate(['medio_pago_id' => 'required|exists:medio_pagos,id']);
 
-        // RF-08: Registrar el ingreso en la caja [cite: 121, 123]
-        MovimientoCaja::create([
-            'tipo_movimiento' => 'INGRESO',
-            'monto' => $this->subtotal,
-            'motivo' => 'Venta de productos (POS)',
-            'fecha_movimiento' => now(),
-            'id_medio_pago' => $this->medio_pago_id,
-            'id_caja' => $this->cajaActiva->id,
-            'user_id' => Auth::id(),
-        ]);
+        // 2. Proceso de Guardado Multitabla (Transaccional)
+        \DB::transaction(function () {
+            $factura = \App\Models\Factura::create([
+                'tipo_comprobante' => 'VENTA-POS', // [cite: 505]
+                'fecha_emision'    => now(),        // [cite: 505]
+                'total'            => $this->subtotal, // [cite: 506]
+                'estado'           => 'PAGADO',      // [cite: 507]
+                'user_id'          => Auth::id(),    // credencial (FK) [cite: 508]
+                'cliente_id'       => null,          // ID_Cliente (FK) [cite: 509]
+                'medio_pago_id'    => $this->medio_pago_id, 
+            ]);
 
-        // Nota: Aquí se conectará luego el descuento de stock (RF-14) [cite: 145]
-        
+            // B. Crear los Detalles (Los productos del carrito) [cite: 525]
+            foreach ($this->carrito as $item) {
+                \App\Models\FacturaDetalle::create([
+                    'cantidad'        => $item['cantidad'],    // cantidad [cite: 526]
+                    'precio_unitario' => $item['price'],       // precio_unitario [cite: 527]
+                    'descuento'       => 0,                    // descuento [cite: 527]
+                    'factura_id'      => $factura->id,         // ID_Factura (FK) [cite: 528]
+                    'product_id'      => $item['id'],          // ID_Producto (FK) [cite: 529]
+                ]);
+                
+                // Aquí podrías agregar el descuento de stock más adelante (RF-14) [cite: 122]
+            }
+
+            // C. Registrar el ingreso en la Caja (Lo que ya hacías) [cite: 98, 466]
+            MovimientoCaja::create([
+                'tipo_movimiento'  => 'INGRESO',
+                'monto'            => $this->subtotal,
+                'motivo'           => "Venta POS: #" . str_pad($factura->id, 6, '0', STR_PAD_LEFT),
+                'fecha_movimiento' => now(),
+                'id_medio_pago'    => $this->medio_pago_id,
+                'id_caja'          => $this->cajaActiva->id,
+                'user_id'          => Auth::id(),
+            ]);
+        });
+
+        // 3. Limpieza y Notificación
         $this->reset(['carrito', 'medio_pago_id']);
-        Flux::toast('Venta realizada con éxito.', variant: 'success');
+        Flux::toast('Venta procesada y facturada correctamente.', variant: 'success');
     }
 
     #[Computed]
     public function historialVentas()
     {
-        // RF-11/12: El admin ve todo, el empleado solo lo suyo
-        return MovimientoCaja::query()
-            ->with(['user', 'medioPago'])
-            ->where('motivo', 'Venta de productos (POS)')
+        // Cambiamos MovimientoCaja por Factura para que el historial muestre productos [cite: 503]
+        return \App\Models\Factura::query()
+            ->with(['user', 'details.product'])
             ->when(!Auth::user()->hasRole('admin'), function($q) {
                 $q->where('user_id', Auth::id());
             })
-            ->orderBy('fecha_movimiento', 'desc')
+            ->orderBy('fecha_emision', 'desc')
             ->paginate(10);
     }
 
