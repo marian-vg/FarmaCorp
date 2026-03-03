@@ -347,7 +347,6 @@
     </flux:modal>
 
     <flux:modal name="edit-permissions" class="min-w-[22rem]">
-<<<<<<< HEAD
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Permisos Directos</flux:heading>
@@ -366,12 +365,6 @@
                 </flux:modal.close>
                 <flux:button variant="primary" wire:click="savePermissions">Guardar Cambios</flux:button>
             </div>
-=======
-    <div class="space-y-6">
-        <div>
-            <flux:heading size="lg">Permisos Directos</flux:heading>
-            <flux:subheading>Asignar permisos excepcionales directos.</flux:subheading>
->>>>>>> remotes/origin/dev/carrito
         </div>
 
         <div class="space-y-2 max-h-60 overflow-y-auto">

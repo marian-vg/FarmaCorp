@@ -9,12 +9,14 @@ use App\Livewire\Admin\MedicineManager;
 use App\Livewire\Clients\ClientManager;
 use App\Livewire\Admin\CajaManager;
 use App\Livewire\Admin\PermissionManager;
-use App\Livewire\Admin\ProductsManager;
 use App\Livewire\Admin\SalesManager;
 use App\Livewire\User\VentaManager;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
+use App\Livewire\Admin\StockIngresoManager;
+use App\Livewire\Admin\StockEgresoManager;
+use App\Livewire\Admin\StockHistorialManager;
 
 Route::get('/', function () {
     return view('livewire.auth.login');
@@ -44,9 +46,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/groups', GroupManager::class)->name('admin.groups');
         Route::get('admin/products', ProductManager::class)->name('admin.products');
         Route::get('admin/medicines', MedicineManager::class)->name('admin.medicines');
-        Route::get('admin/stock/ingresos', \App\Livewire\Admin\StockIngresoManager::class)->name('admin.stock.ingresos');
-        Route::get('admin/stock/egresos', \App\Livewire\Admin\StockEgresoManager::class)->name('admin.stock.egresos');
-        Route::get('admin/stock/historial', \App\Livewire\Admin\StockHistorialManager::class)->name('admin.stock.historial');
+        Route::get('admin/stock/ingresos', StockIngresoManager::class)->name('admin.stock.ingresos');
+        Route::get('admin/stock/egresos', StockEgresoManager::class)->name('admin.stock.egresos');
+        Route::get('admin/stock/historial', StockHistorialManager::class)->name('admin.stock.historial');
         Route::get('clients', ClientManager::class)->name('clients.index');
         Route::get('admin/permissions', PermissionManager::class)->name('admin.permissions');
         Route::get('admin/clients', ClientManager::class)->name('admin.clients');
