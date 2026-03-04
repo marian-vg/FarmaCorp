@@ -5,7 +5,9 @@ namespace App\Livewire\Admin;
 use App\Models\StockMovement;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\Layout;
 
+#[Layout('components.layouts.app', ['title' => 'Historial de Stock'])]
 class StockHistorialManager extends Component
 {
     use WithPagination;

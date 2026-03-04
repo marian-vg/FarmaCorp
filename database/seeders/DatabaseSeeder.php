@@ -43,6 +43,10 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             ProductSeeder::class,
+            GroupSeeder::class,
+            MedioPagoSeeder::class,
+            CajaHistorySeeder::class,
+            MedicineSeeder::class
         ]);
     }
 }
