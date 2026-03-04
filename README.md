@@ -29,11 +29,11 @@ El sistema abandona las soluciones genéricas de inventario para adoptar un enfo
 
 El proyecto se divide en módulos altamente cohesivos para garantizar la escalabilidad y el cumplimiento de los Requerimientos Funcionales (RF):
 
-*  Autenticación y Autorización (Spatie):** Control de acceso granular (RBAC) inmutable a nivel de código, con paneles de gestión dinámicos para administradores.
-*  Catálogo y Especificación Farmacológica:** Diferenciación arquitectónica entre artículos comerciales genéricos y medicamentos con rigor médico (prospectos, niveles, psicotrópicos).
-*  Gestión de Stock Transaccional (Kardex):** El inventario se gestiona mediante Lotes. Todo ingreso o egreso ejecuta transacciones seguras en la base de datos (`DB::transaction`) generando un historial de auditoría inmutable.
-*  Motor de Alertas Preventivas:** Bloqueo lógico automático (Global Scopes) para impedir la facturación de mercadería vencida, junto con alertas tempranas de quiebre de stock en el dashboard gerencial.
-*  Búsqueda en Tiempo Real:** Integración nativa con **Laravel Scout** (Driver PostgreSQL) para búsquedas instantáneas de pacientes, medicamentos y lotes sin comprometer el rendimiento.
+* **Autenticación y Autorización (Spatie):** Control de acceso granular (RBAC) inmutable a nivel de código, con paneles de gestión dinámicos para administradores.
+* **Catálogo y Especificación Farmacológica:** Diferenciación arquitectónica entre artículos comerciales genéricos y medicamentos con rigor médico (prospectos, niveles, psicotrópicos).
+* **Gestión de Stock Transaccional (Kardex):** El inventario se gestiona mediante Lotes. Todo ingreso o egreso ejecuta transacciones seguras en la base de datos (`DB::transaction`) generando un historial de auditoría inmutable.
+* **Motor de Alertas Preventivas:** Bloqueo lógico automático (Global Scopes) para impedir la facturación de mercadería vencida, junto con alertas tempranas de quiebre de stock en el dashboard gerencial.
+* **Búsqueda en Tiempo Real:** Integración nativa con **Laravel Scout** (Driver PostgreSQL) para búsquedas instantáneas de pacientes, medicamentos y lotes sin comprometer el rendimiento.
 
 ## Stack Tecnológico
 
