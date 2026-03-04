@@ -17,10 +17,12 @@ class MedicineFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->words(3, true),
-            'batch_number' => strtoupper($this->faker->bothify('BATCH-#####-??')),
-            'stock' => $this->faker->numberBetween(0, 500),
-            'expiration_date' => $this->faker->dateTimeBetween('-1 month', '+2 years')->format('Y-m-d'),
+            'product_id' => \App\Models\Product::factory(),
+            'level' => $this->faker->randomElement(['Baja', 'Media', 'Alta']),
+            'leaflet' => $this->faker->paragraph(),
+            'expiration_date' => $this->faker->dateTimeBetween('now', '+2 years')->format('Y-m-d'),
+            'is_psychotropic' => $this->faker->boolean(15), 
+            'group_id' => \App\Models\Group::factory(),
         ];
     }
 }
