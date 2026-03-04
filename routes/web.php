@@ -49,11 +49,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/stock/ingresos', StockIngresoManager::class)->name('admin.stock.ingresos');
         Route::get('admin/stock/egresos', StockEgresoManager::class)->name('admin.stock.egresos');
         Route::get('admin/stock/historial', StockHistorialManager::class)->name('admin.stock.historial');
-        Route::get('clients', ClientManager::class)->name('clients.index');
         Route::get('admin/permissions', PermissionManager::class)->name('admin.permissions');
         Route::get('admin/clients', ClientManager::class)->name('admin.clients');
         Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
+    });
+    
+    // RUTAS COMPARTIDAS (ADMIN + EMPLEADO)
+    Route::middleware(['role:admin|empleado'])->group(function () {
+        Route::get('clients', ClientManager::class)->name('clients.index');
     });
 
     // RUTAS PARA EMPLEADOS (USER)

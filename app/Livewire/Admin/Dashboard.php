@@ -276,7 +276,7 @@ class Dashboard extends Component
 
         // 1. Expiring Batches (Current logic)
         $expiringBatches = \App\Models\Batch::where('current_quantity', '>', 0)
-            ->where('expiration_date', '<=', Carbon::now()->addMonths(6))
+            ->where('expiration_date', '<=', Carbon::now()->addDays($this->alertDays))
             ->orderBy('expiration_date', 'asc')
             ->with(['medicine.product']) // Eager loading the correct relation keys
             ->take(10)

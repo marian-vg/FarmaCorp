@@ -70,7 +70,7 @@ class VentaManager extends Component
 
         // 2. Proceso de Guardado Multitabla (Transaccional)
         \DB::transaction(function () {
-            $factura = \App\Models\Factura::create([
+            $factura = Factura::create([
                 'tipo_comprobante' => 'VENTA-POS', // [cite: 505]
                 'fecha_emision'    => now(),        // [cite: 505]
                 'total'            => $this->subtotal, // [cite: 506]
@@ -114,7 +114,7 @@ class VentaManager extends Component
     public function historialVentas()
     {
         // Cambiamos MovimientoCaja por Factura para que el historial muestre productos [cite: 503]
-        return \App\Models\Factura::query()
+        return Factura::query()
             ->with(['user', 'details.product'])
             ->when(!Auth::user()->hasRole('admin'), function($q) {
                 $q->where('user_id', Auth::id());
