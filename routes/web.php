@@ -42,15 +42,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['role:admin'])->group(function () {
         Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
-        Route::get('admin/profiles', ProfileManager::class)->name('admin.profiles');
-        Route::get('admin/groups', GroupManager::class)->name('admin.groups');
-        Route::get('admin/products', ProductManager::class)->name('admin.products');
-        Route::get('admin/medicines', MedicineManager::class)->name('admin.medicines');
+        Route::get('admin/perfiles', ProfileManager::class)->name('admin.profiles');
+        Route::get('admin/grupos', GroupManager::class)->name('admin.groups');
+        Route::get('admin/productos', ProductManager::class)->name('admin.products');
+        Route::get('admin/medicamentos', MedicineManager::class)->name('admin.medicines');
         Route::get('admin/stock/ingresos', StockIngresoManager::class)->name('admin.stock.ingresos');
         Route::get('admin/stock/egresos', StockEgresoManager::class)->name('admin.stock.egresos');
         Route::get('admin/stock/historial', StockHistorialManager::class)->name('admin.stock.historial');
-        Route::get('admin/permissions', PermissionManager::class)->name('admin.permissions');
-        Route::get('admin/clients', ClientManager::class)->name('admin.clients');
+        Route::get('admin/clientes', ClientManager::class)->name('admin.clients');
         Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
     });

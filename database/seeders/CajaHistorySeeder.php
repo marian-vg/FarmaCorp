@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Carbon\Carbon;
 
-class CajaHistorialSeeder extends Seeder
+class CajaHistorySeeder extends Seeder
 {
     public function run(): void
     {
