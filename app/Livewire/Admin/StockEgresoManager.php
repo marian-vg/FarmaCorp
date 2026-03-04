@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use Livewire\Attributes\Layout;
 
+#[Layout('components.layouts.app', ['title' => 'Egreso de Stock'])]
 class StockEgresoManager extends Component
 {
     use WithPagination;
