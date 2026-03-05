@@ -50,9 +50,9 @@ class StockIngresoManager extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
-            // Paso A: Crear Lote (Batch)
-            $batch = Batch::create([
+        \DB::transaction(function () {
+            // Paso A: Crear Lote (Lo que ya hace)
+            $batch = \App\Models\Batch::create([
                 'medicine_id' => $this->medicine_id,
                 'batch_number' => $this->batch_number,
                 'expiration_date' => $this->expiration_date,
@@ -61,18 +61,28 @@ class StockIngresoManager extends Component
                 'minimum_stock' => $this->minimum_stock,
             ]);
 
-            // Paso B: Crear Movimiento de Stock (StockMovement)
-            StockMovement::create([
+            // Paso B: Crear Movimiento (Lo que ya hace)
+            \App\Models\StockMovement::create([
                 'batch_id' => $batch->id,
-                'user_id' => Auth::id(),
+                'user_id' => \Auth::id(),
                 'type' => 'ingreso',
                 'reason' => 'compra',
                 'quantity' => $this->quantity_received,
             ]);
+
+            // PASO C: Actualizar el Stock Global (Totalizador) [cite: 18]
+            $stock = \App\Models\Stock::firstOrNew(['product_id' => $this->medicine_id]);
+
+            // Si el registro es nuevo, 'cantidad_actual' será 0 o null automáticamente
+            $stock->stock_minimo = $this->minimum_stock;
+            $stock->cantidad_actual += $this->quantity_received;
+            $stock->fecha_actualización = now();
+
+            $stock->save();
         });
 
-        Flux::modal('ingreso-modal')->close();
-        Flux::toast('Ingreso registrado con éxito.');
+        \Flux::modal('ingreso-modal')->close();
+        \Flux::toast('Lote registrado y stock global actualizado.');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
     }
 

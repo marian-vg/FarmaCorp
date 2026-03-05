@@ -8,6 +8,7 @@ use App\Livewire\Admin\ProductManager;
 use App\Livewire\Admin\MedicineManager;
 use App\Livewire\Clients\ClientManager;
 use App\Livewire\Admin\CajaManager;
+use App\Livewire\Admin\ClientDebtManager;
 use App\Livewire\Admin\PermissionManager;
 use App\Livewire\Admin\SalesManager;
 use App\Livewire\User\VentaManager;
@@ -52,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/clientes', ClientManager::class)->name('admin.clients');
         Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
+        Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
     });
     
     // RUTAS COMPARTIDAS (ADMIN + EMPLEADO)

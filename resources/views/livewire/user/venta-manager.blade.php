@@ -27,17 +27,43 @@
                     
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         @foreach($products as $product)
-                            <flux:card class="flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer group" wire:click="agregarAlCarrito({{ $product->id }})">
-                                <div>
-                                    <flux:text size="xs" class="uppercase text-zinc-400">Producto</flux:text>
-                                    <flux:heading size="sm">{{ $product->name }}</flux:heading>
-                                </div>
-                                <div class="mt-4 flex justify-between items-center">
-                                    <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
-                                    <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" />
-                                </div>
-                            </flux:card>
-                        @endforeach
+    @php
+        $stockActual = $product->stock?->cantidad_actual ?? 0;
+        $stockMinimo = $product->stock?->stock_minimo ?? 0;
+        $fueraDeStock = $stockActual <= 0;
+    @endphp
+
+    <flux:card 
+        class="flex flex-col justify-between transition-all {{ $fueraDeStock ? 'opacity-60 grayscale' : 'hover:shadow-md cursor-pointer group' }}" 
+        wire:click="{{ $fueraDeStock ? '' : 'agregarAlCarrito('.$product->id.')' }}"
+    >
+        <div>
+            <div class="flex justify-between items-start">
+                <flux:text size="xs" class="uppercase text-zinc-400">Medicamento</flux:text>
+                
+                {{-- Badge de Stock (Tu idea mejorada)  --}}
+                @if($stockActual <= 0)
+                    <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
+                @elseif($stockActual <= $stockMinimo)
+                    <flux:badge size="xs" color="yellow" variant="outline">Stock Bajo: {{ $stockActual }}</flux:badge>
+                @else
+                    <flux:badge size="xs" color="green" variant="subtle">{{ $stockActual }} disp.</flux:badge>
+                @endif
+            </div>
+            <flux:heading size="sm">{{ $product->name }}</flux:heading>
+        </div>
+
+        <div class="mt-4 flex justify-between items-center">
+            <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
+            
+            @if(!$fueraDeStock)
+                <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" />
+            @else
+                <flux:icon.x-mark class="text-red-400" />
+            @endif
+        </div>
+    </flux:card>
+@endforeach
                     </div>
                 </div>
 
@@ -114,16 +140,34 @@
                         <flux:heading size="xl" class="text-indigo-600">${{ number_format($this->subtotal, 2) }}</flux:heading>
                     </div>
 
-                    <flux:select wire:model="medio_pago_id" label="Medio de Pago (RF-05)" required>
-                        <option value="">Seleccione el método...</option>
-                        @foreach($mediosPago as $mp)
-                            <option value="{{ $mp->id }}">{{ $mp->nombre }}</option>
-                        @endforeach
-                    </flux:select>
+                    <div class="space-y-4 border-t pt-4">
+    <div class="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+        <div class="flex flex-col">
+            <flux:text size="sm" class="font-medium text-zinc-900 dark:text-white">¿A Cuenta Corriente? (RF-11)</flux:text>
+            <flux:text size="xs" class="text-zinc-500">Se registrará como deuda del cliente.</flux:text>
+        </div>
+        <flux:switch wire:model.live="es_cuenta_corriente" color="indigo" />
+    </div>
 
-                    <flux:button variant="primary" class="w-full" wire:click="procesarVenta" icon="banknotes" :disabled="!$tipo_comprobante || empty($carrito)">
-                        Confirmar y Facturar (RF-13)
-                    </flux:button>
+    @if(!$es_cuenta_corriente)
+        <flux:select wire:model="medio_pago_id" label="Medio de Pago" required>
+            <option value="">Seleccione el método...</option>
+            @foreach($mediosPago as $mp)
+                <option value="{{ $mp->id }}">{{ $mp->nombre }}</option>
+            @endforeach
+        </flux:select>
+    @else
+        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <flux:text size="xs" class="text-blue-700 dark:text-blue-400">
+                ℹ️ Esta venta se asociará al saldo de <strong>{{ $search_cliente ?: 'el cliente' }}</strong> sin ingreso de efectivo inmediato.
+            </flux:text>
+        </div>
+    @endif
+
+    <flux:button variant="primary" class="w-full" wire:click="procesarVenta" icon="banknotes" :disabled="!$tipo_comprobante || empty($carrito)">
+        {{ $es_cuenta_corriente ? 'Registrar Deuda' : 'Confirmar y Facturar' }}
+    </flux:button>
+</div>
                 </div>
             </div>
         </div>

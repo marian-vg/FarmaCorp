@@ -28,6 +28,11 @@ class Product extends Model
         ];
     }
 
+    public function stock(): HasOne
+    {
+        return $this->hasOne(Stock::class, 'product_id');
+    }
+
     public function medicine(): HasOne
     {
         return $this->hasOne(Medicine::class);

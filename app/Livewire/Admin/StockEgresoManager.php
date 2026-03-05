@@ -56,11 +56,11 @@ class StockEgresoManager extends Component
         }
 
         DB::transaction(function () use ($batch) {
-            // Paso A: Restar la cantidad en el Lote
+            // Paso A: Restar la cantidad en el Lote (Lo que ya hacía)
             $batch->current_quantity -= $this->quantity_to_remove;
             $batch->save();
 
-            // Determinar enum exacto de reason
+            // Determinar motivo (Lógica de tu compañero)
             $mappedReason = 'ajuste';
             switch ($this->reason) {
                 case 'devolucion_proveedor': $mappedReason = 'devolucion'; break;
@@ -69,7 +69,7 @@ class StockEgresoManager extends Component
                 case 'destruccion_vencimiento': $mappedReason = 'vencimiento'; break;
             }
 
-            // Paso B: Crear Movimiento de Stock
+            // Paso B: Crear Movimiento de Stock (Lo que ya hacía) [cite: 532-535]
             StockMovement::create([
                 'batch_id' => $batch->id,
                 'user_id' => Auth::id(),
@@ -77,10 +77,20 @@ class StockEgresoManager extends Component
                 'reason' => $mappedReason,
                 'quantity' => $this->quantity_to_remove,
             ]);
+
+            // NUEVO PASO C: Actualizar el Stock Global (Totalizador) [cite: 555-573]
+            // Usamos el medicine_id del lote, que es el product_id
+            $stockGlobal = \App\Models\Stock::where('product_id', $batch->medicine_id)->first();
+            
+            if ($stockGlobal) {
+                $stockGlobal->cantidad_actual -= $this->quantity_to_remove;
+                $stockGlobal->fecha_actualización = now(); // [cite: 572]
+                $stockGlobal->save();
+            }
         });
 
         Flux::modal('egreso-modal')->close();
-        Flux::toast('Egreso registrado con éxito.');
+        Flux::toast('Egreso registrado y stock global actualizado.');
         $this->reset(['batch_id', 'quantity_to_remove', 'reason', 'current_stock_display']);
     }
 

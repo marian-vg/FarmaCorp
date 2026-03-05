@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Scout\Searchable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
@@ -21,6 +22,11 @@ class Client extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function facturas(): HasMany
+    {
+        return $this->hasMany(Factura::class, 'cliente_id');
+    }
 
     public function toSearchableArray()
     {
