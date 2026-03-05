@@ -175,63 +175,138 @@
 
     {{-- CONTENIDO: PESTAÑA HISTORIAL DE VENTAS --}}
     @if($tabActiva === 'historial')
-        <div class="space-y-4">
-            <div class="flex justify-between items-center">
+    <div class="space-y-4">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
                 <flux:heading size="lg">Registro de Ventas Realizadas</flux:heading>
-                <flux:badge color="zinc" variant="outline">Total Ventas: {{ $this->historialVentas->total() }}</flux:badge>
+                <flux:subheading>Visualice y filtre los comprobantes emitidos.</flux:subheading>
             </div>
             
-            <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <flux:table>
-                    <flux:table.columns>
-                        <flux:table.column>Fecha y Hora</flux:table.column>
-                        @hasrole('admin')
-                            <flux:table.column>Responsable</flux:table.column>
-                        @endhasrole
-                        <flux:table.column>Medio de Pago</flux:table.column>
-                        <flux:table.column align="end">Monto Total</flux:table.column>
-                    </flux:table.columns>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <flux:select wire:model.live="filtroEstado" size="sm" class="w-48" placeholder="Todos los estados">
+                    <flux:select.option value="">Todos los estados</flux:select.option>
+                    <flux:select.option value="PAGADO">Solo Pagados</flux:select.option>
+                    <flux:select.option value="PENDIENTE">Solo Cta. Corriente</flux:select.option>
+                </flux:select>
 
-                    <flux:table.rows>
-                        @forelse($this->historialVentas as $venta)
-                            <flux:table.row :key="'venta-'.$venta->id">
-                                <flux:table.cell class="text-xs font-mono">
-                                    {{ $venta->fecha_emision->format('d/m/Y H:i:s') }}
-                                </flux:table.cell>
-                                
-                                @hasrole('admin')
-                                    <flux:table.cell>
-                                        <div class="flex items-center gap-2">
-                                            <flux:avatar size="xs" initials="{{ collect(explode(' ', $venta->user->name))->map(fn($n) => $n[0])->join('') }}" />
-                                            <span class="text-sm font-medium">{{ $venta->user->name }}</span>
-                                        </div>
-                                    </flux:table.cell>
-                                @endhasrole
-
-                                <flux:table.cell>
-                                    <flux:badge size="sm" color="zinc" variant="outline">
-                                        {{ $venta->medioPago->nombre }}
-                                    </flux:badge>
-                                </flux:table.cell>
-
-                                <flux:table.cell align="end" class="font-bold text-indigo-600">
-                                    ${{ number_format($venta->total, 2) }}
-                                </flux:table.cell>
-                            </flux:table.row>
-                        @empty
-                            <flux:table.row>
-                                <flux:table.cell colspan="{{ auth()->user()->hasRole('admin') ? 4 : 3 }}" class="text-center py-12 text-zinc-500 italic">
-                                    No se registran ventas en este período.
-                                </flux:table.cell>
-                            </flux:table.row>
-                        @endforelse
-                    </flux:table.rows>
-                </flux:table>
-            </div>
-
-            <div class="mt-4">
-                {{ $this->historialVentas->links() }}
+                <flux:badge color="zinc" variant="outline" class="whitespace-nowrap">
+                    Total: {{ $this->historialVentas->total() }}
+                </flux:badge>
             </div>
         </div>
-    @endif
+        
+        <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <flux:table>
+                <flux:table.columns>
+                    <flux:table.column>Fecha y Hora</flux:table.column>
+                    <flux:table.column>Medio de Pago</flux:table.column>
+                    <flux:table.column align="end">Monto Total</flux:table.column>
+                    <flux:table.column align="end">Acciones</flux:table.column> {{-- Columna para el botón --}}
+                </flux:table.columns>
+
+                <flux:table.rows>
+                    @forelse($this->historialVentas as $venta)
+                        <flux:table.row :key="'venta-'.$venta->id">
+                            <flux:table.cell class="text-xs font-mono">
+                                {{ $venta->fecha_emision->format('d/m/Y H:i:s') }}
+                            </flux:table.cell>
+
+                            <flux:table.cell>
+                                @if($venta->estado === 'PENDIENTE')
+                                    <flux:badge size="sm" color="red" variant="solid">Cuenta Corriente</flux:badge>
+                                @else
+                                    <flux:badge size="sm" color="zinc" variant="outline">
+                                        {{ $venta->medioPago?->nombre ?? 'N/D' }}
+                                    </flux:badge>
+                                @endif
+                            </flux:table.cell>
+
+                            <flux:table.cell align="end" class="font-bold text-indigo-600">
+                                ${{ number_format($venta->total, 2) }}
+                            </flux:table.cell>
+
+                            {{-- El botón ahora está DENTRO de la fila --}}
+                            <flux:table.cell align="end">
+                                <flux:button 
+                                    icon="information-circle" 
+                                    size="xs" 
+                                    variant="ghost" 
+                                    wire:click="verDetalle({{ $venta->id }})" 
+                                />
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @empty
+                        <flux:table.row>
+                            <flux:table.cell colspan="4" class="text-center py-12 text-zinc-500 italic">
+                                No se registran ventas en este período.
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforelse
+                </flux:table.rows>
+            </flux:table>
+        </div>
+
+        <div class="mt-4">
+            {{ $this->historialVentas->links() }}
+        </div>
+    </div>
+@endif
+    {{-- MODAL DETALLE DE VENTA --}}
+<flux:modal name="detalle-venta-modal" class="md:w-5/12">
+    <div class="space-y-6">
+        @if($facturaSeleccionada)
+            <div>
+                <flux:heading size="lg">Detalle del Comprobante</flux:heading>
+                <flux:subheading>
+                    #{{ str_pad($facturaSeleccionada->id, 6, '0', STR_PAD_LEFT) }} 
+                    ({{ $facturaSeleccionada->tipo_comprobante }})
+                </flux:subheading>
+            </div>
+
+            <div class="space-y-4">
+                <div class="border rounded-lg overflow-hidden border-zinc-200 dark:border-zinc-700">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-2">Producto</th>
+                                <th class="px-4 py-2 text-center">Cant.</th>
+                                <th class="px-4 py-2 text-right">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800">
+                            @foreach($facturaSeleccionada->details as $detalle)
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">{{ $detalle->product->name }}</td>
+                                    <td class="px-4 py-3 text-center">{{ $detalle->cantidad }}</td>
+                                    <td class="px-4 py-3 text-right">
+                                        ${{ number_format($detalle->cantidad * $detalle->precio_unitario, 2) }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+                    <flux:text class="font-bold">TOTAL</flux:text>
+                    <flux:heading size="xl" class="text-indigo-600">
+                        ${{ number_format($facturaSeleccionada->total, 2) }}
+                    </flux:heading>
+                </div>
+            </div>
+        @else
+            <div class="flex flex-col items-center justify-center py-12">
+                {{-- Spinner manual con Tailwind para evitar el error de Flux --}}
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
+                <flux:text size="sm">Cargando detalles...</flux:text>
+            </div>
+        @endif
+
+        <div class="flex justify-end">
+            <flux:modal.close>
+                <flux:button variant="ghost">Cerrar</flux:button>
+            </flux:modal.close>
+        </div>
+    </div>
+</flux:modal>
 </div>
