@@ -258,7 +258,7 @@ class Dashboard extends Component
     {
         $users = User::search($this->search)
             ->query(function ($query) {
-                $query->with(['roles.permissions', 'permissions']);
+                $query->with(['roles.permissions', 'permissions', 'profiles']);
 
                 if ($this->statusFilter === 'active') {
                     $query->where('is_active', true);

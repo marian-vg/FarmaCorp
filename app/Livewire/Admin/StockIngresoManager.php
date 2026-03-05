@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Batch;
 use App\Models\Medicine;
 use App\Models\StockMovement;
+use App\Models\Stock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -61,7 +62,21 @@ class StockIngresoManager extends Component
                 'minimum_stock' => $this->minimum_stock,
             ]);
 
-            // Paso B: Crear Movimiento de Stock (StockMovement)
+            // Paso B: Update global Stock for the Product
+            $medicine = Medicine::find($this->medicine_id);
+            $stock = Stock::firstOrCreate(
+                ['product_id' => $medicine->product_id],
+                ['cantidad_actual' => 0, 'stock_minimo' => 0]
+            );
+            
+            $stock->cantidad_actual += $this->quantity_received;
+            // Update the global minimum stock if the new batch has a higher strict limit
+            if ($this->minimum_stock > $stock->stock_minimo) {
+                $stock->stock_minimo = $this->minimum_stock;
+            }
+            $stock->save();
+
+            // Paso C: Crear Movimiento de Stock (StockMovement)
             StockMovement::create([
                 'batch_id' => $batch->id,
                 'user_id' => Auth::id(),

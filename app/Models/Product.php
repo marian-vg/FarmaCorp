@@ -33,6 +33,11 @@ class Product extends Model
         return $this->hasOne(Medicine::class);
     }
 
+    public function stock(): HasOne
+    {
+        return $this->hasOne(Stock::class);
+    }
+
     public function toSearchableArray()
     {
         return [

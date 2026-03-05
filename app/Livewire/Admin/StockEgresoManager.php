@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Batch;
 use App\Models\StockMovement;
+use App\Models\Stock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
@@ -69,7 +70,21 @@ class StockEgresoManager extends Component
                 case 'destruccion_vencimiento': $mappedReason = 'vencimiento'; break;
             }
 
-            // Paso B: Crear Movimiento de Stock
+            // Paso B: Descontar cantidad en el Stock Global del producto
+            $medicine = $batch->medicine;
+            if ($medicine) {
+                $stock = Stock::where('product_id', $medicine->product_id)->first();
+                if ($stock) {
+                    $stock->cantidad_actual -= $this->quantity_to_remove;
+                    // Prevenir stock negativo global
+                    if ($stock->cantidad_actual < 0) {
+                        $stock->cantidad_actual = 0;
+                    }
+                    $stock->save();
+                }
+            }
+
+            // Paso C: Crear Movimiento de Stock
             StockMovement::create([
                 'batch_id' => $batch->id,
                 'user_id' => Auth::id(),
