@@ -40,6 +40,28 @@
 
         {{ $slot }}
 
+        <div 
+            x-data="{ show: false, message: '', variant: 'success' }" 
+            x-on:notify.window="show = true; message = $event.detail.message; variant = $event.detail.variant || 'success'; setTimeout(() => show = false, 3500)"
+            x-show="show"
+            x-transition
+            {{-- 'right-8' lo aleja del borde derecho y 'z-[100]' lo pone al frente de todo --}}
+            class="fixed bottom-8 right-8 z-[100] p-4 rounded-xl shadow-2xl border text-white min-w-[280px]"
+            :class="{
+                'bg-red-600 border-red-500': variant === 'danger',
+                'bg-yellow-500 border-yellow-400': variant === 'warning',
+                'bg-zinc-900 border-zinc-700': variant === 'success'
+            }"
+            style="display: none;"
+        >
+            <div class="flex items-center gap-3">
+                {{-- Icono dinámico según el tipo de mensaje (RNF-03) --}}
+                <template x-if="variant === 'danger'"><span>⚠️</span></template>
+                <template x-if="variant === 'success'"><span>✅</span></template>
+                <span class="font-medium" x-text="message"></span>
+            </div>
+        </div>
+
         @fluxScripts
     </body>
 </html>
