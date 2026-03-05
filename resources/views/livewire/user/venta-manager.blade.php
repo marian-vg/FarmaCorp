@@ -88,53 +88,50 @@
                 <flux:badge color="zinc" variant="outline">Total Ventas: {{ $this->historialVentas->total() }}</flux:badge>
             </div>
             
-            <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <flux:table>
-                    <flux:table.columns>
-                        <flux:table.column>Fecha y Hora</flux:table.column>
-                        @hasrole('admin')
-                            <flux:table.column>Responsable</flux:table.column>
-                        @endhasrole
-                        <flux:table.column>Medio de Pago</flux:table.column>
-                        <flux:table.column align="end">Monto Total</flux:table.column>
-                    </flux:table.columns>
-
-                    <flux:table.rows>
+            <x-table>
+                <x-table.head>
+                    <x-table.heading>Fecha y Hora</x-table.heading>
+                    @hasrole('admin')
+                        <x-table.heading>Responsable</x-table.heading>
+                    @endhasrole
+                    <x-table.heading>Medio de Pago</x-table.heading>
+                    <x-table.heading class="text-right">Monto Total</x-table.heading>
+                </x-table.head>
+                <x-table.body>
                         @forelse($this->historialVentas as $venta)
-                            <flux:table.row :key="'venta-'.$venta->id">
-                                <flux:table.cell class="text-xs font-mono">
+                            <x-table.row wire:key="venta-{{ $venta->id }}">
+                                <x-table.cell class="text-xs font-mono">
                                     {{ $venta->fecha_emision->format('d/m/Y H:i:s') }}
-                                </flux:table.cell>
+                                </x-table.cell>
                                 
                                 @hasrole('admin')
-                                    <flux:table.cell>
+                                    <x-table.cell>
                                         <div class="flex items-center gap-2">
                                             <flux:avatar size="xs" initials="{{ collect(explode(' ', $venta->user->name))->map(fn($n) => $n[0])->join('') }}" />
                                             <span class="text-sm font-medium">{{ $venta->user->name }}</span>
                                         </div>
-                                    </flux:table.cell>
+                                    </x-table.cell>
                                 @endhasrole
 
-                                <flux:table.cell>
+                                <x-table.cell>
                                     <flux:badge size="sm" color="zinc" variant="outline">
                                         {{ $venta->medioPago->nombre }}
                                     </flux:badge>
-                                </flux:table.cell>
+                                </x-table.cell>
 
-                                <flux:table.cell align="end" class="font-bold text-indigo-600">
+                                <x-table.cell class="text-right font-bold text-indigo-600">
                                     ${{ number_format($venta->total, 2) }}
-                                </flux:table.cell>
-                            </flux:table.row>
+                                </x-table.cell>
+                            </x-table.row>
                         @empty
-                            <flux:table.row>
-                                <flux:table.cell colspan="{{ auth()->user()->hasRole('admin') ? 4 : 3 }}" class="text-center py-12 text-zinc-500 italic">
+                            <x-table.row>
+                                <x-table.cell colspan="{{ auth()->user()->hasRole('admin') ? 4 : 3 }}" class="py-12 text-center text-zinc-500 italic">
                                     No se registran ventas en este período.
-                                </flux:table.cell>
-                            </flux:table.row>
+                                </x-table.cell>
+                            </x-table.row>
                         @endforelse
-                    </flux:table.rows>
-                </flux:table>
-            </div>
+                </x-table.body>
+            </x-table>
 
             <div class="mt-4">
                 {{ $this->historialVentas->links() }}

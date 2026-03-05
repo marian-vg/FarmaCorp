@@ -2,7 +2,7 @@
     <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
     
     <div class="grid grid-cols-1 gap-4 mb-2 mt-4">
-        <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">
+        <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/70">
             <div>
                 <flux:heading size="lg">Configuración de Alertas</flux:heading>
                 <flux:subheading>Define con cuántos días de anticipación deseas ver los medicamentos próximos a vencer.</flux:subheading>
@@ -13,89 +13,85 @@
                 <flux:button type="submit" variant="primary">Guardar Configuración</flux:button>
             </form>
     
-            <div class="mt-6 w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-                    <thead class="bg-gray-50 dark:bg-zinc-800">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Lote</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Restante</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+            <div class="mt-6 w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700 ">
+                <x-table>
+                    <x-table.head>
+                        <x-table.heading>Medicamento</x-table.heading>
+                        <x-table.heading>Lote</x-table.heading>
+                        <x-table.heading>Vencimiento</x-table.heading>
+                        <x-table.heading>Restante</x-table.heading>
+                    </x-table.head>
+                    <x-table.body>
                         @forelse($expiringBatches as $batch)
                             @php
                                 $expireDate = \Carbon\Carbon::parse($batch->expiration_date)->startOfDay();
                                 $daysLeft = (int) now()->startOfDay()->diffInDays($expireDate, false);
                                 $isCritical = $daysLeft <= 15; // critical if 15 days or less
                             @endphp
-                            <tr class="{{ $isCritical ? 'bg-red-50 dark:bg-red-900/20' : ($daysLeft <= 30 ? 'bg-yellow-50 dark:bg-yellow-900/20' : '') }}">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $isCritical ? 'text-red-700 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $batch->medicine->product?->name ?? 'N/D' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">{{ $batch->batch_number }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm {{ $isCritical ? 'text-red-600 dark:text-red-400 font-bold' : ($daysLeft <= 30 ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-zinc-500 dark:text-zinc-400') }}">
+                            <x-table.row class="{{ $isCritical ? 'bg-red-50 dark:bg-red-900/20' : ($daysLeft <= 30 ? 'bg-yellow-50 dark:bg-yellow-900/20' : '') }}">
+                                <x-table.cell class="font-medium {{ $isCritical ? 'text-red-700 dark:text-red-400' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $batch->medicine->product?->name ?? 'N/D' }}</x-table.cell>
+                                <x-table.cell class="text-zinc-500 dark:text-zinc-400">{{ $batch->batch_number }}</x-table.cell>
+                                <x-table.cell class="{{ $isCritical ? 'text-red-600 dark:text-red-400 font-bold' : ($daysLeft <= 30 ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-zinc-500 dark:text-zinc-400') }}">
                                     {{ \Carbon\Carbon::parse($batch->expiration_date)->format('d/m/Y') }}
                                     <span class="ml-2 text-xs">({{ $daysLeft > 0 ? "en $daysLeft días" : ($daysLeft === 0 ? 'hoy' : 'vencido') }})</span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                </x-table.cell>
+                                <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
                                     <flux:badge variant="solid" color="zinc">{{ $batch->current_quantity }}</flux:badge>
-                                </td>
-                            </tr>
+                                </x-table.cell>
+                            </x-table.row>
                         @empty
-                            <tr>
-                                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400 text-center">
+                            <x-table.row>
+                                <x-table.cell colspan="4" class="text-zinc-500 dark:text-zinc-400 text-center">
                                     No hay medicamentos próximos a vencer en los próximos {{ $alertDays }} días.
-                                </td>
-                            </tr>
+                                </x-table.cell>
+                            </x-table.row>
                         @endforelse
-                    </tbody>
-                </table>
+                    </x-table.body>
+                </x-table>
             </div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 gap-4 mb-6">
         <div class="w-full">
-            <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">
+            <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/70">
                 <div class="flex items-center space-x-2 mb-4">
                     <flux:icon.exclamation-triangle variant="outline" class="w-5 h-5 text-orange-500" />
                     <flux:heading size="lg">Quiebre de Stock (Mínimos)</flux:heading>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-                        <thead class="bg-gray-50 dark:bg-zinc-800">
-                            <tr>
-                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
-                                <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Lote</th>
-                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Q. Actual</th>
-                                <th scope="col" class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Q. Mínimo</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+                <div class="overflow-x-auto w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
+                    <x-table>
+                        <x-table.head>
+                            <x-table.heading>Medicamento</x-table.heading>
+                            <x-table.heading>Lote</x-table.heading>
+                            <x-table.heading class="text-right">Q. Actual</x-table.heading>
+                            <x-table.heading class="text-right">Q. Mínimo</x-table.heading>
+                        </x-table.head>
+                        <x-table.body>
                             @forelse ($lowStockBatches as $batch)
-                                <tr>
-                                    <td class="px-3 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                <x-table.row>
+                                    <x-table.cell class="font-medium text-zinc-900 dark:text-zinc-100">
                                         {{ $batch->medicine?->product?->name ?? 'N/D' }}
-                                    </td>
-                                    <td class="px-3 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                    </x-table.cell>
+                                    <x-table.cell class="text-zinc-500 dark:text-zinc-400">
                                         {{ $batch->batch_number }}
-                                    </td>
-                                    <td class="px-3 py-4 whitespace-nowrap text-right text-sm font-bold text-orange-600">
+                                    </x-table.cell>
+                                    <x-table.cell class="text-right font-bold text-orange-600">
                                         {{ $batch->current_quantity }}
-                                    </td>
-                                    <td class="px-3 py-4 whitespace-nowrap text-right text-sm text-zinc-500 dark:text-zinc-400">
+                                    </x-table.cell>
+                                    <x-table.cell class="text-right text-zinc-500 dark:text-zinc-400">
                                         {{ $batch->minimum_stock }}
-                                    </td>
-                                </tr>
+                                    </x-table.cell>
+                                </x-table.row>
                             @empty
-                                <tr>
-                                    <td colspan="4" class="px-3 py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                                <x-table.row>
+                                    <x-table.cell colspan="4" class="text-center text-zinc-500 dark:text-zinc-400">
                                         Todos los lotes se encuentran por encima de su stock mínimo.
-                                    </td>
-                                </tr>
+                                    </x-table.cell>
+                                </x-table.row>
                             @endforelse
-                        </tbody>
-                    </table>
+                        </x-table.body>
+                    </x-table>
                 </div>
             </div>
         </div>
@@ -131,33 +127,29 @@
         
     </div>
 
-    <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-            <thead class="bg-gray-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Usuario</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Rol</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Permisos</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Perfiles</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
-
+    <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700 shadow-lg shadow-zinc-800/70">
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Usuario</x-table.heading>
+                <x-table.heading>Rol</x-table.heading>
+                <x-table.heading>Permisos</x-table.heading>
+                <x-table.heading>Perfiles</x-table.heading>
+                <x-table.heading>Estado</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
+            <x-table.body>
                 @foreach($users as $user)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <x-table.row>
+                        <x-table.cell>
                             <div class="flex items-center gap-3">
                                 <flux:avatar class="size-8 rounded-full" name="{{ $user->name }}" circle/>
                                 <div class="flex flex-col gap-1 w-full">
                                     <flux:text>{{ $user->name }}</flux:text>
                                 </div>
                             </div>
-                        </td>
+                        </x-table.cell>
 
-                        <td class="px-6 py-4 whitespace-nowrap max-48">
+                        <x-table.cell class="max-48">
                             <div class="flex gap-2">
                                 
                                 <flux:select class="w-40" aria-label="Perfiles del usuario" size="sm">
@@ -172,9 +164,9 @@
 
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editRoles({{ $user->id }})" />
                             </div>
-                        </td>
+                        </x-table.cell>
 
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <x-table.cell>
                             <div class="flex gap-2">
                                 <flux:select class="w-40" aria-label="Permisos del usuario" size="sm">
                                     @forelse($user->getDirectPermissions() as $permission)
@@ -188,9 +180,9 @@
 
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editPermissions({{ $user->id }})" />
                             </div>
-                        </td>
+                        </x-table.cell>
 
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <x-table.cell>
                             <div class="flex gap-2">
                                 <flux:select class="w-40" aria-label="Perfiles Personalizados" size="sm">
                                     @forelse($user->profiles as $profile)
@@ -204,14 +196,13 @@
 
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProfiles({{ $user->id }})" />
                             </div>
+                        </x-table.cell>
 
-                        </td>
-
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <x-table.cell>
                             <flux:badge color="{{ $user->is_active ? 'green' : 'red' }}" inset="top bottom">{{ $user->is_active ? 'Activo' : 'Inactivo' }}</flux:badge>
-                        </td>
+                        </x-table.cell>
 
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <x-table.cell class="text-right">
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editUser({{ $user->id }})" />
                                 <flux:modal.trigger name="reset-password-{{ $user->id }}">
@@ -226,8 +217,8 @@
                                     <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateUser({{ $user->id }})" />
                                 @endif
 
-                                <flux:modal name="reset-password-{{ $user->id }}" class="min-w-[22rem]">
-                                    <div class="space-y-6">
+                                <flux:modal name="reset-password-{{ $user->id }}" class="min-w-xs">
+                                    <div class="space-y-6 flex flex-col items-start">
                                         <div>
                                             <flux:heading size="lg" class="text-left">Resetear Contraseña</flux:heading>
                                             <flux:subheading class="text-left">Actualizar contraseña de {{ $user->name }}.</flux:subheading>
@@ -236,7 +227,7 @@
                                         <flux:input wire:model="newPassword" type="password" label="Nueva contraseña" placeholder="Ingresa la nueva contraseña" />
                                         <flux:input wire:model="newPasswordConfirmation" type="password" label="Confirmar contraseña" placeholder="Confirma la contraseña" />
 
-                                        <div class="flex justify-end">
+                                        <div class="flex flex-row justify-end w-full">
                                             <flux:modal.close>
                                                 <flux:button wire:click="updatePassword({{ $user->id }})" variant="primary">Guardar Contraseña</flux:button>
                                             </flux:modal.close>
@@ -244,7 +235,7 @@
                                     </div>
                                 </flux:modal>
 
-                                <flux:modal name="confirm-deactivation-{{ $user->id }}" class="min-w-[22rem]">
+                                <flux:modal name="confirm-deactivation-{{ $user->id }}" class="min-w-xs">
                                     <div class="space-y-6">
                                         <div>
                                             <flux:heading size="lg" class="text-left">¿Desactivar usuario?</flux:heading>
@@ -266,12 +257,11 @@
                                     </div>
                                 </flux:modal>
                             </div>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforeach   
-
-            </tbody>
-        </table>
+            </x-table.body>
+        </x-table>
     </div>
 
     <div class="mt-4">
@@ -279,7 +269,7 @@
     </div>
 
     <!-- Centralized Modals -->
-    <flux:modal name="edit-user" class="min-w-[40rem]">
+    <flux:modal name="edit-user" class="min-w-160">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Editar Usuario</flux:heading>
@@ -324,7 +314,7 @@
         </div>
     </flux:modal>
 
-    <flux:modal name="edit-roles" class="min-w-[22rem]">
+    <flux:modal name="edit-roles" class="min-w-xs">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Roles del Usuario</flux:heading>
@@ -346,7 +336,7 @@
         </div>
     </flux:modal>
 
-    <flux:modal name="edit-permissions" class="min-w-[22rem]">
+    <flux:modal name="edit-permissions" class="min-w-xs">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Permisos Directos</flux:heading>
@@ -402,7 +392,7 @@
     </div>
 </flux:modal>
 
-    <flux:modal name="edit-profiles" class="min-w-[22rem]">
+    <flux:modal name="edit-profiles" class="min-w-xs">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Perfiles Activos</flux:heading>

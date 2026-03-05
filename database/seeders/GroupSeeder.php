@@ -12,13 +12,6 @@ class GroupSeeder extends Seeder
      */
     public function run(): void
     {
-        $groupNames = ['Analgésicos', 'Antibióticos', 'Venta Libre', 'Cardiología', 'Dermatología', 'Endocrinología', 'Gastroenterología'];
-
-        foreach ($groupNames as $name) {
-            Group::firstOrCreate(
-                ['name' => $name],
-                ['description' => "Categoría de medicamentos: {$name}"]
-            );
-        }
+        Group::factory(5)->create();
     }
 }

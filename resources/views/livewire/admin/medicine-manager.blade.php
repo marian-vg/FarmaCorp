@@ -13,41 +13,37 @@
         </div>
     </div>
 
-    <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-            <thead class="bg-gray-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Producto Base</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Grupo Farmacológico</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nivel / Dosis</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock Actual</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock Mínimo</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado / Riesgo</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Prospecto</th>
-                </tr>
-            </thead>
-
-            <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+    <x-table>
+        <x-table.head>
+            <x-table.heading>Producto Base</x-table.heading>
+            <x-table.heading>Grupo Farmacológico</x-table.heading>
+            <x-table.heading>Nivel / Dosis</x-table.heading>
+            <x-table.heading>Stock Actual</x-table.heading>
+            <x-table.heading>Stock Mínimo</x-table.heading>
+            <x-table.heading>Vencimiento</x-table.heading>
+            <x-table.heading>Estado / Riesgo</x-table.heading>
+            <x-table.heading class="text-right">Prospecto</x-table.heading>
+        </x-table.head>
+        <x-table.body>
                 @forelse($medicines as $medicine)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <x-table.row>
+                        <x-table.cell>
                             <flux:text class="font-medium">{{ $medicine->product->name }}</flux:text>
                             <div class="text-xs text-gray-500">${{ number_format($medicine->product->price, 2) }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text>{{ $medicine->group->name }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text>{{ $medicine->level ?: 'N/A' }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:badge variant="solid" color="zinc">{{ $medicine->product->stock?->cantidad_actual ?? 0 }}</flux:badge>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text class="text-gray-500">{{ $medicine->product->stock?->stock_minimo ?? 0 }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             @if($medicine->expiration_date)
                                 @php
                                     $isExpired = $medicine->expiration_date->isPast();
@@ -64,8 +60,8 @@
                             @else
                                 <flux:text class="text-gray-400">Sin definir</flux:text>
                             @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <div class="flex flex-col items-start gap-1">
                                 @if($medicine->product->status)
                                     <flux:badge variant="success" size="sm">Activo</flux:badge>
@@ -77,28 +73,27 @@
                                     <flux:badge variant="danger" size="sm">Psicotrópico</flux:badge>
                                 @endif
                             </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        </x-table.cell>
+                        <x-table.cell class="text-right">
                             <flux:button size="sm" icon="document-text" variant="ghost" wire:click="viewLeaflet({{ $medicine->product_id }})" aria-label="Ver Prospecto" />
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <tr>
-                        <td colspan="8" class="px-6 py-4 text-center">
+                    <x-table.row>
+                        <x-table.cell colspan="8" class="text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No se encontraron medicamentos.</flux:text>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </tbody>
-        </table>
-    </div>
+        </x-table.body>
+    </x-table>
 
     <div class="mt-4">
         {{ $medicines->links() }}
     </div>
 
     <!-- Create Modal (Alta de medicamento desde producto existente) -->
-    <flux:modal name="medicine-form" class="min-w-[40rem]">
+    <flux:modal name="medicine-form" class="min-w-160">
         <form wire:submit="saveMedicine" class="space-y-6">
             <div>
                 <flux:heading size="lg">Especificación Farmacológica</flux:heading>
@@ -149,7 +144,7 @@
     </flux:modal>
 
     <!-- Leaflet Modal (Visor de Prospecto) -->
-    <flux:modal name="leaflet-modal" class="min-w-[40rem]">
+    <flux:modal name="leaflet-modal" class="min-w-160">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $viewingMedicine?->product?->name ?? 'Prospecto' }}</flux:heading>

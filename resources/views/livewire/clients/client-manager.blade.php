@@ -15,39 +15,35 @@
         </div>
     </div>
 
-    <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-            <thead class="bg-gray-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Cliente</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Contacto</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Dirección</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+    <x-table>
+        <x-table.head>
+            <x-table.heading>Cliente</x-table.heading>
+            <x-table.heading>Contacto</x-table.heading>
+            <x-table.heading>Dirección</x-table.heading>
+            <x-table.heading class="text-center">Estado</x-table.heading>
+            <x-table.heading class="text-right">Acciones</x-table.heading>
+        </x-table.head>
+        <x-table.body>
                 @forelse($clients as $client)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <x-table.row>
+                        <x-table.cell>
                             <flux:text class="font-medium">{{ $client->first_name }} {{ $client->last_name }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <p class="text-sm text-gray-600 dark:text-gray-400">{{ $client->email ?: 'Sin correo' }}</p>
                             <p class="text-sm text-gray-500 dark:text-gray-500">{{ $client->phone }}</p>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text class="text-sm truncate max-w-xs">{{ $client->address }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                        </x-table.cell>
+                        <x-table.cell class="text-center">
                             @if($client->is_active)
                                 <flux:badge color="green" size="sm" inset="top bottom">Activo</flux:badge>
                             @else
                                 <flux:badge color="red" size="sm" inset="top bottom">Inactivo</flux:badge>
                             @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        </x-table.cell>
+                        <x-table.cell class="text-right">
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="eye" variant="ghost" wire:click="viewClient({{ $client->id }})" />
                                 
@@ -60,25 +56,24 @@
                                     @endif
                                 @endhasanyrole
                             </div>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-4 text-center">
+                    <x-table.row>
+                        <x-table.cell colspan="5" class="text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No se encontraron clientes.</flux:text>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </tbody>
-        </table>
-    </div>
+        </x-table.body>
+    </x-table>
 
     <div class="mt-4">
         {{ $clients->links() }}
     </div>
 
     <!-- Modals -->
-    <flux:modal name="client-form" class="min-w-[40rem]">
+    <flux:modal name="client-form" class="min-w-160">
         <form wire:submit="saveClient" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingClient ? 'Editar Información del Cliente' : 'Registrar Nuevo Cliente' }}</flux:heading>
@@ -104,7 +99,7 @@
         </form>
     </flux:modal>
 
-    <flux:modal name="confirm-deactivation-client" class="min-w-[22rem]">
+    <flux:modal name="confirm-deactivation-client" class="min-w-xs">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg" class="text-left text-red-600 dark:text-red-400">¿Desactivar cliente?</flux:heading>
@@ -123,7 +118,7 @@
         </div>
     </flux:modal>
 
-    <flux:modal name="view-client-modal" class="min-w-[40rem]">
+    <flux:modal name="view-client-modal" class="min-w-160">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg">Detalles del Cliente</flux:heading>

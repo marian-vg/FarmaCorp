@@ -13,54 +13,48 @@
     </div>
 
     <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-            <thead class="bg-gray-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nombre del Perfil</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Descripción</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Permisos Integrados</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Nombre del Perfil</x-table.heading>
+                <x-table.heading>Descripción</x-table.heading>
+                <x-table.heading>Permisos Integrados</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
+            <x-table.body>
                 @forelse($this->profiles as $profile)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <x-table.row>
+                        <x-table.cell>
                             <flux:text class="font-medium">{{ $profile->name }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-xs">{{ $profile->description ?: 'Sin descripción' }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4">
+                        </x-table.cell>
+                        <x-table.cell>
                             <div class="flex flex-wrap gap-1">
                                 <flux:text class="text-sm">{{ $profile->permissions->count() }} permisos</flux:text>
                             </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        </x-table.cell>
+                        <x-table.cell class="text-right">
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProfile({{ $profile->id }})" />
                                 <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDelete({{ $profile->id }})" />
                             </div>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <tr>
-                        <td colspan="4" class="px-6 py-4 text-center">
+                    <x-table.row>
+                        <x-table.cell colspan="4" class="text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No hay perfiles personalizados creados.</flux:text>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </tbody>
-        </table>
+            </x-table.body>
+        </x-table>
     </div>
 
-    <div class="mt-4">
-        {{ $this->profiles->links() }}
-    </div>
 
     <!-- Modals -->
-    <flux:modal name="profile-form" class="min-w-[32rem]">
+    <flux:modal name="profile-form" class="min-w-lg">
         <form wire:submit="saveProfile" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingProfile ? 'Editar Perfil' : 'Crear Nuevo Perfil' }}</flux:heading>
@@ -90,7 +84,7 @@
         </form>
     </flux:modal>
 
-    <flux:modal name="confirm-delete-profile" class="min-w-[22rem]">
+    <flux:modal name="confirm-delete-profile" class="min-w-88">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg" class="text-left text-red-600 dark:text-red-400">¿Eliminar perfil?</flux:heading>
@@ -110,7 +104,7 @@
     </flux:modal>
 
     <!-- Permission Modals -->
-    <flux:modal name="permission-form" class="min-w-[32rem]">
+    <flux:modal name="permission-form" class="min-w-lg">
         <form wire:submit="savePermission" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingPermission ? 'Editar Permiso' : 'Crear Nuevo Permiso' }}</flux:heading>
@@ -139,40 +133,38 @@
             </div>
 
             <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-                    <thead class="bg-gray-50 dark:bg-zinc-800">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nombre</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Descripción</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+                <x-table>
+                    <x-table.head>
+                        <x-table.heading>Nombre</x-table.heading>
+                        <x-table.heading>Descripción</x-table.heading>
+                        <x-table.heading class="text-right">Acciones</x-table.heading>
+                    </x-table.head>
+                    <x-table.body>
                         @forelse($this->permissions as $permission)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
+                            <x-table.row>
+                                <x-table.cell>
                                     <flux:text class="font-medium">{{ $permission->display_name ?? $permission->name }}</flux:text>
-                                </td>
-                                <td class="px-6 py-4">
+                                </x-table.cell>
+                                <x-table.cell>
                                     <flux:text class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-sm">{{ substr($permission->description, 0, 20) . "..." }}</flux:text>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                </x-table.cell>
+                                <x-table.cell class="text-right">
                                     <div class="flex justify-end gap-2">
                                         <!-- Note: show() without waiting handles immediate dom state change for these overlapping modals -->
                                         <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editPermission({{ $permission->id }})" />
                                         <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDeletePermission({{ $permission->id }})" />
                                     </div>
-                                </td>
-                            </tr>
+                                </x-table.cell>
+                            </x-table.row>
                         @empty
-                            <tr>
-                                <td colspan="3" class="px-6 py-4 text-center">
+                            <x-table.row>
+                                <x-table.cell colspan="3" class="text-center">
                                     <flux:text class="text-gray-500 dark:text-gray-400">No hay permisos definidos.</flux:text>
-                                </td>
-                            </tr>
+                                </x-table.cell>
+                            </x-table.row>
                         @endforelse
-                    </tbody>
-                </table>
+                    </x-table.body>
+                </x-table>
             </div>
 
             <div class="flex justify-end">
@@ -183,7 +175,7 @@
         </div>
     </flux:modal>
 
-    <flux:modal name="confirm-delete-permission" class="min-w-[22rem]">
+    <flux:modal name="confirm-delete-permission" class="min-w-88">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg" class="text-left text-red-600 dark:text-red-400">¿Eliminar permiso?</flux:heading>

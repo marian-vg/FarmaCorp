@@ -3,8 +3,9 @@
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky collapsible class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+    <body class="min-h-screen flex bg-white dark:bg-zinc-800">
+
+        <flux:sidebar sticky collapsible class="shadow-lg shadow-farmacorp-shadow/70">
             <flux:sidebar.toggle class="flex items-center" size="sm" icon="bars-3" />
 
             {{-- VISTA ADMINISTRADOR --}}
@@ -38,7 +39,9 @@
             </form>
         </flux:sidebar>
 
-        {{ $slot }}
+        <main class="flex-1 min-h-screen bg-white dark:bg-zinc-900">
+            {{ $slot }}
+        </main>       
 
         @fluxScripts
     </body>

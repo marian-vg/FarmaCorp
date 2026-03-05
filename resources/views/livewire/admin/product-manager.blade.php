@@ -9,27 +9,24 @@
     </div>
 
     <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-            <thead class="bg-gray-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Tipo</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Precio</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Estado</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Nombre</x-table.heading>
+                <x-table.heading>Tipo</x-table.heading>
+                <x-table.heading>Precio</x-table.heading>
+                <x-table.heading>Estado</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
+            <x-table.body>
                 @forelse($products as $product)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <x-table.row>
+                        <x-table.cell>
                             <flux:text class="font-medium">{{ $product->name }}</flux:text>
                             @if($product->medicine && $product->medicine->group)
                                 <div class="text-xs text-gray-500">{{ $product->medicine->group->name }}</div>
                             @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             @if($product->medicine)
                                 <flux:badge variant="primary" size="sm">Medicamento</flux:badge>
                                 @if($product->medicine->is_psychotropic)
@@ -38,33 +35,33 @@
                             @else
                                 <flux:badge variant="solid" color="zinc" size="sm">Insumo/General</flux:badge>
                             @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text>${{ number_format($product->price, 2) }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        </x-table.cell>
+                        <x-table.cell>
                             @if($product->status)
                                 <flux:badge variant="success" size="sm">Activo</flux:badge>
                             @else
                                 <flux:badge variant="danger" size="sm">Inactivo</flux:badge>
                             @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        </x-table.cell>
+                        <x-table.cell class="text-right">
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProduct({{ $product->id }})" />
                                 <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDeactivate({{ $product->id }})" />
                             </div>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-4 text-center">
+                    <x-table.row>
+                        <x-table.cell colspan="5" class="text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No se encontraron productos.</flux:text>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </tbody>
-        </table>
+            </x-table.body>
+        </x-table>
     </div>
 
     <div class="mt-4">
@@ -72,7 +69,7 @@
     </div>
 
     <!-- Edit/Create Modal -->
-    <flux:modal name="product-form" class="min-w-[40rem]">
+    <flux:modal name="product-form" class="min-w-160">
         <form wire:submit="saveProduct" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingProduct ? 'Editar Producto' : 'Registrar Nuevo Producto' }}</flux:heading>
@@ -141,7 +138,7 @@
     </flux:modal>
 
     <!-- Delete Confirmation Modal -->
-    <flux:modal name="confirm-deactivation-product" class="min-w-[22rem]">
+    <flux:modal name="confirm-deactivation-product" class="min-w-xs">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg" class="text-left text-red-600 dark:text-red-400">¿Desactivar producto?</flux:heading>
