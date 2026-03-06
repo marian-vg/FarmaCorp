@@ -29,13 +29,13 @@
                     @forelse($medicines as $medicine)
                         <x-table.row>
                             <x-table.cell class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                {{ $medicine->product?->name ?? 'N/D' }}
+                                {{ $medicine->presentation_name ?: ($medicine->product?->name ?? 'N/D') }}
                             </x-table.cell>
                             <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
                                 <flux:badge variant="pill">{{ $medicine->group?->name ?? 'Sin Grupo' }}</flux:badge>
                             </x-table.cell>
                             <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
-                                ${{ number_format($medicine->product?->price ?? 0, 2) }}
+                                ${{ number_format($medicine->price ?? 0, 2) }}
                             </x-table.cell>
                             <x-table.cell class="text-right text-sm font-medium">
                                 <flux:button size="sm" variant="primary" icon="plus" wire:click="selectMedicine({{ $medicine->product_id }})">

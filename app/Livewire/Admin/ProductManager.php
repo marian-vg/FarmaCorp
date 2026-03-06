@@ -24,12 +24,13 @@ class ProductManager extends Component
     public array $productContext = [
         'name' => '',
         'description' => '',
-        'price' => null,
         'status' => true,
     ];
 
     public array $medicineContext = [
         'group_id' => null,
+        'presentation_name' => '',
+        'price' => null,
         'level' => '',
         'leaflet' => '',
         'expiration_date' => null,
@@ -54,7 +55,6 @@ class ProductManager extends Component
         $this->productContext = [
             'name' => $product->name,
             'description' => $product->description,
-            'price' => $product->price,
             'status' => $product->status,
         ];
 
@@ -62,6 +62,8 @@ class ProductManager extends Component
             $this->isMedicine = true;
             $this->medicineContext = [
                 'group_id' => $product->medicine->group_id,
+                'presentation_name' => $product->medicine->presentation_name,
+                'price' => $product->medicine->price,
                 'level' => $product->medicine->level,
                 'leaflet' => $product->medicine->leaflet,
                 'expiration_date' => $product->medicine->expiration_date ? $product->medicine->expiration_date->format('Y-m-d') : null,
@@ -87,11 +89,12 @@ class ProductManager extends Component
                     : Rule::unique('products', 'name'),
             ],
             'productContext.description' => 'nullable|string',
-            'productContext.price' => 'required|numeric|min:0',
             'productContext.status' => 'boolean',
         ];
 
         if ($this->isMedicine) {
+            $rules['medicineContext.presentation_name'] = 'nullable|string|max:255';
+            $rules['medicineContext.price'] = 'required|numeric|min:0';
             $rules['medicineContext.group_id'] = 'required|exists:groups,id';
             $rules['medicineContext.level'] = 'nullable|string|max:50';
             $rules['medicineContext.leaflet'] = 'nullable|string';

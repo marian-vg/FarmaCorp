@@ -18,6 +18,8 @@ class Medicine extends Model
 
     protected $fillable = [
         'product_id',
+        'presentation_name',
+        'price',
         'level',
         'leaflet',
         'expiration_date',
@@ -28,6 +30,7 @@ class Medicine extends Model
     protected function casts(): array
     {
         return [
+            'price' => 'decimal:2',
             'expiration_date' => 'date',
             'is_psychotropic' => 'boolean',
         ];

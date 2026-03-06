@@ -21,7 +21,7 @@
                 @forelse($products as $product)
                     <x-table.row>
                         <x-table.cell>
-                            <flux:text class="font-medium">{{ $product->name }}</flux:text>
+                            <flux:text class="font-medium">{{ $product->medicine?->presentation_name ?: $product->name }}</flux:text>
                             @if($product->medicine && $product->medicine->group)
                                 <div class="text-xs text-gray-500">{{ $product->medicine->group->name }}</div>
                             @endif
@@ -37,7 +37,11 @@
                             @endif
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:text>${{ number_format($product->price, 2) }}</flux:text>
+                            @if($product->medicine)
+                                <flux:text>${{ number_format($product->medicine->price, 2) }}</flux:text>
+                            @else
+                                <flux:text class="text-zinc-400 italic">N/D</flux:text>
+                            @endif
                         </x-table.cell>
                         <x-table.cell>
                             @if($product->status)
@@ -79,15 +83,12 @@
             <!-- Basic product fields -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
-                    <flux:input wire:model="productContext.name" label="Nombre del producto" required />
+                    <flux:input wire:model="productContext.name" label="Nombre del producto" placeholder="Ej: Ibuprofeno" required />
                 </div>
                 <div class="col-span-2">
                     <flux:textarea wire:model="productContext.description" label="Descripción (Opcional)" />
                 </div>
-                <div>
-                    <flux:input type="number" step="0.01" wire:model="productContext.price" label="Precio de venta unitario" required />
-                </div>
-                <div class="flex items-center mt-6">
+                <div class="col-span-2 flex items-center mt-2">
                     <flux:switch wire:model="productContext.status" label="Producto en estado activo" />
                 </div>
             </div>
@@ -108,6 +109,14 @@
                                 <flux:select.option value="{{ $group->id }}">{{ $group->name }}</flux:select.option>
                             @endforeach
                         </flux:select>
+                    </div>
+
+                    <div class="col-span-2 sm:col-span-1">
+                        <flux:input wire:model="medicineContext.presentation_name" label="Nombre de Presentación (Opcional)" placeholder="Ej: Ibuprofeno 400mg x 10 comp." />
+                    </div>
+
+                    <div class="col-span-2 sm:col-span-1">
+                        <flux:input type="number" step="0.01" wire:model="medicineContext.price" label="Precio de venta unitario" placeholder="Ej: 450.00" required />
                     </div>
 
                     <div class="col-span-2 sm:col-span-1">

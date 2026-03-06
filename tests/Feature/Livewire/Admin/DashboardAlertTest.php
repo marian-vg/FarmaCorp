@@ -30,7 +30,7 @@ class DashboardAlertTest extends TestCase
         $group = Group::create(['name' => 'TestGroup']);
 
         $prod1 = Product::factory()->create(['name' => 'FastExpiringMed']);
-        $med1 = Medicine::create(['product_id' => $prod1->id, 'group_id' => $group->id]);
+        $med1 = Medicine::create(['product_id' => $prod1->id, 'group_id' => $group->id, 'price' => 10]);
 
         // Batch expiring in 10 days, quantity > 0 MUST appear
         Batch::create([
@@ -51,7 +51,7 @@ class DashboardAlertTest extends TestCase
         ]);
 
         $prod2 = Product::factory()->create(['name' => 'LongExpiringMed']);
-        $med2 = Medicine::create(['product_id' => $prod2->id, 'group_id' => $group->id]);
+        $med2 = Medicine::create(['product_id' => $prod2->id, 'group_id' => $group->id, 'price' => 10]);
 
         // Batch expiring in 60 days, quantity > 0 MUST NOT appear (exceeds default 30 days)
         Batch::create([
@@ -77,7 +77,7 @@ class DashboardAlertTest extends TestCase
         $group = Group::create(['name' => 'TestGroup']);
 
         $prod = Product::factory()->create(['name' => 'MediumExpiringMed']);
-        $med = Medicine::create(['product_id' => $prod->id, 'group_id' => $group->id]);
+        $med = Medicine::create(['product_id' => $prod->id, 'group_id' => $group->id, 'price' => 10]);
 
         Batch::create([
             'medicine_id' => $med->product_id,

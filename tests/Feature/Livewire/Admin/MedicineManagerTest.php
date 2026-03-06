@@ -39,12 +39,13 @@ class MedicineManagerTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        $product = Product::factory()->create(['name' => 'Amoxicilina', 'price' => 15.00]);
+        $product = Product::factory()->create(['name' => 'Amoxicilina']);
         $group = Group::create(['name' => 'Antibióticos']);
 
         Medicine::create([
             'product_id' => $product->id,
             'group_id' => $group->id,
+            'price' => 15.00,
             'level' => '500mg',
             'is_psychotropic' => false,
         ]);
@@ -60,13 +61,14 @@ class MedicineManagerTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        $product = Product::factory()->create(['name' => 'Clonazepam', 'price' => 50.00]);
+        $product = Product::factory()->create(['name' => 'Clonazepam']);
         $group = Group::create(['name' => 'Ansiolíticos']);
 
         Livewire::actingAs($admin)->test(MedicineManager::class)
             ->call('createMedicine') // triggers modal and resets context
             ->set('context.product_id', $product->id)
             ->set('context.group_id', $group->id)
+            ->set('context.price', 50.00)
             ->set('context.level', '2mg')
             ->set('context.leaflet', 'Tomar una pastilla antes de dormir.')
             ->set('context.is_psychotropic', true)
@@ -76,6 +78,7 @@ class MedicineManagerTest extends TestCase
         $this->assertDatabaseHas('medicines', [
             'product_id' => $product->id,
             'group_id' => $group->id,
+            'price' => 50.00,
             'level' => '2mg',
             'is_psychotropic' => true,
         ]);
@@ -90,7 +93,7 @@ class MedicineManagerTest extends TestCase
         
         $productWithMedicine = Product::factory()->create(['name' => 'Paracetamol', 'status' => true]);
         $group = Group::create(['name' => 'Analgésicos']);
-        Medicine::create(['product_id' => $productWithMedicine->id, 'group_id' => $group->id, 'level' => '1g', 'is_psychotropic' => false]);
+        Medicine::create(['product_id' => $productWithMedicine->id, 'group_id' => $group->id, 'price' => 10, 'level' => '1g', 'is_psychotropic' => false]);
         
         $inactiveProduct = Product::factory()->create(['name' => 'Descontinuado', 'status' => false]);
 
@@ -116,8 +119,8 @@ class MedicineManagerTest extends TestCase
         $prod2 = Product::factory()->create(['name' => 'PsychoMed']);
         $group = Group::create(['name' => 'General']);
 
-        Medicine::create(['product_id' => $prod1->id, 'group_id' => $group->id, 'is_psychotropic' => false]);
-        Medicine::create(['product_id' => $prod2->id, 'group_id' => $group->id, 'is_psychotropic' => true]);
+        Medicine::create(['product_id' => $prod1->id, 'group_id' => $group->id, 'price' => 10, 'is_psychotropic' => false]);
+        Medicine::create(['product_id' => $prod2->id, 'group_id' => $group->id, 'price' => 10, 'is_psychotropic' => true]);
 
         Livewire::actingAs($admin)->test(MedicineManager::class)
             ->assertSee('NormalMed')
@@ -137,6 +140,7 @@ class MedicineManagerTest extends TestCase
         $medicine = Medicine::create([
             'product_id' => $prod->id, 
             'group_id' => $group->id, 
+            'price' => 10,
             'level' => '100mg',
             'leaflet' => 'Este es el texto del prospecto clínico.'
         ]);
@@ -157,9 +161,9 @@ class MedicineManagerTest extends TestCase
         $prodGood = Product::factory()->create(['name' => 'MedOk']);
         $group = Group::create(['name' => 'General']);
 
-        Medicine::create(['product_id' => $prodExpired->id, 'group_id' => $group->id, 'expiration_date' => now()->subDays(5)]);
-        Medicine::create(['product_id' => $prodWarning->id, 'group_id' => $group->id, 'expiration_date' => now()->addDays(15)]);
-        Medicine::create(['product_id' => $prodGood->id, 'group_id' => $group->id, 'expiration_date' => now()->addDays(60)]);
+        Medicine::create(['product_id' => $prodExpired->id, 'group_id' => $group->id, 'price' => 10, 'expiration_date' => now()->subDays(5)]);
+        Medicine::create(['product_id' => $prodWarning->id, 'group_id' => $group->id, 'price' => 10, 'expiration_date' => now()->addDays(15)]);
+        Medicine::create(['product_id' => $prodGood->id, 'group_id' => $group->id, 'price' => 10, 'expiration_date' => now()->addDays(60)]);
 
         $html = Livewire::actingAs($admin)->test(MedicineManager::class)->html();
         Livewire::actingAs($admin)->test(MedicineManager::class)

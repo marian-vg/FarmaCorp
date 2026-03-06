@@ -28,8 +28,8 @@
                 @forelse($medicines as $medicine)
                     <x-table.row>
                         <x-table.cell>
-                            <flux:text class="font-medium">{{ $medicine->product->name }}</flux:text>
-                            <div class="text-xs text-gray-500">${{ number_format($medicine->product->price, 2) }}</div>
+                            <flux:text class="font-medium">{{ $medicine->presentation_name ?: $medicine->product->name }}</flux:text>
+                            <div class="text-xs text-gray-500">${{ number_format($medicine->price, 2) }}</div>
                         </x-table.cell>
                         <x-table.cell>
                             <flux:text>{{ $medicine->group->name }}</flux:text>
@@ -110,11 +110,19 @@
                 </div>
                 
                 <div class="col-span-2 sm:col-span-1">
-                    <flux:select wire:model="context.group_id" label="Grupo Farmacológico" placeholder="Seleccione un grupo" required>
-                        @foreach($groups as $group)
-                            <flux:select.option value="{{ $group->id }}">{{ $group->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
+                        <flux:select wire:model="context.group_id" label="Grupo Farmacológico" placeholder="Seleccione un grupo" required>
+                            @foreach($groups as $group)
+                                <flux:select.option value="{{ $group->id }}">{{ $group->name }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                </div>
+
+                <div class="col-span-2">
+                    <flux:input wire:model="context.presentation_name" label="Nombre de Presentación Comercial (Opcional)" placeholder="Ej: Paracetamol 500mg x 20 comp." />
+                </div>
+
+                <div class="col-span-2 sm:col-span-1">
+                    <flux:input type="number" step="0.01" wire:model="context.price" label="Precio de Venta" placeholder="Ej: 15.50" required />
                 </div>
 
                 <div class="col-span-2 sm:col-span-1">

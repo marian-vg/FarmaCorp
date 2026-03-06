@@ -16,14 +16,12 @@ class Product extends Model
     protected $fillable = [
         'name',
         'description',
-        'price',
         'status',
     ];
 
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
             'status' => 'boolean',
         ];
     }

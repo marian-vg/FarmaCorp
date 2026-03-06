@@ -22,6 +22,8 @@ class MedicineManager extends Component
 
     public array $context = [
         'product_id' => '',
+        'presentation_name' => '',
+        'price' => null,
         'group_id' => '',
         'level' => '',
         'leaflet' => '',
@@ -57,6 +59,8 @@ class MedicineManager extends Component
     {
         $this->validate([
             'context.product_id' => 'required|exists:products,id|unique:medicines,product_id',
+            'context.presentation_name' => 'nullable|string|max:255',
+            'context.price' => 'required|numeric|min:0',
             'context.group_id' => 'required|exists:groups,id',
             'context.level' => 'nullable|string|max:255',
             'context.leaflet' => 'nullable|string',
@@ -68,6 +72,8 @@ class MedicineManager extends Component
 
         Medicine::create([
             'product_id' => $this->context['product_id'],
+            'presentation_name' => $this->context['presentation_name'],
+            'price' => $this->context['price'],
             'group_id' => $this->context['group_id'],
             'level' => $this->context['level'],
             'leaflet' => $this->context['leaflet'],

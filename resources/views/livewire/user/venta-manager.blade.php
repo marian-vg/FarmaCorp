@@ -33,10 +33,10 @@
                         <flux:card class="flex flex-col justify-between hover:shadow-md transition-shadow cursor-pointer group" wire:click="agregarAlCarrito({{ $product->id }})">
                             <div>
                                 <flux:text size="xs" class="uppercase text-zinc-400">Producto</flux:text>
-                                <flux:heading size="sm">{{ $product->name }}</flux:heading>
+                                <flux:heading size="sm">{{ $product->medicine->presentation_name ?: $product->name }}</flux:heading>
                             </div>
                             <div class="mt-4 flex justify-between items-center">
-                                <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
+                                <flux:text class="font-bold text-indigo-600">${{ number_format($product->medicine->price, 2) }}</flux:text>
                                 <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" />
                             </div>
                         </flux:card>

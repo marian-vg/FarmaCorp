@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('medicines', function (Blueprint $table) {
             $table->foreignId('product_id')->primary()->constrained('products')->cascadeOnDelete();
+            $table->string('presentation_name')->nullable();
+            $table->decimal('price', 10, 2);
             $table->string('level')->nullable();
             $table->text('leaflet')->nullable();
             $table->date('expiration_date')->nullable();

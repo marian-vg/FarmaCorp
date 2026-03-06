@@ -35,8 +35,8 @@ class VentaManager extends Component
         } else {
             $this->carrito[$product->id] = [
                 'id' => $product->id,
-                'name' => $product->name,
-                'price' => $product->price,
+                'name' => $product->medicine->presentation_name ?: $product->name,
+                'price' => $product->medicine->price,
                 'cantidad' => 1,
             ];
         }
@@ -127,7 +127,9 @@ class VentaManager extends Component
     {
         $products = Product::search($this->search)
             ->query(function ($query) {
-                $query->where('status', true);
+                $query->where('status', true)
+                      ->whereHas('medicine')
+                      ->with('medicine');
             })
             ->get();
 
