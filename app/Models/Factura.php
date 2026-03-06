@@ -12,6 +12,7 @@ class Factura extends Model
     'tipo_comprobante',
     'fecha_emision',
     'total',
+    'ajuste_global',
     'estado',
     'user_id',
     'cliente_id',

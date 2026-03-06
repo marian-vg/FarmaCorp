@@ -140,6 +140,30 @@
                         <flux:heading size="xl" class="text-indigo-600">${{ number_format($this->subtotal, 2) }}</flux:heading>
                     </div>
 
+                    <div class="flex items-center gap-3">
+        <flux:input 
+            wire:model.live="global_adjustment" 
+            type="number" 
+            label="Descuento (-) / Recargo (+)" 
+            placeholder="Ej: -50 o 100"
+            size="sm"
+            class="flex-1"
+        />
+    </div>
+
+    <div class="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">
+        <div class="flex flex-col">
+            <flux:text size="xs" class="uppercase text-zinc-500 font-semibold">Total Final</flux:text>
+            <flux:heading size="xl" class="text-indigo-600">${{ number_format($this->totalFinal, 2) }}</flux:heading>
+        </div>
+        
+        @if($global_adjustment != 0)
+            <flux:badge :color="$global_adjustment < 0 ? 'green' : 'orange'" variant="subtle">
+                {{ $global_adjustment < 0 ? 'Descuento' : 'Recargo' }} aplicado
+            </flux:badge>
+        @endif
+    </div>
+
                     <div class="space-y-4 border-t pt-4">
     <div class="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
         <div class="flex flex-col">
@@ -286,6 +310,35 @@
                         </tbody>
                     </table>
                 </div>
+
+                <div class="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
+        {{-- Subtotal Neto --}}
+        <div class="flex justify-between text-sm text-zinc-500">
+            <span>Subtotal Medicamentos:</span>
+            {{-- La lógica: El valor real de los productos es el Total menos el Ajuste guardado --}}
+            <span>${{ number_format($facturaSeleccionada->total - $facturaSeleccionada->ajuste_global, 2) }}</span>
+        </div>
+
+        {{-- Línea de Ajuste (Solo si existe) --}}
+        @if($facturaSeleccionada->ajuste_global != 0)
+            <div class="flex justify-between text-sm {{ $facturaSeleccionada->ajuste_global < 0 ? 'text-green-600' : 'text-orange-600' }}">
+                <span>{{ $facturaSeleccionada->ajuste_global < 0 ? 'Descuento Aplicado:' : 'Recargo Aplicado:' }}</span>
+                <span class="font-medium">
+                    {{ $facturaSeleccionada->ajuste_global < 0 ? '-' : '+' }} 
+                    ${{ number_format(abs($facturaSeleccionada->ajuste_global), 2) }}
+                </span>
+            </div>
+        @endif
+
+        {{-- Total Definitivo --}}
+        <div class="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-700">
+            <flux:text class="font-bold uppercase tracking-wider">Total Facturado</flux:text>
+            <flux:heading size="xl" class="text-indigo-600">
+                ${{ number_format($facturaSeleccionada->total, 2) }}
+            </flux:heading>
+        </div>
+    </div>
+</div>
 
                 <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
                     <flux:text class="font-bold">TOTAL</flux:text>
