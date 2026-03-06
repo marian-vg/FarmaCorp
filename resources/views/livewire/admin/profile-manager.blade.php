@@ -112,6 +112,9 @@
             </div>
 
             <div class="space-y-4">
+                @if($editingPermission)
+                    <flux:input wire:model="permissionContext.name" label="Identificador Interno (Slug)" description="El identificador interno no se puede modificar para garantizar la estabilidad del sistema." disabled />
+                @endif
                 <flux:input wire:model="permissionContext.display_name" label="Nombre del Permiso" placeholder="ej. Crear Usuario" required />
                 <flux:input wire:model="permissionContext.description" label="Descripción" placeholder="Breve descripción humana" required />
             </div>

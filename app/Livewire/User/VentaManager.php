@@ -115,7 +115,7 @@ class VentaManager extends Component
     {
         // Cambiamos MovimientoCaja por Factura para que el historial muestre productos [cite: 503]
         return Factura::query()
-            ->with(['user', 'details.product'])
+            ->with(['user', 'details.product', 'medioPago'])
             ->when(!Auth::user()->hasRole('admin'), function($q) {
                 $q->where('user_id', Auth::id());
             })

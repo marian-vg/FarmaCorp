@@ -10,6 +10,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Productos y Medicamentos'])]
 class ProductManager extends Component
@@ -152,7 +153,7 @@ class ProductManager extends Component
             ->query(fn ($query) => $query->with('medicine.group'))
             ->paginate(12);
 
-        $groups = Group::orderBy('name')->get();
+        $groups = Cache::remember('groups_all', 86400, fn () => Group::orderBy('name')->get());
 
         return view('livewire.admin.product-manager', [
             'products' => $products,

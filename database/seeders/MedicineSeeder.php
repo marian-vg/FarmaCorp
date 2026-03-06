@@ -12,6 +12,6 @@ class MedicineSeeder extends Seeder
      */
     public function run(): void
     {
-        Medicine::factory()->create(5);
+        Medicine::factory()->count(5)->create();
     }
 }

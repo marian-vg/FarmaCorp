@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component
@@ -98,7 +99,7 @@ class MedicineManager extends Component
             ->orderBy('name')
             ->get();
 
-        $groups = Group::orderBy('name')->get();
+        $groups = Cache::remember('groups_all', 86400, fn () => Group::orderBy('name')->get());
 
         return view('livewire.admin.medicine-manager', [
             'medicines' => $medicines,

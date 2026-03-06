@@ -126,7 +126,7 @@
                 </x-table.head>
 
                 <x-table.body>
-                    @forelse($this->cajaAbierta->movimientos()->with('user')->orderBy('fecha_movimiento', 'desc')->get() as $movimiento)
+                    @forelse($this->cajaAbierta->movimientos()->with(['user', 'medioPago'])->orderBy('fecha_movimiento', 'desc')->get() as $movimiento)
                         <x-table.row>
                             <x-table.cell class="text-xs font-mono">
                                 {{ \Carbon\Carbon::parse($movimiento->fecha_movimiento)->format('H:i:s') }}

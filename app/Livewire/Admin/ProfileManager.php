@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.app', ['title' => 'Profile Manager'])]
 class ProfileManager extends Component
@@ -27,6 +28,7 @@ class ProfileManager extends Component
     ];
 
     public array $permissionContext = [
+        'name' => '',
         'display_name' => '',
         'description' => '',
     ];
@@ -49,7 +51,7 @@ class ProfileManager extends Component
     #[Computed]
     public function permissions()
     {
-        return Permission::all();
+        return Cache::remember('permissions_all', 86400, fn () => Permission::all());
     }
 
     public function createProfile()
@@ -94,6 +96,7 @@ class ProfileManager extends Component
 
         $profile->syncPermissions($this->selectedPermissions);
 
+        Cache::forget('profiles_all');
         Flux::modal('profile-form')->close();
         $this->reset(['profileContext', 'selectedPermissions', 'editingProfile']);
     }
@@ -102,6 +105,7 @@ class ProfileManager extends Component
     {
         if ($this->editingProfile) {
             $this->editingProfile->delete();
+            Cache::forget('profiles_all');
             Flux::modal('confirm-delete-profile')->close();
             $this->reset(['editingProfile']);
         }
@@ -118,6 +122,7 @@ class ProfileManager extends Component
     {
         $this->editingPermission = $permission;
         $this->permissionContext = [
+            'name' => $permission->name,
             'display_name' => $permission->display_name ?? $permission->name,
             'description' => $permission->description,
         ];
@@ -157,6 +162,7 @@ class ProfileManager extends Component
 
         // Limpiar la caché de Spatie según la documentación oficial
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        Cache::forget('permissions_all');
 
         Flux::modal('permission-form')->close();
         $this->reset(['permissionContext', 'editingPermission']);
@@ -172,6 +178,8 @@ class ProfileManager extends Component
     {
         if ($this->editingPermission) {
             $this->editingPermission->delete();
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            Cache::forget('permissions_all');
             Flux::modal('confirm-delete-permission')->close();
             $this->reset(['editingPermission']);
         }

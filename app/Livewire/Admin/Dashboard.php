@@ -15,6 +15,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.app', ['title' => 'Admin Dashboard'])]
 #[Lazy]
@@ -81,13 +82,13 @@ class Dashboard extends Component
     #[Computed]
     public function roles()
     {
-        return Role::all();
+        return Cache::remember('roles_all', 86400, fn () => Role::all());
     }
 
     #[Computed]
     public function permissions()
     {
-        $allPermissions = Permission::all();
+        $allPermissions = Cache::remember('permissions_all', 86400, fn () => Permission::all());
         
         if ($this->editingUser && $this->editingUser->hasRole('empleado')) {
             return $allPermissions->filter(function ($permission) {
@@ -101,7 +102,7 @@ class Dashboard extends Component
     #[Computed]
     public function allProfiles()
     {
-        return Profile::all();
+        return Cache::remember('profiles_all', 86400, fn () => Profile::all());
     }
 
     public function editRoles(User $user)

@@ -11,8 +11,7 @@ it('loads the settings page for authenticated users with theme toggle', function
     $response->assertSee('Configuración del Sistema');
     $response->assertSee('Apariencia');
     $response->assertSee('Modo Oscuro');
-    // Ensure Livewire/Volt component is loaded
-    $response->assertSeeLivewire('settings-manager');
+    $response->assertSeeLivewire('actions.settings-manager');
 });
 
 it('redirects guests to login when accessing settings', function () {

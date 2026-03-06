@@ -12,18 +12,9 @@
             </div>
             
             <div x-data="{ 
-                    isDark: localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches) 
-                }" 
-                x-init="$watch('isDark', val => { 
-                    if (val) { 
-                        document.documentElement.classList.add('dark'); 
-                        localStorage.setItem('color-theme', 'dark'); 
-                    } else { 
-                        document.documentElement.classList.remove('dark'); 
-                        localStorage.setItem('color-theme', 'light'); 
-                    } 
-                })">
-                
+                get isDark() { return $flux.dark },
+                set isDark(val) { $flux.appearance = val ? 'dark' : 'light' }
+            }">
                 <flux:switch x-model="isDark" label="Modo Oscuro" />
             </div>
         </div>
