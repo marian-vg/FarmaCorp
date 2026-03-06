@@ -20,7 +20,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Lado Izquierdo: Catálogo de Productos --}}
             <div class="lg:col-span-2 space-y-4">
-                <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento por nombre..." />
+                <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento por nombre...">
+                    <x-slot name="append">
+                        <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                            <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                        </div>
+                    </x-slot>
+                </flux:input>
                 
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     @foreach($products as $product)

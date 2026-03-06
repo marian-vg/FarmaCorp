@@ -5,7 +5,13 @@
             <flux:subheading>Busque un medicamento en el catálogo para registrar la entrada de un nuevo lote físico.</flux:subheading>
         </div>
         <div class="w-full sm:w-72">
-            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre..." />
+            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre...">
+                <x-slot name="append">
+                    <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                        <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                    </div>
+                </x-slot>
+            </flux:input>
         </div>
     </div>
 

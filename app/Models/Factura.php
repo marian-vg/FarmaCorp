@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class Factura extends Model
 {
+    use Searchable;
     protected $fillable = [
     'tipo_comprobante',
     'fecha_emision',
@@ -39,5 +41,13 @@ class Factura extends Model
     public function medioPago(): BelongsTo
     {
         return $this->belongsTo(MedioPago::class, 'medio_pago_id');
+    }
+
+    public function toSearchableArray()
+    {
+        return [
+            'id' => (string) $this->id,
+            'users.name' => $this->user ? $this->user->name : '',
+        ];
     }
 }

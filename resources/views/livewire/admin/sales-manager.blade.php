@@ -2,7 +2,13 @@
     <flux:heading size="xl">Historial Global de Ventas</flux:heading>
 
     <div class="flex items-center gap-4">
-        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por responsable..." class="flex-1" />
+        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por responsable..." class="flex-1">
+            <x-slot name="append">
+                <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                    <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                </div>
+            </x-slot>
+        </flux:input>
     </div>
 
     <x-table>

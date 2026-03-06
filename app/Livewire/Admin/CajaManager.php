@@ -84,24 +84,24 @@ class CajaManager extends Component
     #[Computed]
     public function historialCajas()
     {
-        return Caja::with('user')
-            ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
-            ->when($this->search, function ($query) {
-                $query->whereHas('user', function ($q) {
-                    $q->where('name', 'like', '%'.$this->search.'%');
-                });
+        return Caja::search($this->search)
+            ->query(function ($query) {
+                $query->join('users', 'cajas.user_id', '=', 'users.id')
+                      ->select('cajas.*')
+                      ->with('user')
+                      ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
+                      ->when($this->filtro_usuario, function ($q) {
+                          $q->where('cajas.user_id', $this->filtro_usuario);
+                      })
+                      ->when($this->fecha_desde, function ($q) {
+                          $q->whereDate('cajas.fecha_apertura', '>=', $this->fecha_desde);
+                      })
+                      ->when($this->fecha_hasta, function ($q) {
+                          $q->whereDate('cajas.fecha_apertura', '<=', $this->fecha_hasta);
+                      });
             })
-            ->when($this->filtro_usuario, function ($query) {
-                $query->where('user_id', $this->filtro_usuario);
-            })
-            ->when($this->fecha_desde, function ($query) {
-                $query->whereDate('fecha_apertura', '>=', $this->fecha_desde);
-            })
-            ->when($this->fecha_hasta, function ($query) {
-                $query->whereDate('fecha_apertura', '<=', $this->fecha_hasta);
-            })
-            ->orderBy('fecha_cierre', 'desc')
-            ->paginate(10, ['*'], 'historialPage');
+            ->orderBy('cajas.fecha_cierre', 'desc')
+            ->paginate(10, 'historialPage');
     }
 
     // 2. OBTENER USUARIOS PARA EL DROPDOWN

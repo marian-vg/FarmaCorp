@@ -29,7 +29,13 @@
             {{-- Filtros Rápidos Gestión --}}
             <div class="flex flex-wrap items-end gap-4 mb-2">
                 <div class="flex-1">
-                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por usuario..." class="min-w-64" />
+                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por usuario..." class="min-w-64">
+                        <x-slot name="append">
+                            <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                                <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                            </div>
+                        </x-slot>
+                    </flux:input>
                 </div>
                 <flux:button wire:click="limpiarFiltros" variant="outline" icon="trash">Limpiar</flux:button>
             </div>
@@ -145,7 +151,13 @@
 
             {{-- Filtros Historial --}}
             <div class="flex flex-wrap items-end gap-4">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Buscar usuario..." class="flex-1" />
+                <flux:input wire:model.live.debounce.300ms="search" placeholder="Buscar usuario..." class="flex-1">
+                    <x-slot name="append">
+                        <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                            <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                        </div>
+                    </x-slot>
+                </flux:input>
                 <flux:input wire:model.live="fecha_desde" type="date" label="Desde" />
                 <flux:input wire:model.live="fecha_hasta" type="date" label="Hasta" />
                 <flux:button wire:click="limpiarFiltros" variant="outline">Limpiar</flux:button>

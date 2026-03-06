@@ -125,8 +125,10 @@ class VentaManager extends Component
 
     public function render()
     {
-        $products = Product::where('status', true)
-            ->where('name', 'like', "%{$this->search}%")
+        $products = Product::search($this->search)
+            ->query(function ($query) {
+                $query->where('status', true);
+            })
             ->get();
 
         return view('livewire.user.venta-manager', [

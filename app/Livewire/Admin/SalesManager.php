@@ -21,9 +21,11 @@ class SalesManager extends Component
     #[Computed]
     public function ventas()
     {
-        return Factura::with(['user', 'details.product'])
-            ->when($this->search, function($q) {
-                $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"));
+        return Factura::search($this->search)
+            ->query(function($q) {
+                $q->join('users', 'facturas.user_id', '=', 'users.id')
+                  ->select('facturas.*')
+                  ->with(['user', 'details.product']);
             })
             ->orderBy('fecha_emision', 'desc')
             ->paginate(15);

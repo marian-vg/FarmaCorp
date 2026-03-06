@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Laravel\Scout\Searchable;
 
 class Caja extends Model
 {
+    use Searchable;
     protected $fillable = [
         'fecha_apertura',
         'fecha_cierre',
@@ -33,5 +35,13 @@ class Caja extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function toSearchableArray()
+    {
+        return [
+            'id' => (string) $this->id,
+            'users.name' => $this->user ? $this->user->name : '',
+        ];
     }
 }

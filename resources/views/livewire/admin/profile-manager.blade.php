@@ -3,7 +3,13 @@
         <flux:heading level="1" size="lg">Gestión de Perfiles</flux:heading>
 
         <div class="flex items-center gap-4">
-            <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar perfil..." class="w-64" />
+            <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar perfil..." class="w-64">
+                <x-slot name="append">
+                    <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                        <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                    </div>
+                </x-slot>
+            </flux:input>
             <div class="flex justify-end items-center gap-2">
                 <flux:button icon="plus" wire:click="createProfile">Crear Perfil</flux:button>
                 <flux:button icon="plus" wire:click="createPermission">Crear Permiso</flux:button>
