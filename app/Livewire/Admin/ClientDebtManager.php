@@ -19,8 +19,63 @@ class ClientDebtManager extends Component
     use WithPagination;
 
     public $search = '';
-    public $selectedClientId; // Guardamos el ID del cliente seleccionado
+    public $selectedClientId;
     public $modalTab = 'pendientes';
+    public $medio_pago_id = '';
+    public $facturaEnCobro = null;
+    public $pagos_acumulados = [];
+    public $monto_pago_actual = 0;
+
+    public function seleccionarFacturaParaCobro($facturaId)
+    {
+        $this->facturaEnCobro = Factura::findOrFail($facturaId);
+        $this->pagos_acumulados = [];
+        $this->reset(['medio_pago_id', 'monto_pago_actual']);
+    }
+
+    public function cancelarCobro()
+    {
+        $this->facturaEnCobro = null;
+        $this->pagos_acumulados = [];
+    }
+
+    #[Computed]
+    public function montoRestanteFactura()
+    {
+        if (!$this->facturaEnCobro) return 0;
+        $totalPagado = collect($this->pagos_acumulados)->sum('monto');
+        return round((float)$this->facturaEnCobro->total - $totalPagado, 2);
+    }
+
+    public function autocompletarMonto()
+    {
+        $this->monto_pago_actual = round($this->montoRestanteFactura, 2);
+    }
+
+    public function agregarPago()
+    {
+        $this->validate([
+            'medio_pago_id' => 'required|exists:medio_pagos,id',
+            'monto_pago_actual' => 'required|numeric|min:0.01|max:' . ($this->montoRestanteFactura + 0.01),
+        ]);
+
+        $medio = \App\Models\MedioPago::find($this->medio_pago_id);
+
+        $this->pagos_acumulados[] = [
+            'medio_id' => $this->medio_pago_id,
+            'monto' => (float) $this->monto_pago_actual,
+            'nombre' => $medio->nombre,
+        ];
+
+        $this->reset(['medio_pago_id', 'monto_pago_actual']);
+        unset($this->montoRestanteFactura);
+    }
+
+    public function quitarPago($index)
+    {
+        unset($this->pagos_acumulados[$index]);
+        $this->pagos_acumulados = array_values($this->pagos_acumulados);
+    }
 
     #[Computed]
     public function cajaActiva()
@@ -62,36 +117,42 @@ class ClientDebtManager extends Component
         \Flux::modal('cobro-modal')->show();
     }
 
-    public function cobrarFactura($facturaId)
+    public function cobrarFactura()
     {
         if (!$this->cajaActiva) {
-            $this->dispatch('notify', message: 'Error: Abre tu caja antes de cobrar.', variant: 'danger');
+            $this->dispatch('notify', message: 'Error: Abre tu caja antes.', variant: 'danger');
+            return;
+        }
+
+        if ($this->montoRestanteFactura > 0.01) {
+            $this->dispatch('notify', message: 'Debe cubrir el total de la factura.', variant: 'warning');
             return;
         }
 
         try {
-            DB::transaction(function () use ($facturaId) {
-                $factura = Factura::findOrFail($facturaId);
-                $factura->update(['estado' => 'PAGADO']);
+            DB::transaction(function () {
+                $this->facturaEnCobro->update(['estado' => 'PAGADO']);
 
-                MovimientoCaja::create([
-                    'tipo_movimiento'  => 'INGRESO',
-                    'monto'            => $factura->total,
-                    'motivo'           => "Cobro Cta. Cte. Factura #" . str_pad($factura->id, 6, '0', STR_PAD_LEFT),
-                    'fecha_movimiento' => now(),
-                    'id_medio_pago'    => 1, 
-                    'id_caja'          => $this->cajaActiva->id,
-                    'user_id'          => Auth::id(),
-                ]);
+                foreach ($this->pagos_acumulados as $pago) {
+                    MovimientoCaja::create([
+                        'tipo_movimiento'  => 'INGRESO',
+                        'monto'            => $pago['monto'],
+                        'motivo'           => "Cobro Cta. Cte. #{$this->facturaEnCobro->id} - {$pago['nombre']}",
+                        'fecha_movimiento' => now(),
+                        'id_medio_pago'    => $pago['medio_id'],
+                        'id_caja'          => $this->cajaActiva->id,
+                        'user_id'          => Auth::id(),
+                        'factura_id'       => $this->facturaEnCobro->id,
+                    ]);
+                }
             });
 
-            $this->dispatch('notify', message: 'Cobro exitoso.');
+            $this->dispatch('notify', message: 'Cobro multimedio exitoso.');
+            $this->cancelarCobro();
             
-            // Si ya no quedan deudas, podemos cerrar el modal o dejar que vea el historial
             if ($this->facturasPendientes->isEmpty()) {
                 $this->modalTab = 'historial';
             }
-
         } catch (\Exception $e) {
             $this->dispatch('notify', message: 'Error en el proceso.', variant: 'danger');
         }
@@ -114,7 +175,8 @@ class ClientDebtManager extends Component
             ->paginate(10);
 
         return view('livewire.admin.client-debt-manager', [
-            'clientes' => $clientes
+            'clientes' => $clientes,
+            'mediosPago' => \App\Models\MedioPago::all()
         ]);
     }
 }

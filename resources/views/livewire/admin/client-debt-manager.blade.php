@@ -95,30 +95,98 @@
 
             {{-- CONTENIDO PESTAÑA PENDIENTES (RF-16) --}}
             @if($modalTab === 'pendientes')
-                <div class="space-y-3">
-                    @forelse($this->facturasPendientes as $f)
-                        <div class="flex items-center justify-between p-4 border rounded-xl dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
-                            <div>
-                                <flux:text size="sm" class="font-bold">#{{ str_pad($f->id, 6, '0', STR_PAD_LEFT) }} - {{ $f->tipo_comprobante }}</flux:text>
-                                <flux:text size="xs" class="text-zinc-500">{{ $f->fecha_emision->format('d/m/Y H:i') }}</flux:text>
+                <div class="space-y-4">
+                    @if(!$facturaEnCobro)
+                        {{-- LISTA DE FACTURAS --}}
+                        <div class="space-y-3">
+                            @forelse($this->facturasPendientes as $f)
+                                <div class="flex items-center justify-between p-4 border rounded-xl dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+                                    <div>
+                                        <flux:text size="sm" class="font-bold">#{{ str_pad($f->id, 6, '0', STR_PAD_LEFT) }}</flux:text>
+                                        <flux:text size="xs" class="text-zinc-500">{{ $f->fecha_emision->format('d/m/Y') }}</flux:text>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <flux:heading size="md" class="text-indigo-600">${{ number_format($f->total, 2) }}</flux:heading>
+                                        <flux:button 
+                                            size="sm" 
+                                            variant="subtle" 
+                                            icon="plus-circle" 
+                                            wire:click="seleccionarFacturaParaCobro({{ $f->id }})" 
+                                            tooltip="Iniciar cobro multimedio"
+                                        >Cobrar</flux:button>
+                                    </div>
+                                </div>
+                            @empty
+                                <flux:text size="sm" class="text-center py-8">No hay deudas pendientes.</flux:text>
+                            @endforelse
+                        </div>
+                    @else
+                        {{-- INTERFAZ DE COBRO MULTIMEDIO (REPLICA VENTA MANAGER) --}}
+                        <div class="p-4 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-2xl bg-indigo-50/30 dark:bg-indigo-900/10 space-y-4">
+                            <div class="flex justify-between items-center">
+                                <flux:heading size="md">Cobrando Factura #{{ str_pad($facturaEnCobro->id, 6, '0', STR_PAD_LEFT) }}</flux:heading>
+                                <flux:button size="xs" variant="ghost" wire:click="cancelarCobro">Cambiar factura</flux:button>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <flux:heading size="md" class="text-indigo-600">${{ number_format($f->total, 2) }}</flux:heading>
+
+                            {{-- Inputs de pago --}}
+                            @if($this->montoRestanteFactura > 0.01)
+                                <div class="flex gap-2 items-end">
+                                    <div class="flex-1">
+                                        <flux:select wire:model.live="medio_pago_id" label="Medio">
+                                            <option value="">Elegir...</option>
+                                            @foreach($mediosPago as $mp)
+                                                <option value="{{ $mp->id }}">{{ $mp->nombre }}</option>
+                                            @endforeach
+                                        </flux:select>
+                                    </div>
+
+                                    <div class="w-32">
+                                        <flux:input wire:model.live="monto_pago_actual" type="number" label="Monto" />
+                                    </div>
+
+                                    {{-- BOTÓN RÁPIDO (EL RAYITO) --}}
+                                    <flux:button 
+                                        icon="bolt" 
+                                        variant="ghost" 
+                                        wire:click="autocompletarMonto" 
+                                        class="mb-0.5" 
+                                        tooltip="Usar saldo total" 
+                                    />
+
+                                    <flux:button icon="plus" variant="subtle" wire:click="agregarPago" class="mb-0.5" />
+                                </div>
+                                @error('monto_pago_actual')
+                                    <flux:text size="xs" class="text-red-500 font-medium">{{ $message }}</flux:text>
+                                @enderror
+                            @endif
+
+                            {{-- Lista de pagos parciales --}}
+                            <div class="space-y-2">
+                                @foreach($pagos_acumulados as $index => $pago)
+                                    <div wire:key="pago-debito-{{ $index }}" class="flex justify-between items-center p-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                        <flux:text size="xs"><strong>{{ $pago['nombre'] }}:</strong> ${{ number_format($pago['monto'], 2) }}</flux:text>
+                                        <flux:button icon="x-mark" size="xs" variant="ghost" wire:click="quitarPago({{ $index }})" />
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            {{-- Balance y Botón Final --}}
+                            <div class="flex justify-between items-center pt-2">
+                                <div class="flex flex-col">
+                                    <flux:text size="xs" class="uppercase font-bold text-zinc-500">Saldo Restante:</flux:text>
+                                    <flux:heading size="lg" class="{{ $this->montoRestanteFactura <= 0.01 ? 'text-green-600' : 'text-orange-600' }}">
+                                        ${{ number_format($this->montoRestanteFactura, 2) }}
+                                    </flux:heading>
+                                </div>
                                 <flux:button 
-                                    size="sm" 
                                     variant="primary" 
-                                    icon="banknotes" 
-                                    wire:click="cobrarFactura({{ $f->id }})" 
-                                    wire:confirm="¿Confirmas que recibiste el dinero para saldar esta factura?"
-                                />
+                                    wire:click="cobrarFactura" 
+                                    icon="check-circle"
+                                    :disabled="$this->montoRestanteFactura > 0.01"
+                                >Confirmar Cobro</flux:button>
                             </div>
                         </div>
-                    @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-zinc-500 italic">
-                            <flux:icon.check-circle class="w-8 h-8 mb-2 opacity-20" />
-                            <flux:text size="sm">Este cliente no tiene deudas pendientes.</flux:text>
-                        </div>
-                    @endforelse
+                    @endif
                 </div>
             @endif
 
