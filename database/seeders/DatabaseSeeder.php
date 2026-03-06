@@ -21,8 +21,10 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
             'is_active' => true,
         ]);
-
+        
         $adminRole = Role::create(['name' => 'admin']);
+        $empleadoRole = Role::create(['name' => 'empleado']);
+
         Permission::create(['name' => 'create-user']);
         Permission::create(['name' => 'modify-user']);
 
@@ -30,11 +32,21 @@ class DatabaseSeeder extends Seeder
 
         $user->assignRole($adminRole);
 
-        User::factory()->create([
+        $testUser = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@test.com',
             'password' => 'password',
             'is_active' => true,
+        ]);
+
+        $testUser->assignRole($empleadoRole);
+
+        $this->call([
+            ProductSeeder::class,
+            GroupSeeder::class,
+            MedioPagoSeeder::class,
+            CajaHistorySeeder::class,
+            MedicineSeeder::class
         ]);
     }
 }
