@@ -29,6 +29,54 @@ class VentaManager extends Component
     public $filtroEstado = '';
     public $facturaSeleccionada = null;
     public $global_adjustment = 0;
+    public $pagos_realizados = [];
+    public $monto_pago_actual = 0;
+
+    public function autocompletarMonto()
+    {
+        $this->monto_pago_actual = round($this->montoRestante, 2);
+    }
+
+    #[Computed]
+    public function montoRestante()
+    {
+        $totalVenta = (float) $this->totalFinal;
+        $totalPagado = collect($this->pagos_realizados)->sum(fn($p) => (float) $p['monto']);
+        
+        $resultado = $totalVenta - $totalPagado;
+
+        return round($resultado, 2) > 0 ? round($resultado, 2) : 0;
+    }
+
+    public function agregarPago()
+    {
+        $this->validate([
+            'medio_pago_id' => 'required|exists:medio_pagos,id',
+            'monto_pago_actual' => 'required|numeric|min:0.01',
+        ]);
+
+        if ((float)$this->monto_pago_actual > ($this->montoRestante + 0.01)) {
+            $this->dispatch('notify', message: 'El monto supera el saldo restante.', variant: 'warning');
+            return;
+        }
+
+        $medio = \App\Models\MedioPago::find($this->medio_pago_id);
+
+        $this->pagos_realizados[] = [
+            'medio_id' => $this->medio_pago_id,
+            'monto' => (float) $this->monto_pago_actual,
+            'nombre' => $medio->nombre,
+        ];
+
+        $this->reset(['medio_pago_id', 'monto_pago_actual']);
+        unset($this->montoRestante); 
+    }
+
+    public function quitarPago($index)
+    {
+        unset($this->pagos_realizados[$index]);
+        $this->pagos_realizados = array_values($this->pagos_realizados);
+    }
 
     #[Computed]
     public function clientes()
@@ -41,7 +89,7 @@ class VentaManager extends Component
     public function verDetalle($facturaId)
     {
         $this->facturaSeleccionada = null; 
-        $this->facturaSeleccionada = Factura::with('details.product')->findOrFail($facturaId);
+        $this->facturaSeleccionada = Factura::with(['details.product', 'pagos.medioPago'])->findOrFail($facturaId);
         \Flux::modal('detalle-venta-modal')->show();
     }
 
@@ -109,32 +157,35 @@ class VentaManager extends Component
             return;
         }
 
+        $totalPagado = collect($this->pagos_realizados)->sum('monto');
+        if (!$this->es_cuenta_corriente && round($totalPagado, 2) < round($this->totalFinal, 2)) {
+            $this->dispatch('notify', message: 'Debe cubrir el total de la venta con los medios de pago.', variant: 'danger');
+            return;
+        }
+
         if ($this->es_cuenta_corriente && !$this->cliente_id) {
             $this->dispatch('notify', message: 'Debes seleccionar un cliente para Cuenta Corriente.', variant: 'danger');
             return;
         }
 
-        $this->validate([
-            'medio_pago_id' => $this->es_cuenta_corriente ? 'nullable' : 'required|exists:medio_pagos,id',
-            'tipo_comprobante' => 'required',
-        ]);
+        $this->validate(['tipo_comprobante' => 'required']);
 
         if ($this->totalFinal < 0) {
-            $this->dispatch('notify', message: 'El descuento no puede superar el monto total de la venta.', variant: 'danger');
+            $this->dispatch('notify', message: 'El descuento no puede superar el monto total.', variant: 'danger');
             return;
         }
 
         \DB::transaction(function () {
-        $factura = Factura::create([
-            'tipo_comprobante' => $this->tipo_comprobante,
-            'fecha_emision'    => now(),
-            'total'            => $this->totalFinal,
-            'ajuste_global'    => $this->global_adjustment,
-            'estado'           => $this->es_cuenta_corriente ? 'PENDIENTE' : 'PAGADO', 
-            'user_id'          => Auth::id(),
-            'cliente_id'       => $this->cliente_id,
-            'medio_pago_id'    => $this->es_cuenta_corriente ? null : $this->medio_pago_id, 
-        ]);
+            $factura = Factura::create([
+                'tipo_comprobante' => $this->tipo_comprobante,
+                'fecha_emision'    => now(),
+                'total'            => $this->totalFinal,
+                'ajuste_global'    => $this->global_adjustment,
+                'estado'           => $this->es_cuenta_corriente ? 'PENDIENTE' : 'PAGADO', 
+                'user_id'          => Auth::id(),
+                'cliente_id'       => $this->cliente_id,
+                'medio_pago_id'    => null,
+            ]);
 
             foreach ($this->carrito as $item) {
                 \App\Models\FacturaDetalle::create([
@@ -145,14 +196,12 @@ class VentaManager extends Component
                     'product_id'      => $item['id'],
                 ]);
 
-                // Actualizar Stock Global
                 $stockGlobal = \App\Models\Stock::where('product_id', $item['id'])->first();
                 if ($stockGlobal) {
                     $stockGlobal->cantidad_actual -= $item['cantidad'];
                     $stockGlobal->save();
                 }
 
-                // Descuento por Lotes (FIFO)
                 $cantidadRestante = $item['cantidad'];
                 $lotes = \App\Models\Batch::where('medicine_id', $item['id'])
                     ->where('current_quantity', '>', 0)
@@ -177,19 +226,37 @@ class VentaManager extends Component
             }
 
             if (!$this->es_cuenta_corriente) {
-                MovimientoCaja::create([
-                    'tipo_movimiento'  => 'INGRESO',
-                    'monto'            => $this->totalFinal,
-                    'motivo'           => "Venta {$this->tipo_comprobante}: #" . str_pad($factura->id, 6, '0', STR_PAD_LEFT),
-                    'fecha_movimiento' => now(),
-                    'id_medio_pago'    => $this->medio_pago_id,
-                    'id_caja'          => $this->cajaActiva->id,
-                    'user_id'          => Auth::id(),
-                ]);
+                foreach ($this->pagos_realizados as $pago) {
+                    MovimientoCaja::create([
+                        'tipo_movimiento'  => 'INGRESO',
+                        'monto'            => $pago['monto'],
+                        'motivo'           => "Venta #{$factura->id} - Pago: {$pago['nombre']}",
+                        'fecha_movimiento' => now(),
+                        'id_medio_pago'    => $pago['medio_id'],
+                        'id_caja'          => $this->cajaActiva->id,
+                        'user_id'          => Auth::id(),
+                        'factura_id'       => $factura->id,
+                    ]);
+                }
             }
         });
 
-        $this->reset(['carrito', 'medio_pago_id', 'tipo_comprobante', 'cliente_id', 'search_cliente', 'es_cuenta_corriente', 'global_adjustment']);
+        $this->reset([
+            'carrito', 
+            'pagos_realizados', 
+            'tipo_comprobante', 
+            'cliente_id', 
+            'search_cliente', 
+            'es_cuenta_corriente', 
+            'global_adjustment', 
+            'monto_pago_actual',
+            'medio_pago_id'
+        ]);
+
+        unset($this->totalFinal);
+        unset($this->montoRestante);
+        unset($this->subtotal);
+
         $this->dispatch('notify', message: 'Operación registrada con éxito.');
     }
 
@@ -197,7 +264,8 @@ class VentaManager extends Component
     public function historialVentas()
     {
         return Factura::query()
-            ->with(['user', 'medioPago'])
+            // CARGA ANSIOSA: Traemos el usuario, los pagos y el medio de pago de cada pago
+            ->with(['user', 'pagos.medioPago']) 
             ->when(!Auth::user()->hasRole('admin'), function($q) {
                 $q->where('user_id', Auth::id());
             })

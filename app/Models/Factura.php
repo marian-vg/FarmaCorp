@@ -24,6 +24,12 @@ class Factura extends Model
         'total' => 'decimal:2',
     ];
 
+    public function pagos()
+    {
+        // Una factura puede tener varios movimientos de caja (pagos parciales)
+        return $this->hasMany(MovimientoCaja::class, 'factura_id');
+    }
+
     // Relación con el Empleado (Responsable)
     public function user(): BelongsTo
     {

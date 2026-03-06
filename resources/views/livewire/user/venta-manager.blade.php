@@ -77,7 +77,10 @@
             </div>
 
             {{-- Lado Derecho: Carrito / Resumen de Ticket --}}
-            <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit sticky top-4 space-y-6">
+            <div 
+                wire:key="resumen-venta-{{ count($carrito) }}-{{ count($pagos_realizados) }}"
+                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit sticky top-4 space-y-6"
+            >
                 
                 {{-- CONFIGURACIÓN INICIAL (RF-04 y RF-22) --}}
                 <div class="space-y-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
@@ -154,7 +157,9 @@
     <div class="flex justify-between items-center bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg">
         <div class="flex flex-col">
             <flux:text size="xs" class="uppercase text-zinc-500 font-semibold">Total Final</flux:text>
-            <flux:heading size="xl" class="text-indigo-600">${{ number_format($this->totalFinal, 2) }}</flux:heading>
+            <flux:heading size="xl" class="text-indigo-600">
+                ${{ number_format($this->totalFinal, 2) }}
+            </flux:heading>
         </div>
         
         @if($global_adjustment != 0)
@@ -174,23 +179,82 @@
     </div>
 
     @if(!$es_cuenta_corriente)
-        <flux:select wire:model="medio_pago_id" label="Medio de Pago" required>
-            <option value="">Seleccione el método...</option>
-            @foreach($mediosPago as $mp)
-                <option value="{{ $mp->id }}">{{ $mp->nombre }}</option>
-            @endforeach
-        </flux:select>
-    @else
-        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <flux:text size="xs" class="text-blue-700 dark:text-blue-400">
-                ℹ️ Esta venta se asociará al saldo de <strong>{{ $search_cliente ?: 'el cliente' }}</strong> sin ingreso de efectivo inmediato.
-            </flux:text>
+    <div class="space-y-4 border-t border-zinc-100 dark:border-zinc-800 pt-4">
+        <flux:heading size="sm">Medios de Pago (RF-05 / RF-06)</flux:heading>
+        
+        @if($this->montoRestante > 0.01)
+        <div class="flex gap-2 items-end">
+            <div class="flex-1">
+                <flux:select wire:model.live="medio_pago_id" label="Medio">
+                    <option value="">Seleccionar...</option>
+                    @foreach($mediosPago as $mp)
+                        <option value="{{ $mp->id }}">{{ $mp->nombre }}</option>
+                    @endforeach
+                </flux:select>
+            </div>
+            
+            <div class="w-32">
+                <flux:input wire:model.live="monto_pago_actual" type="number" label="Monto" />
+            </div>
+
+            {{-- Botón rápido --}}
+            <flux:button 
+                icon="bolt" 
+                variant="ghost" 
+                wire:click="autocompletarMonto" 
+                class="mb-0.5" 
+                tooltip="Usar saldo total" 
+            />
+
+            <flux:button icon="plus" variant="subtle" wire:click="agregarPago" class="mb-0.5" />
         </div>
+        @error('monto_pago_actual')
+            <flux:text size="xs" class="text-red-500 font-medium">{{ $message }}</flux:text>
+        @enderror
     @endif
 
-    <flux:button variant="primary" class="w-full" wire:click="procesarVenta" icon="banknotes" :disabled="!$tipo_comprobante || empty($carrito)">
+        {{-- Lista de pagos con wire:key para mejorar la reactividad instantánea --}}
+        <div class="space-y-2">
+            @foreach($pagos_realizados as $index => $pago)
+                <div wire:key="pago-{{ $index }}" class="flex justify-between items-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <flux:text size="sm"><strong>{{ $pago['nombre'] }}:</strong> ${{ number_format($pago['monto'], 2) }}</flux:text>
+                    <flux:button icon="x-mark" size="xs" variant="ghost" wire:click="quitarPago({{ $index }})" />
+                </div>
+            @endforeach
+        </div>
+
+        {{-- Balance con cálculo dinámico --}}
+        <div 
+            wire:key="balance-container-{{ count($pagos_realizados) }}" 
+            class="flex justify-between items-center p-3 rounded-xl border-2 border-dashed {{ $this->montoRestante <= 0.01 ? 'bg-green-50 border-green-200 dark:bg-green-900/10' : 'bg-orange-50 border-orange-200 dark:bg-orange-900/10' }}"
+        >
+            <flux:text size="xs" class="font-bold uppercase tracking-tighter">Restante por cubrir:</flux:text>
+            <flux:heading size="lg" class="{{ $this->montoRestante <= 0.01 ? 'text-green-600' : 'text-orange-600' }}">
+                ${{ number_format($this->montoRestante, 2) }}
+            </flux:heading>
+        </div>
+    </div>
+@else
+    {{-- TU BLOQUE AZUL FAVORITO --}}
+    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <flux:text size="xs" class="text-blue-700 dark:text-blue-400">
+            ℹ️ Esta venta se asociará al saldo de <strong>{{ $search_cliente ?: 'el cliente' }}</strong> sin ingreso de efectivo inmediato.
+        </flux:text>
+    </div>
+@endif
+
+{{-- Botón de Acción Final --}}
+<div class="pt-4">
+    <flux:button 
+        variant="primary" 
+        class="w-full" 
+        wire:click="procesarVenta" 
+        icon="banknotes" 
+        :disabled="!$tipo_comprobante || empty($carrito) || (!$es_cuenta_corriente && $this->montoRestante > 0.01)"
+    >
         {{ $es_cuenta_corriente ? 'Registrar Deuda' : 'Confirmar y Facturar' }}
     </flux:button>
+</div>
 </div>
                 </div>
             </div>
@@ -239,9 +303,18 @@
                                 @if($venta->estado === 'PENDIENTE')
                                     <flux:badge size="sm" color="red" variant="solid">Cuenta Corriente</flux:badge>
                                 @else
-                                    <flux:badge size="sm" color="zinc" variant="outline">
-                                        {{ $venta->medioPago?->nombre ?? 'N/D' }}
-                                    </flux:badge>
+                                    @php
+                                        // Contamos cuántos medios de pago DISTINTOS se usaron
+                                        $mediosUnicos = $venta->pagos->pluck('id_medio_pago')->unique()->count();
+                                    @endphp
+
+                                    @if($mediosUnicos > 1)
+                                        <flux:badge size="sm" color="purple" variant="subtle" icon="credit-card">Combinado</flux:badge>
+                                    @else
+                                        <flux:badge size="sm" color="zinc" variant="outline">
+                                            {{ $venta->pagos->first()?->medioPago?->nombre ?? 'N/D' }}
+                                        </flux:badge>
+                                    @endif
                                 @endif
                             </flux:table.cell>
 
@@ -288,6 +361,7 @@
             </div>
 
             <div class="space-y-4">
+                {{-- Tabla de Productos --}}
                 <div class="border rounded-lg overflow-hidden border-zinc-200 dark:border-zinc-700">
                     <table class="w-full text-sm text-left">
                         <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase text-xs">
@@ -311,45 +385,58 @@
                     </table>
                 </div>
 
+                {{-- DESGLOSE DE PAGOS (RF-05) - Este es el "broche de oro" --}}
+                @if($facturaSeleccionada->estado !== 'PENDIENTE' && $facturaSeleccionada->pagos->isNotEmpty())
+                    <div class="space-y-2">
+                        <flux:heading size="sm" class="text-zinc-500 uppercase tracking-wider">Formas de Pago Aplicadas</flux:heading>
+                        <div class="grid grid-cols-1 gap-2">
+                            {{-- Agrupamos los pagos por medioPago y sumamos sus montos --}}
+                            @foreach($facturaSeleccionada->pagos->groupBy('id_medio_pago') as $idMedio => $grupoPagos)
+                                <div class="flex justify-between items-center text-xs p-3 bg-zinc-50/50 dark:bg-zinc-800/30 border border-zinc-100 dark:border-zinc-800 rounded-xl">
+                                    <div class="flex items-center gap-2">
+                                        <flux:icon.banknotes class="w-4 h-4 text-zinc-400" />
+                                        {{-- Tomamos el nombre del primer elemento del grupo --}}
+                                        <span class="font-medium text-zinc-700 dark:text-zinc-300">
+                                            {{ $grupoPagos->first()->medioPago->nombre }}
+                                        </span>
+                                    </div>
+                                    {{-- Sumamos el total de este medio específico --}}
+                                    <span class="font-bold text-zinc-900 dark:text-zinc-100">
+                                        ${{ number_format($grupoPagos->sum('monto'), 2) }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Resumen de Totales y Ajustes (RF-03) --}}
                 <div class="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800">
-        {{-- Subtotal Neto --}}
-        <div class="flex justify-between text-sm text-zinc-500">
-            <span>Subtotal Medicamentos:</span>
-            {{-- La lógica: El valor real de los productos es el Total menos el Ajuste guardado --}}
-            <span>${{ number_format($facturaSeleccionada->total - $facturaSeleccionada->ajuste_global, 2) }}</span>
-        </div>
+                    <div class="flex justify-between text-sm text-zinc-500">
+                        <span>Subtotal Medicamentos:</span>
+                        <span>${{ number_format($facturaSeleccionada->total - $facturaSeleccionada->ajuste_global, 2) }}</span>
+                    </div>
 
-        {{-- Línea de Ajuste (Solo si existe) --}}
-        @if($facturaSeleccionada->ajuste_global != 0)
-            <div class="flex justify-between text-sm {{ $facturaSeleccionada->ajuste_global < 0 ? 'text-green-600' : 'text-orange-600' }}">
-                <span>{{ $facturaSeleccionada->ajuste_global < 0 ? 'Descuento Aplicado:' : 'Recargo Aplicado:' }}</span>
-                <span class="font-medium">
-                    {{ $facturaSeleccionada->ajuste_global < 0 ? '-' : '+' }} 
-                    ${{ number_format(abs($facturaSeleccionada->ajuste_global), 2) }}
-                </span>
-            </div>
-        @endif
+                    @if($facturaSeleccionada->ajuste_global != 0)
+                        <div class="flex justify-between text-sm {{ $facturaSeleccionada->ajuste_global < 0 ? 'text-green-600' : 'text-orange-600' }}">
+                            <span>{{ $facturaSeleccionada->ajuste_global < 0 ? 'Descuento:' : 'Recargo:' }}</span>
+                            <span class="font-medium">
+                                {{ $facturaSeleccionada->ajuste_global < 0 ? '-' : '+' }} 
+                                ${{ number_format(abs($facturaSeleccionada->ajuste_global), 2) }}
+                            </span>
+                        </div>
+                    @endif
 
-        {{-- Total Definitivo --}}
-        <div class="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-700">
-            <flux:text class="font-bold uppercase tracking-wider">Total Facturado</flux:text>
-            <flux:heading size="xl" class="text-indigo-600">
-                ${{ number_format($facturaSeleccionada->total, 2) }}
-            </flux:heading>
-        </div>
-    </div>
-</div>
-
-                <div class="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
-                    <flux:text class="font-bold">TOTAL</flux:text>
-                    <flux:heading size="xl" class="text-indigo-600">
-                        ${{ number_format($facturaSeleccionada->total, 2) }}
-                    </flux:heading>
+                    <div class="flex justify-between items-center pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                        <flux:text class="font-bold uppercase tracking-wider">Total Facturado</flux:text>
+                        <flux:heading size="xl" class="text-indigo-600">
+                            ${{ number_format($facturaSeleccionada->total, 2) }}
+                        </flux:heading>
+                    </div>
                 </div>
             </div>
         @else
             <div class="flex flex-col items-center justify-center py-12">
-                {{-- Spinner manual con Tailwind para evitar el error de Flux --}}
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
                 <flux:text size="sm">Cargando detalles...</flux:text>
             </div>
