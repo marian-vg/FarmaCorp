@@ -76,7 +76,7 @@ class Dashboard extends Component
             ['key' => 'alert_days'],
             ['value' => (string) $this->alertDays]
         );
-        Flux::toast('Configuración guardada correctamente.');
+        $this->dispatch('notify', message: 'Configuración guardada correctamente.', type: 'success');
     }
 
     #[Computed]

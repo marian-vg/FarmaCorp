@@ -81,6 +81,9 @@ class CajaManager extends Component
     }
 
     // 1.1 OBTENER CAJAS CERRADAS PARA EL HISTORIAL (Paginado y Filtrado)
+    /**
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
     #[Computed]
     public function historialCajas()
     {
@@ -175,7 +178,7 @@ class CajaManager extends Component
 
         Flux::modal('abrir-caja-form')->close();
         $this->reset(['monto_inicial', 'user_id']);
-        Flux::toast('Caja abierta correctamente.', variant: 'success');
+        $this->dispatch('notify', message: 'Caja abierta correctamente.', type: 'success');
     }
 
     public function render()
@@ -233,7 +236,7 @@ class CajaManager extends Component
         ]);
 
         Flux::modal('registro-movimiento-form')->close();
-        Flux::toast("{$this->movimiento_tipo} registrado correctamente.", variant: 'success');
+        $this->dispatch('notify', message: "{$this->movimiento_tipo} registrado correctamente.", type: 'success');
 
         // Refrescar caja seleccionada
         $this->verDetalle($this->cajaSeleccionada->id);
@@ -266,8 +269,9 @@ class CajaManager extends Component
             'observaciones' => $this->observaciones_cierre,
         ]);
 
+        Flux::modal('confirm-admin-close-caja')->close();
         Flux::modal('detalle-caja-panel')->close();
-        Flux::toast('Caja cerrada con éxito.', variant: 'success');
+        $this->dispatch('notify', message: 'Caja cerrada con éxito.', type: 'success');
         $this->reset('observaciones_cierre');
         $this->cajaSeleccionada = null; // Reset selection
     }
@@ -299,7 +303,7 @@ class CajaManager extends Component
 
         // El administrador puede imprimir cualquier caja cerrada.
         if (! $caja->fecha_cierre) {
-            Flux::toast('Solo puedes emitir reportes de cajas que ya han sido cerradas.', variant: 'danger');
+            $this->dispatch('notify', message: 'Solo puedes emitir reportes de cajas que ya han sido cerradas.', type: 'error');
 
             return;
         }

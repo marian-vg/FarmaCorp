@@ -140,9 +140,15 @@ class Dashboard extends Component
                 'observaciones' => $this->observaciones_cierre,
             ]);
 
+            // INVALIDAR LAS PROPIEDADES COMPUTED PARA FORZAR RE-RENDERIZADO DE LA VISTA
+            unset($this->cajaAbierta);
+            unset($this->saldoActual);
+            unset($this->totalesPorMedio);
+            unset($this->historialCajas);
+
             Flux::modal('confirm-close-caja')->close();
             $this->reset('observaciones_cierre');
-            Flux::toast('Has cerrado tu turno correctamente.', variant: 'success');
+            $this->dispatch('notify', message: 'Has cerrado tu turno correctamente.', type: 'success');
         }
     }
 
@@ -183,7 +189,7 @@ class Dashboard extends Component
             ->findOrFail($id);
 
         if (! $caja->fecha_cierre) {
-            Flux::toast('Solo puedes generar reportes de turnos finalizados.', variant: 'danger');
+            $this->dispatch('notify', message: 'Solo puedes generar reportes de turnos finalizados.', type: 'error');
 
             return;
         }

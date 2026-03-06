@@ -22,6 +22,10 @@ Route::get('/', function () {
     return view('livewire.auth.login');
 })->name('principal-page')->middleware(['guest']);
 
+Route::get('/test-toast', function () {
+    return view('test-toast');
+});
+
 // This will make the login and register routes available to guests and not for users that are already logged in
 Route::middleware(['guest'])->group(function () {
     Route::get('login', function () {

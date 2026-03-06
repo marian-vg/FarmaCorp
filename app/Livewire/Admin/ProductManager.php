@@ -130,6 +130,7 @@ class ProductManager extends Component
 
         Flux::modal('product-form')->close();
         $this->reset(['productContext', 'medicineContext', 'editingProduct', 'isMedicine']);
+        $this->dispatch('notify', message: 'Producto guardado exitosamente.', type: 'success');
     }
 
     public function confirmDeactivate(Product $product)
@@ -144,6 +145,7 @@ class ProductManager extends Component
             $this->editingProduct->delete(); // Soft delete
             Flux::modal('confirm-deactivation-product')->close();
             $this->reset(['editingProduct']);
+            $this->dispatch('notify', message: 'Producto desactivado con éxito.', type: 'success');
         }
     }
 

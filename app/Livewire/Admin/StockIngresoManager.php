@@ -87,7 +87,7 @@ class StockIngresoManager extends Component
         });
 
         Flux::modal('ingreso-modal')->close();
-        Flux::toast('Ingreso registrado con éxito.');
+        $this->dispatch('notify', message: 'Ingreso registrado con éxito.', type: 'success');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
     }
 

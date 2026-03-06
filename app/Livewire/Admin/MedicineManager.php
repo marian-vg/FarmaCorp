@@ -77,6 +77,7 @@ class MedicineManager extends Component
 
         Flux::modal('medicine-form')->close();
         $this->reset('context');
+        $this->dispatch('notify', message: 'Medicamento guardado exitosamente.', type: 'success');
     }
 
     public function render()

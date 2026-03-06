@@ -93,6 +93,7 @@ class ClientManager extends Component
 
         Flux::modal('client-form')->close();
         $this->reset(['clientContext', 'editingClient']);
+        $this->dispatch('notify', message: 'Cliente guardado exitosamente.', type: 'success');
     }
 
     public function confirmDeactivate(Client $client)
@@ -109,6 +110,7 @@ class ClientManager extends Component
             $this->editingClient->update(['is_active' => false]);
             Flux::modal('confirm-deactivation-client')->close();
             $this->reset(['editingClient']);
+            $this->dispatch('notify', message: 'Cliente desactivado con éxito.', type: 'success');
         }
     }
 
@@ -116,6 +118,7 @@ class ClientManager extends Component
     {
         abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $client->update(['is_active' => true]);
+        $this->dispatch('notify', message: 'Cliente reactivado exitosamente.', type: 'success');
     }
 
     public function render()

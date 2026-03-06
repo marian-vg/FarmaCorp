@@ -68,6 +68,7 @@ class GroupManager extends Component
         Cache::forget('groups_all');
         Flux::modal('group-form')->close();
         $this->reset(['groupContext', 'editingGroup']);
+        $this->dispatch('notify', message: 'Grupo guardado exitosamente.', type: 'success');
     }
 
     public function confirmDeactivate(Group $group)
@@ -83,6 +84,7 @@ class GroupManager extends Component
             Cache::forget('groups_all');
             Flux::modal('confirm-deactivation-group')->close();
             $this->reset(['editingGroup']);
+            $this->dispatch('notify', message: 'Grupo desactivado con éxito.', type: 'success');
         }
     }
 

@@ -40,7 +40,7 @@ class VentaManager extends Component
                 'cantidad' => 1,
             ];
         }
-        Flux::toast('Añadido: ' . $product->name);
+        $this->dispatch('notify', message: 'Añadido: ' . $product->name, type: 'success');
     }
 
     public function quitarDelCarrito($productId)
@@ -57,12 +57,12 @@ class VentaManager extends Component
     {
         // 1. Validaciones iniciales
         if (!$this->cajaActiva) {
-            Flux::toast('Error: Debes abrir caja antes de vender.', variant: 'danger');
+            $this->dispatch('notify', message: 'Error: Debes abrir caja antes de vender.', type: 'error');
             return;
         }
 
         if (empty($this->carrito)) {
-            Flux::toast('El carrito está vacío.', variant: 'warning');
+            $this->dispatch('notify', message: 'El carrito está vacío.', type: 'error');
             return;
         }
 
@@ -107,7 +107,7 @@ class VentaManager extends Component
 
         // 3. Limpieza y Notificación
         $this->reset(['carrito', 'medio_pago_id']);
-        Flux::toast('Venta procesada y facturada correctamente.', variant: 'success');
+        $this->dispatch('notify', message: 'Venta procesada y facturada correctamente.', type: 'success');
     }
 
     #[Computed]

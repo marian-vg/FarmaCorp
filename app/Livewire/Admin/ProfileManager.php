@@ -99,6 +99,7 @@ class ProfileManager extends Component
         Cache::forget('profiles_all');
         Flux::modal('profile-form')->close();
         $this->reset(['profileContext', 'selectedPermissions', 'editingProfile']);
+        $this->dispatch('notify', message: 'Perfil guardado exitosamente.', type: 'success');
     }
 
     public function deleteProfile()
@@ -108,6 +109,7 @@ class ProfileManager extends Component
             Cache::forget('profiles_all');
             Flux::modal('confirm-delete-profile')->close();
             $this->reset(['editingProfile']);
+            $this->dispatch('notify', message: 'Perfil eliminado.', type: 'success');
         }
     }
 
@@ -166,6 +168,7 @@ class ProfileManager extends Component
 
         Flux::modal('permission-form')->close();
         $this->reset(['permissionContext', 'editingPermission']);
+        $this->dispatch('notify', message: 'Permiso guardado exitosamente.', type: 'success');
     }
 
     public function confirmDeletePermission(Permission $permission)
@@ -182,6 +185,7 @@ class ProfileManager extends Component
             Cache::forget('permissions_all');
             Flux::modal('confirm-delete-permission')->close();
             $this->reset(['editingPermission']);
+            $this->dispatch('notify', message: 'Permiso eliminado.', type: 'success');
         }
     }
 

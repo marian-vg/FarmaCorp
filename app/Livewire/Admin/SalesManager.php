@@ -18,6 +18,9 @@ class SalesManager extends Component
     public string $search = '';
     public $ventaSeleccionada = null;
 
+    /**
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
     #[Computed]
     public function ventas()
     {
