@@ -8,9 +8,9 @@ use App\Livewire\Admin\ProductManager;
 use App\Livewire\Admin\MedicineManager;
 use App\Livewire\Clients\ClientManager;
 use App\Livewire\Admin\CajaManager;
-use App\Livewire\Admin\PermissionManager;
 use App\Livewire\Admin\SalesManager;
 use App\Livewire\User\VentaManager;
+use App\Livewire\Actions\SettingsManager;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
@@ -64,6 +64,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // Nueva ruta para el Punto de Venta (RF-01 Facturación)
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
+
+    // Módulo de Configuración
+    Route::get('configuracion', SettingsManager::class)->name('settings.index');
 });
 
 // Starter Kit Routes

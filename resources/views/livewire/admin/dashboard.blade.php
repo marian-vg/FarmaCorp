@@ -2,7 +2,7 @@
     <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
     
     <div class="grid grid-cols-1 gap-4 mb-2 mt-4">
-        <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/70">
+        <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/25">
             <div>
                 <flux:heading size="lg">Configuración de Alertas</flux:heading>
                 <flux:subheading>Define con cuántos días de anticipación deseas ver los medicamentos próximos a vencer.</flux:subheading>
@@ -54,7 +54,7 @@
 
     <div class="grid grid-cols-1 gap-4 mb-6">
         <div class="w-full">
-            <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/70">
+            <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/25">
                 <div class="flex items-center space-x-2 mb-4">
                     <flux:icon.exclamation-triangle variant="outline" class="w-5 h-5 text-orange-500" />
                     <flux:heading size="lg">Quiebre de Stock (Mínimos)</flux:heading>
@@ -127,7 +127,7 @@
         
     </div>
 
-    <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700 shadow-lg shadow-zinc-800/70">
+    <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700 shadow-lg shadow-zinc-800/25">
         <x-table>
             <x-table.head>
                 <x-table.heading>Usuario</x-table.heading>
