@@ -12,6 +12,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
+use Flux\Flux;
 
 #[Layout('components.layouts.app', ['title' => 'Saldos de Cuentas Corrientes'])]
 class ClientDebtManager extends Component
@@ -25,6 +26,38 @@ class ClientDebtManager extends Component
     public $facturaEnCobro = null;
     public $pagos_acumulados = [];
     public $monto_pago_actual = 0;
+    public $facturaSeleccionada = null;
+
+    #[Computed]
+    public function historialCompras()
+    {
+        if (!$this->selectedClientId) return collect();
+
+        return Factura::where('cliente_id', $this->selectedClientId)
+            ->with(['pagos.medioPago', 'details.product'])
+            ->orderBy('fecha_emision', 'desc')
+            ->paginate(10, pageName: 'history-page');
+    }
+
+    public function verDetalleFactura($id)
+    {
+        $this->facturaSeleccionada = Factura::with(['details.product', 'pagos.medioPago', 'cliente', 'user'])->find($id);
+        Flux::modal('detalle-auditoria-modal')->show();
+    }
+
+    public function descargarFactura($id)
+    {
+        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+            'factura' => $factura,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            "Factura-{$factura->id}.pdf"
+        );
+    }
 
     public function seleccionarFacturaParaCobro($facturaId)
     {

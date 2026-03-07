@@ -78,9 +78,7 @@ class ProductManager extends Component
     {
         $rules = [
             'productContext.name' => [
-                'required',
-                'string',
-                'max:255',
+                'required', 'string', 'max:255',
                 $this->editingProduct 
                     ? Rule::unique('products', 'name')->ignore($this->editingProduct->id) 
                     : Rule::unique('products', 'name'),
@@ -88,6 +86,7 @@ class ProductManager extends Component
             'productContext.description' => 'nullable|string',
             'productContext.price' => 'required|numeric|min:0',
             'productContext.status' => 'boolean',
+            'productContext.price_expires_at' => 'nullable|date', // Agregamos validación para RF-18
         ];
 
         if ($this->isMedicine) {
@@ -100,35 +99,41 @@ class ProductManager extends Component
 
         $this->validate($rules);
 
-        $productData = array_merge($this->productContext, [
-            // Ensure status is boolean
+        // 1. Manejo del Producto y Fecha de Actualización (RF-17)
+
+        $productData = [
+            'name' => $this->productContext['name'],
+            'description' => $this->productContext['description'],
+            'price' => $this->productContext['price'],
             'status' => (bool) $this->productContext['status'],
-        ]);
+            'price_expires_at' => $this->productContext['price_expires_at'],
+        ];
 
         if ($this->editingProduct) {
+            if ((float)$this->editingProduct->price !== (float)$this->productContext['price']) {
+                $productData['price_updated_at'] = now();
+            }
             $this->editingProduct->update($productData);
             $product = $this->editingProduct;
         } else {
+            $productData['price_updated_at'] = now();
             $product = Product::create($productData);
         }
 
+        // 2. Manejo de la extensión de Medicina
         if ($this->isMedicine) {
-            $medicineData = array_merge($this->medicineContext, [
-                'is_psychotropic' => (bool) $this->medicineContext['is_psychotropic'],
-            ]);
-
             if ($product->medicine) {
-                $product->medicine()->update($medicineData);
+                $product->medicine()->update($this->medicineContext);
             } else {
-                $product->medicine()->create($medicineData);
+                $product->medicine()->create($this->medicineContext);
             }
         } elseif ($this->editingProduct && $this->editingProduct->medicine) {
-            // If it was a medicine but is no longer marked as one, delete the medicine record.
             $this->editingProduct->medicine()->delete();
-        }
+            }
 
         Flux::modal('product-form')->close();
         $this->reset(['productContext', 'medicineContext', 'editingProduct', 'isMedicine']);
+        $this->dispatch('notify', message: 'Producto guardado con éxito.');
     }
 
     public function confirmDeactivate(Product $product)

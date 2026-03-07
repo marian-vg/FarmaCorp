@@ -1,8 +1,36 @@
 <div class="space-y-6">
-    <flux:heading size="xl">Historial Global de Ventas</flux:heading>
+    <div class="flex justify-between items-center">
+        <flux:heading size="xl">Historial Global de Ventas</flux:heading>
+        <flux:button variant="ghost" icon="arrow-path" wire:click="limpiarFiltros">Limpiar Filtros</flux:button>
+    </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+        {{-- Filtro Cliente --}}
+        <flux:select wire:model.live="filtroCliente" label="Cliente" placeholder="Todos los clientes">
+            <option value="">Todos los clientes</option>
+            @foreach($this->clientes as $cli)
+                <option value="{{ $cli->id }}">{{ $cli->first_name }} {{ $cli->last_name }}</option>
+            @endforeach
+        </flux:select>
+
+        {{-- Filtro Tipo --}}
+        <flux:select wire:model.live="filtroTipo" label="Comprobante">
+            <option value="">Todos los tipos</option>
+            <option value="TICKET">Ticket Fiscal</option>
+            <option value="FACTURA-A">Factura A</option>
+            <option value="FACTURA-B">Factura B</option>
+        </flux:select>
+
+        {{-- Filtro Fecha Desde --}}
+        <flux:input type="date" wire:model.live="fechaInicio" label="Desde" />
+
+        {{-- Filtro Fecha Hasta --}}
+        <flux:input type="date" wire:model.live="fechaFin" label="Hasta" />
+    </div>
+
+    {{-- Buscador por Responsable (El que ya tenías) --}}
     <div class="flex items-center gap-4">
-        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por responsable..." class="flex-1" />
+        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por vendedor..." class="flex-1" />
     </div>
 
     <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">

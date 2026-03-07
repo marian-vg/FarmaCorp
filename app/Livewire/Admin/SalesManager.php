@@ -17,16 +17,46 @@ class SalesManager extends Component
 
     public string $search = '';
     public $ventaSeleccionada = null;
+    public $filtroCliente = '';
+    public $filtroTipo = '';
+    public $fechaInicio = '';
+    public $fechaFin = '';
+
+    public function updatedFiltroCliente() { $this->resetPage(); }
+    public function updatedFiltroTipo() { $this->resetPage(); }
+    public function updatedFechaInicio() { $this->resetPage(); }
+    public function updatedFechaFin() { $this->resetPage(); }
+
+    public function limpiarFiltros()
+    {
+        $this->reset(['filtroCliente', 'filtroTipo', 'fechaInicio', 'fechaFin', 'search']);
+    }
 
     #[Computed]
     public function ventas()
     {
         return Factura::with(['user', 'cliente', 'pagos.medioPago'])
-            ->when($this->search, function($q) {
-                $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"));
-            })
-            ->orderBy('fecha_emision', 'desc')
-            ->paginate(15);
+        // Filtro por responsable (Buscador actual)
+        ->when($this->search, function($q) {
+            $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"));
+        })
+        // RF-25: Filtro por Cliente
+        ->when($this->filtroCliente, function($q) {
+            $q->where('cliente_id', $this->filtroCliente);
+        })
+        // RF-25: Filtro por Tipo de Comprobante
+        ->when($this->filtroTipo, function($q) {
+            $q->where('tipo_comprobante', $this->filtroTipo);
+        })
+        // RF-25: Filtro por Rango de Fechas
+        ->when($this->fechaInicio, function($q) {
+            $q->whereDate('fecha_emision', '>=', $this->fechaInicio);
+        })
+        ->when($this->fechaFin, function($q) {
+            $q->whereDate('fecha_emision', '<=', $this->fechaFin);
+        })
+        ->orderBy('fecha_emision', 'desc')
+        ->paginate(15);
     }
 
     public function descargarFactura($id)
@@ -41,6 +71,12 @@ class SalesManager extends Component
             fn () => print($pdf->output()),
             "Factura-Admin-{$factura->id}.pdf"
         );
+    }
+
+    #[Computed]
+    public function clientes()
+    {
+        return \App\Models\Client::orderBy('first_name')->get();
     }
 
     public function verDetalle($id)

@@ -54,6 +54,30 @@
         </div>
     </div>
 
+    <div class="mt-8 border-t pt-6">
+        <flux:heading size="lg">Control de Inflación (RF-21)</flux:heading>
+        <flux:subheading>Define la antigüedad máxima permitida para el precio de un producto antes de bloquear su venta.</flux:subheading>
+        
+        <form wire:submit.prevent="savePriceConfig" class="mt-4 flex items-end gap-4">
+            <flux:input type="number" wire:model="priceMaxDays" label="Días de validez del precio" class="w-48" />
+            <flux:button type="submit" variant="primary">Guardar Límite</flux:button>
+        </form>
+    </div>
+
+    <div class="mt-8 border-t pt-6">
+        <flux:heading size="lg">Comportamiento de Cierre (RF-20)</flux:heading>
+        <flux:subheading>Define qué sucede automáticamente al confirmar una venta.</flux:subheading>
+        
+        <form wire:submit.prevent="saveSaleConfig" class="mt-4 space-y-4">
+            <flux:radio.group wire:model="postSaleAction" label="Acción al cerrar comprobante">
+                <flux:radio value="solo_guardar" label="Solo Guardar (Sin descargar)" />
+                <flux:radio value="auto_imprimir" label="Guardar e Imprimir Automáticamente" />
+                <flux:radio value="preguntar" label="Preguntar al finalizar" />
+            </flux:radio.group>
+            <flux:button type="submit" variant="primary">Guardar Preferencia</flux:button>
+        </form>
+    </div>
+
     <div class="grid grid-cols-1 gap-4 mb-6">
         <div class="w-full">
             <div class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6">

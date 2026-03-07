@@ -22,6 +22,8 @@ class Dashboard extends Component
 {
     use WithPagination;
 
+    public int $priceMaxDays = 30;
+
     public string $search = '';
 
     public string $statusFilter = 'all'; // all, active, inactive
@@ -33,6 +35,8 @@ class Dashboard extends Component
     public string $newPassword = '';
 
     public string $newPasswordConfirmation = '';
+
+    public string $postSaleAction = 'preguntar';
 
     public array $newUserContext = [
         'name' => '',
@@ -60,12 +64,38 @@ class Dashboard extends Component
     public function updatedStatusFilter() { $this->resetPage(); }
     public function updatedRoleFilter() { $this->resetPage(); }
 
+    public function saveSaleConfig()
+    {
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'post_sale_action'],
+            ['value' => $this->postSaleAction]
+        );
+        Flux::toast('Preferencia de comprobantes guardada.');
+    }
+
+    public function savePriceConfig()
+    {
+        $this->validate(['priceMaxDays' => 'required|integer|min:1']);
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'price_max_days'],
+            ['value' => (string) $this->priceMaxDays]
+        );
+        Flux::toast('Configuración de precios actualizada.');
+    }
+
     public function mount()
     {
         $setting = \App\Models\Setting::where('key', 'alert_days')->first();
         if ($setting) {
             $this->alertDays = (int) $setting->value;
         }
+
+        $priceSetting = \App\Models\Setting::where('key', 'price_max_days')->first();
+        if ($priceSetting) {
+            $this->priceMaxDays = (int) $priceSetting->value;
+        }
+
+        $this->postSaleAction = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
     }
 
     public function saveAlertDays()

@@ -32,6 +32,7 @@ class VentaManager extends Component
     public $pagos_realizados = [];
     public $monto_pago_actual = 0;
     public ?\App\Models\Medicine $viewingMedicine = null;
+    public $ultimaFacturaId = null;
 
     public function viewLeaflet($productId)
     {
@@ -155,6 +156,28 @@ class VentaManager extends Component
 
     public function agregarAlCarrito(Product $product)
     {
+
+        $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+
+        if ($product->price_expires_at && $product->price_expires_at->isPast()) {
+            $this->dispatch('notify', 
+                message: "BLOQUEO: El precio de {$product->name} caducó el " . $product->price_expires_at->format('d/m/Y') . ". Actualícelo en el catálogo.", 
+                variant: 'danger'
+            );
+            return;
+        }
+
+        $ultimoCambio = $product->price_updated_at ?: $product->created_at;
+        $diasAntiguedad = $ultimoCambio->diffInDays(now());
+
+        if ($diasAntiguedad > $maxDays) {
+            $this->dispatch('notify', 
+                message: "ALERTA: El precio de {$product->name} tiene {$diasAntiguedad} días de antigüedad (Límite: {$maxDays}). Debe ser actualizado para poder facturarse.", 
+                variant: 'danger'
+            );
+            return;
+        }
+
         if (!$this->tipo_comprobante) {
             $this->dispatch('notify', message: 'Primero selecciona un tipo de comprobante.', variant: 'warning');
             return;
@@ -194,6 +217,7 @@ class VentaManager extends Component
 
     public function procesarVenta()
     {
+        // 1. Validaciones Iniciales (Caja, Carrito, Totales)
         if (!$this->cajaActiva) {
             $this->dispatch('notify', message: 'Error: Debes abrir caja antes de vender.', variant: 'danger');
             return;
@@ -204,26 +228,23 @@ class VentaManager extends Component
             return;
         }
 
-        // 2. Cálculos de Balance (RF-06)
         $totalPagado = collect($this->pagos_realizados)->sum('monto');
         $montoVenta = round((float)$this->totalFinal, 2);
         $pagadoReal = round((float)$totalPagado, 2);
 
         if ($pagadoReal > $montoVenta) {
             $this->dispatch('notify', 
-                message: 'Error: El monto pagado ($' . number_format($pagadoReal, 2) . ') es superior al total de la venta ($' . number_format($montoVenta, 2) . '). Ajuste los pagos.', 
+                message: 'Error: El monto pagado ($' . number_format($pagadoReal, 2) . ') supera el total. Ajuste los pagos.', 
                 variant: 'danger'
             );
             return;
         }
 
-        // 3. Validación de Deuda (Si falta plata, NECESITO un cliente) [cite: 120, 130]
         if ($pagadoReal < $montoVenta && !$this->cliente_id) {
             $this->dispatch('notify', message: 'Falta cubrir $' . number_format($montoVenta - $pagadoReal, 2) . '. Selecciona un cliente para dejar saldo pendiente.', variant: 'warning');
             return;
         }
 
-        // 4. Validación de Seguridad (No totales negativos) 
         if ($montoVenta < 0) {
             $this->dispatch('notify', message: 'El descuento no puede superar el monto total.', variant: 'danger');
             return;
@@ -231,20 +252,20 @@ class VentaManager extends Component
 
         $this->validate(['tipo_comprobante' => 'required']);
 
-        \DB::transaction(function () use ($montoVenta, $pagadoReal) {
-        // El estado se deduce automáticamente
-        $estadoFactura = ($pagadoReal >= $montoVenta) ? 'PAGADO' : 'PENDIENTE';
+        // 2. Transacción de Base de Datos
+        $facturaID = \DB::transaction(function () use ($montoVenta, $pagadoReal) {
+            $estadoFactura = ($pagadoReal >= $montoVenta) ? 'PAGADO' : 'PENDIENTE';
 
-        $factura = Factura::create([
-            'tipo_comprobante' => $this->tipo_comprobante,
-            'fecha_emision'    => now(),
-            'total'            => $this->totalFinal,
-            'ajuste_global'    => $this->global_adjustment,
-            'estado'           => $estadoFactura, 
-            'user_id'          => Auth::id(),
-            'cliente_id'       => $this->cliente_id,
-            'medio_pago_id'    => null, 
-        ]);
+            $factura = Factura::create([
+                'tipo_comprobante' => $this->tipo_comprobante,
+                'fecha_emision'    => now(),
+                'total'            => $this->totalFinal,
+                'ajuste_global'    => $this->global_adjustment,
+                'estado'           => $estadoFactura, 
+                'user_id'          => Auth::id(),
+                'cliente_id'       => $this->cliente_id,
+                'medio_pago_id'    => null, 
+            ]);
 
             foreach ($this->carrito as $item) {
                 \App\Models\FacturaDetalle::create([
@@ -296,27 +317,57 @@ class VentaManager extends Component
                     'factura_id'       => $factura->id,
                 ]);
             }
+
+            return $factura->id;
         });
 
-        $this->reset([
-            'carrito', 
-            'pagos_realizados', 
-            'tipo_comprobante', 
-            'cliente_id', 
-            'search_cliente', 
-            'es_cuenta_corriente', 
-            'global_adjustment', 
-            'monto_pago_actual',
-            'medio_pago_id'
+        $this->ultimaFacturaId = $facturaID;
+
+        // 3. Lógica del RF-20: Comportamiento de Cierre
+        $action = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+
+        if ($action === 'auto_imprimir') {
+            $this->limpiarVenta();
+            // En lugar de return, disparamos un evento de JavaScript para abrir en pestaña nueva
+            $url = route('factura.imprimir', ['id' => $facturaID]);
+            $this->dispatch('abrir-impresion', url: $url);
+            return;
+        }
+        
+        if ($action === 'preguntar') {
+            // Mostramos el modal para que el usuario elija
+            $this->limpiarVenta();
+            Flux::modal('exito-venta-modal')->show();
+        } else {
+            // 'solo_guardar': Solo notificamos y limpiamos
+            $this->limpiarVenta();
+            $this->dispatch('notify', message: 'Operación registrada con éxito.');
+        }
+    }
+
+    public function generarPdfStream($id)
+    {
+        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+            'factura' => $factura,
         ]);
 
-        unset($this->totalFinal);
-        unset($this->montoRestante);
-        unset($this->subtotal);
+        // CAMBIO: Usamos stream() en lugar de inline()
+        // Esto envía el PDF al navegador para que se visualice
+        return $pdf->stream("Factura-#{$factura->id}.pdf");
+    }
 
-        $this->reset(['carrito', 'pagos_realizados', 'tipo_comprobante', 'cliente_id', 'search_cliente', 'es_cuenta_corriente', 'global_adjustment', 'monto_pago_actual', 'medio_pago_id']);
+    // Método auxiliar para no repetir código de limpieza
+    private function limpiarVenta()
+    {
+        $this->reset([
+            'carrito', 'pagos_realizados', 'tipo_comprobante', 
+            'cliente_id', 'search_cliente', 'global_adjustment', 
+            'monto_pago_actual', 'medio_pago_id'
+        ]);
+
         unset($this->totalFinal, $this->montoRestante, $this->subtotal);
-        $this->dispatch('notify', message: 'Operación registrada con éxito.');
     }
 
     #[Computed]
@@ -337,6 +388,9 @@ class VentaManager extends Component
 
     public function render()
     {
+        // Obtenemos la configuración una sola vez para la vista (RF-21)
+        $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+
         $products = Product::query()
             ->leftJoin('stocks', 'products.id', '=', 'stocks.product_id')
             ->where('products.status', true)
@@ -344,13 +398,13 @@ class VentaManager extends Component
             ->orderByRaw('CASE WHEN stocks.cantidad_actual > 0 THEN 0 ELSE 1 END ASC')
             ->orderBy('products.name', 'asc')
             ->select('products.*')
-            // CARGA ANSIOSA: Traemos el stock y el medicamento (si existe)
             ->with(['stock', 'medicine']) 
             ->get();
 
         return view('livewire.user.venta-manager', [
             'products' => $products,
-            'mediosPago' => MedioPago::all()
+            'mediosPago' => MedioPago::all(),
+            'maxDays' => $maxDays // Enviamos el límite a la vista
         ])->layout('components.layouts.app');
     }
 }

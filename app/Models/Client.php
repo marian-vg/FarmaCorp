@@ -10,6 +10,10 @@ class Client extends Model
 {
     use Searchable;
 
+    public $modalTab = 'info';
+    public $selectedClientId = null;
+    public $facturaSeleccionada = null;
+
     protected $fillable = [
         'first_name',
         'last_name',

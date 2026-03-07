@@ -24,33 +24,77 @@
                             @php
                                 $stockActual = $product->stock?->cantidad_actual ?? 0;
                                 $fueraDeStock = $stockActual <= 0;
+
+                                // --- Lógica de Alerta de Precios (RF-17 y RF-18) ---
+                                $precioVencido = $product->price_expires_at && $product->price_expires_at->isPast();
+                                
+                                $ultimoCambio = $product->price_updated_at ?: $product->created_at;
+                                $diasAntiguedad = (int) $ultimoCambio->diffInDays(now());
+                                $precioAntiguo = $diasAntiguedad > $maxDays;
+
+                                $bloqueadoParaVenta = $fueraDeStock || $precioVencido || $precioAntiguo;
                             @endphp
-                            <flux:card class="flex flex-col justify-between {{ $fueraDeStock ? 'opacity-60 grayscale' : 'hover:shadow-md cursor-pointer group' }}" 
-                                wire:click="{{ $fueraDeStock ? '' : 'agregarAlCarrito('.$product->id.')' }}">
+
+                            <flux:card 
+                                class="flex flex-col justify-between transition-all {{ $bloqueadoParaVenta ? 'opacity-60 grayscale' : 'hover:shadow-md cursor-pointer group' }}" 
+                                wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$product->id.')' }}"
+                            >
                                 <div>
-                                    <div class="flex justify-between items-start">
-                                        <flux:text size="xs" class="uppercase text-zinc-400">Medicamento</flux:text>
-                                        
-                                        <div class="flex items-center gap-2">
-                                            {{-- NUEVO: Botón de Prospecto (Solo si el producto es un medicamento registrado) --}}
-                                            @if($product->medicine)
-                                                <button 
-                                                    wire:click.stop="viewLeaflet({{ $product->id }})" 
-                                                    class="text-zinc-400 hover:text-indigo-600 transition-colors"
-                                                    title="Ver Prospecto Clínico"
-                                                >
-                                                    <flux:icon.information-circle variant="micro" />
-                                                </button>
-                                            @endif
+                                    {{-- CABECERA: Solo etiquetas de tipo y alertas de seguridad --}}
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div class="flex flex-col gap-1">
+                                            <flux:text size="xs" class="uppercase text-zinc-400 font-semibold tracking-wider">Medicamento</flux:text>
                                             
-                                            <flux:badge size="xs" :color="$fueraDeStock ? 'red' : 'green'">{{ $stockActual }} disp.</flux:badge>
+                                            @if($precioVencido)
+                                                <flux:badge size="xs" color="red" variant="solid">Precio Caducado</flux:badge>
+                                            @elseif($precioAntiguo)
+                                                <flux:badge size="xs" color="orange" variant="subtle" icon="clock">Revisar Precio</flux:badge>
+                                            @endif
+                                        </div>
+                                        
+                                        {{-- Botón de prospecto movido a la esquina para que no moleste --}}
+                                        @if($product->medicine)
+                                            <button 
+                                                wire:click.stop="viewLeaflet({{ $product->id }})" 
+                                                class="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-colors"
+                                                title="Ver Prospecto"
+                                            >
+                                                <flux:icon.information-circle variant="micro" />
+                                            </button>
+                                        @endif
+                                    </div>
+
+                                    {{-- CUERPO: Nombre y Stock (Tu mejora visual) --}}
+                                    <div class="space-y-1">
+                                        <flux:heading size="sm" class="leading-tight">{{ $product->name }}</flux:heading>
+                                        
+                                        {{-- La cantidad ahora vive acá abajo, con más aire --}}
+                                        <div class="flex items-center gap-1.5">
+                                            @if($fueraDeStock)
+                                                <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
+                                            @else
+                                                <flux:badge size="xs" :color="$stockActual <= ($product->stock->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
+                                                    {{ $stockActual }} disponibles
+                                                </flux:badge>
+                                            @endif
                                         </div>
                                     </div>
-                                    <flux:heading size="sm">{{ $product->name }}</flux:heading>
                                 </div>
-                                <div class="mt-4 flex justify-between items-center">
-                                    <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
-                                    <flux:button size="xs" icon="{{ $fueraDeStock ? 'x-mark' : 'plus' }}" variant="subtle" />
+
+                                {{-- PIE: Precio y Acción --}}
+                                <div class="mt-4 flex justify-between items-center pt-2 border-t border-zinc-50 dark:border-zinc-800/50">
+                                    <div class="flex flex-col">
+                                        <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
+                                        @if($precioAntiguo)
+                                            <span class="text-[9px] text-zinc-400">Act. hace {{ $diasAntiguedad }} d</span>
+                                        @endif
+                                    </div>
+                                    
+                                    @if(!$bloqueadoParaVenta)
+                                        <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" />
+                                    @else
+                                        <flux:icon.x-mark class="text-red-400 w-4 h-4" />
+                                    @endif
                                 </div>
                             </flux:card>
                         @endforeach
@@ -414,4 +458,40 @@
             </div>
         </div>
     </flux:modal>
+
+<flux:modal name="exito-venta-modal" class="md:w-96 text-center">
+    <div class="space-y-6">
+        <div class="flex justify-center">
+            <div class="bg-green-100 dark:bg-green-900/30 p-4 rounded-full">
+                <flux:icon.check-circle class="text-green-600 w-12 h-12" />
+            </div>
+        </div>
+
+        <div>
+            <flux:heading size="lg">¡Venta Exitosa!</flux:heading>
+            <flux:text>El comprobante se ha registrado correctamente en el sistema.</flux:text>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2">
+            {{-- Opción de IMPRIMIR/GUARDAR (PDF) --}}
+            <flux:button 
+                variant="primary" 
+                icon="document-arrow-down" 
+                wire:click="descargarFactura({{ $ultimaFacturaId }})"
+            >
+                Descargar / Imprimir Factura
+            </flux:button>
+
+            <flux:modal.close>
+                <flux:button variant="ghost" class="w-full">Nueva Venta</flux:button>
+            </flux:modal.close>
+        </div>
+    </div>
+</flux:modal>
+<script>
+    window.addEventListener('abrir-impresion', event => {
+        // Abrimos la URL de la factura en una pestaña nueva/ventana popup
+        window.open(event.detail.url, '_blank');
+    });
+</script>
 </div>

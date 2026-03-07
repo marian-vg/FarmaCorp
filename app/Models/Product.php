@@ -18,6 +18,8 @@ class Product extends Model
         'description',
         'price',
         'status',
+        'price_updated_at',
+        'price_expires_at',
     ];
 
     protected function casts(): array
@@ -25,6 +27,8 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'status' => 'boolean',
+            'price_updated_at' => 'datetime',
+            'price_expires_at' => 'date',
         ];
     }
 

@@ -23,7 +23,6 @@ Route::get('/', function () {
     return view('livewire.auth.login');
 })->name('principal-page')->middleware(['guest']);
 
-// This will make the login and register routes available to guests and not for users that are already logged in
 Route::middleware(['guest'])->group(function () {
     Route::get('login', function () {
         return view('livewire.auth.login');
@@ -59,12 +58,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // RUTAS COMPARTIDAS (ADMIN + EMPLEADO)
     Route::middleware(['role:admin|empleado'])->group(function () {
         Route::get('clients', ClientManager::class)->name('clients.index');
+        
+        // NUEVA RUTA PARA RF-20: Visualizar e Imprimir Factura
+        // Apunta al método generarPdfStream dentro de tu VentaManager
+        Route::get('/factura/imprimir/{id}', [VentaManager::class, 'generarPdfStream'])->name('factura.imprimir');
     });
 
     // RUTAS PARA EMPLEADOS (USER)
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
-    
-    // Nueva ruta para el Punto de Venta (RF-01 Facturación)
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
 });
 

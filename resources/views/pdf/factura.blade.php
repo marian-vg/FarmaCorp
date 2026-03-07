@@ -99,5 +99,10 @@
     <div style="margin-top: 15px; font-size: 9px;">
         <strong>Estado del Pago:</strong> {{ $factura->estado }} | <strong>Vendedor:</strong> {{ $factura->user->name }}
     </div>
+
+    <script type="text/javascript">
+        this.print(true);
+    </script>
+
 </body>
 </html>
