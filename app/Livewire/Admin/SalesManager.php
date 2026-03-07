@@ -21,12 +21,26 @@ class SalesManager extends Component
     #[Computed]
     public function ventas()
     {
-        return Factura::with(['user', 'details.product'])
+        return Factura::with(['user', 'cliente', 'pagos.medioPago'])
             ->when($this->search, function($q) {
                 $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"));
             })
             ->orderBy('fecha_emision', 'desc')
             ->paginate(15);
+    }
+
+    public function descargarFactura($id)
+    {
+        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+            'factura' => $factura,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            "Factura-Admin-{$factura->id}.pdf"
+        );
     }
 
     public function verDetalle($id)

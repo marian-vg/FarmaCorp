@@ -39,9 +39,9 @@
                         </flux:table.cell>
 
                         <flux:table.cell align="end">
-                            @if($cliente->saldo_pendiente > 0)
+                            @if($cliente->saldo_real_pendiente > 0)
                                 <flux:badge color="red" variant="solid" size="sm">
-                                    ${{ number_format($cliente->saldo_pendiente, 2) }}
+                                    ${{ number_format($cliente->saldo_real_pendiente, 2) }}
                                 </flux:badge>
                             @else
                                 <flux:badge color="green" variant="subtle" size="sm">Al día</flux:badge>
@@ -100,20 +100,24 @@
                         {{-- LISTA DE FACTURAS --}}
                         <div class="space-y-3">
                             @forelse($this->facturasPendientes as $f)
+                                @php 
+                                    $yaPagado = $f->pagos->sum('monto');
+                                    $saldoActual = $f->total - $yaPagado;
+                                @endphp
                                 <div class="flex items-center justify-between p-4 border rounded-xl dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
                                     <div>
                                         <flux:text size="sm" class="font-bold">#{{ str_pad($f->id, 6, '0', STR_PAD_LEFT) }}</flux:text>
-                                        <flux:text size="xs" class="text-zinc-500">{{ $f->fecha_emision->format('d/m/Y') }}</flux:text>
+                                        <flux:text size="xs" class="text-zinc-500">Total: ${{ number_format($f->total, 2) }}</flux:text>
+                                        @if($yaPagado > 0)
+                                            <flux:text size="xs" class="text-green-600 font-medium">Entregó: ${{ number_format($yaPagado, 2) }}</flux:text>
+                                        @endif
                                     </div>
                                     <div class="flex items-center gap-4">
-                                        <flux:heading size="md" class="text-indigo-600">${{ number_format($f->total, 2) }}</flux:heading>
-                                        <flux:button 
-                                            size="sm" 
-                                            variant="subtle" 
-                                            icon="plus-circle" 
-                                            wire:click="seleccionarFacturaParaCobro({{ $f->id }})" 
-                                            tooltip="Iniciar cobro multimedio"
-                                        >Cobrar</flux:button>
+                                        <div class="text-right">
+                                            <flux:text size="xs" class="uppercase text-zinc-400 font-bold">Saldo:</flux:text>
+                                            <flux:heading size="md" class="text-red-600">${{ number_format($saldoActual, 2) }}</flux:heading>
+                                        </div>
+                                        <flux:button size="sm" variant="subtle" icon="plus-circle" wire:click="seleccionarFacturaParaCobro({{ $f->id }})" />
                                     </div>
                                 </div>
                             @empty

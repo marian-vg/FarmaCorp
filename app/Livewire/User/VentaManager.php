@@ -32,6 +32,41 @@ class VentaManager extends Component
     public $pagos_realizados = [];
     public $monto_pago_actual = 0;
 
+    public function descargarFactura($id)
+    {
+        // Cargamos la factura con todas sus relaciones para el reporte
+        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+
+        // Seguridad Básica: Solo admin o el usuario que la emitió
+        if (!Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
+            $this->dispatch('notify', message: 'No tiene permisos para descargar este comprobante.', variant: 'danger');
+            return;
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+            'factura' => $factura,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            "Comprobante-{$factura->tipo_comprobante}-#{$factura->id}.pdf"
+        );
+    }
+
+    public function updatedGlobalAdjustment()
+    {
+        $totalPagado = collect($this->pagos_realizados)->sum('monto');
+        
+        // Si al poner el descuento, lo que ya pagaron supera el nuevo total...
+        if ($totalPagado > $this->totalFinal) {
+            $this->pagos_realizados = []; // Limpiamos los pagos por seguridad
+            $this->dispatch('notify', 
+                message: 'El total ha cambiado y supera los pagos registrados. Por favor, cargue los medios de pago nuevamente.', 
+                variant: 'warning'
+            );
+        }
+    }
+
     public function autocompletarMonto()
     {
         $this->monto_pago_actual = round($this->montoRestante, 2);
@@ -157,35 +192,47 @@ class VentaManager extends Component
             return;
         }
 
+        // 2. Cálculos de Balance (RF-06)
         $totalPagado = collect($this->pagos_realizados)->sum('monto');
-        if (!$this->es_cuenta_corriente && round($totalPagado, 2) < round($this->totalFinal, 2)) {
-            $this->dispatch('notify', message: 'Debe cubrir el total de la venta con los medios de pago.', variant: 'danger');
+        $montoVenta = round((float)$this->totalFinal, 2);
+        $pagadoReal = round((float)$totalPagado, 2);
+
+        if ($pagadoReal > $montoVenta) {
+            $this->dispatch('notify', 
+                message: 'Error: El monto pagado ($' . number_format($pagadoReal, 2) . ') es superior al total de la venta ($' . number_format($montoVenta, 2) . '). Ajuste los pagos.', 
+                variant: 'danger'
+            );
             return;
         }
 
-        if ($this->es_cuenta_corriente && !$this->cliente_id) {
-            $this->dispatch('notify', message: 'Debes seleccionar un cliente para Cuenta Corriente.', variant: 'danger');
+        // 3. Validación de Deuda (Si falta plata, NECESITO un cliente) [cite: 120, 130]
+        if ($pagadoReal < $montoVenta && !$this->cliente_id) {
+            $this->dispatch('notify', message: 'Falta cubrir $' . number_format($montoVenta - $pagadoReal, 2) . '. Selecciona un cliente para dejar saldo pendiente.', variant: 'warning');
+            return;
+        }
+
+        // 4. Validación de Seguridad (No totales negativos) 
+        if ($montoVenta < 0) {
+            $this->dispatch('notify', message: 'El descuento no puede superar el monto total.', variant: 'danger');
             return;
         }
 
         $this->validate(['tipo_comprobante' => 'required']);
 
-        if ($this->totalFinal < 0) {
-            $this->dispatch('notify', message: 'El descuento no puede superar el monto total.', variant: 'danger');
-            return;
-        }
+        \DB::transaction(function () use ($montoVenta, $pagadoReal) {
+        // El estado se deduce automáticamente
+        $estadoFactura = ($pagadoReal >= $montoVenta) ? 'PAGADO' : 'PENDIENTE';
 
-        \DB::transaction(function () {
-            $factura = Factura::create([
-                'tipo_comprobante' => $this->tipo_comprobante,
-                'fecha_emision'    => now(),
-                'total'            => $this->totalFinal,
-                'ajuste_global'    => $this->global_adjustment,
-                'estado'           => $this->es_cuenta_corriente ? 'PENDIENTE' : 'PAGADO', 
-                'user_id'          => Auth::id(),
-                'cliente_id'       => $this->cliente_id,
-                'medio_pago_id'    => null,
-            ]);
+        $factura = Factura::create([
+            'tipo_comprobante' => $this->tipo_comprobante,
+            'fecha_emision'    => now(),
+            'total'            => $this->totalFinal,
+            'ajuste_global'    => $this->global_adjustment,
+            'estado'           => $estadoFactura, 
+            'user_id'          => Auth::id(),
+            'cliente_id'       => $this->cliente_id,
+            'medio_pago_id'    => null, 
+        ]);
 
             foreach ($this->carrito as $item) {
                 \App\Models\FacturaDetalle::create([
@@ -225,19 +272,17 @@ class VentaManager extends Component
                 }
             }
 
-            if (!$this->es_cuenta_corriente) {
-                foreach ($this->pagos_realizados as $pago) {
-                    MovimientoCaja::create([
-                        'tipo_movimiento'  => 'INGRESO',
-                        'monto'            => $pago['monto'],
-                        'motivo'           => "Venta #{$factura->id} - Pago: {$pago['nombre']}",
-                        'fecha_movimiento' => now(),
-                        'id_medio_pago'    => $pago['medio_id'],
-                        'id_caja'          => $this->cajaActiva->id,
-                        'user_id'          => Auth::id(),
-                        'factura_id'       => $factura->id,
-                    ]);
-                }
+            foreach ($this->pagos_realizados as $pago) {
+                MovimientoCaja::create([
+                    'tipo_movimiento'  => 'INGRESO',
+                    'monto'            => $pago['monto'],
+                    'motivo'           => "Venta #{$factura->id} - Pago parcial: {$pago['nombre']}",
+                    'fecha_movimiento' => now(),
+                    'id_medio_pago'    => $pago['medio_id'],
+                    'id_caja'          => $this->cajaActiva->id,
+                    'user_id'          => Auth::id(),
+                    'factura_id'       => $factura->id,
+                ]);
             }
         });
 
@@ -257,6 +302,8 @@ class VentaManager extends Component
         unset($this->montoRestante);
         unset($this->subtotal);
 
+        $this->reset(['carrito', 'pagos_realizados', 'tipo_comprobante', 'cliente_id', 'search_cliente', 'es_cuenta_corriente', 'global_adjustment', 'monto_pago_actual', 'medio_pago_id']);
+        unset($this->totalFinal, $this->montoRestante, $this->subtotal);
         $this->dispatch('notify', message: 'Operación registrada con éxito.');
     }
 
@@ -264,8 +311,8 @@ class VentaManager extends Component
     public function historialVentas()
     {
         return Factura::query()
-            // CARGA ANSIOSA: Traemos el usuario, los pagos y el medio de pago de cada pago
-            ->with(['user', 'pagos.medioPago']) 
+            // CARGA ANSIOSA: Agregamos 'cliente' a la lista
+            ->with(['user', 'pagos.medioPago', 'cliente']) 
             ->when(!Auth::user()->hasRole('admin'), function($q) {
                 $q->where('user_id', Auth::id());
             })

@@ -43,8 +43,12 @@ class ClientDebtManager extends Component
     public function montoRestanteFactura()
     {
         if (!$this->facturaEnCobro) return 0;
-        $totalPagado = collect($this->pagos_acumulados)->sum('monto');
-        return round((float)$this->facturaEnCobro->total - $totalPagado, 2);
+        
+        $pagosPrevios = $this->facturaEnCobro->pagos->sum('monto');
+        $pagosNuevos = collect($this->pagos_acumulados)->sum('monto');
+        
+        $restante = (float)$this->facturaEnCobro->total - $pagosPrevios - $pagosNuevos;
+        return round($restante, 2);
     }
 
     public function autocompletarMonto()
@@ -124,15 +128,15 @@ class ClientDebtManager extends Component
             return;
         }
 
-        if ($this->montoRestanteFactura > 0.01) {
-            $this->dispatch('notify', message: 'Debe cubrir el total de la factura.', variant: 'warning');
+        // Validamos que el pago nuevo no sea cero
+        if (empty($this->pagos_acumulados)) {
+            $this->dispatch('notify', message: 'Debe registrar al menos un pago.', variant: 'warning');
             return;
         }
 
         try {
             DB::transaction(function () {
-                $this->facturaEnCobro->update(['estado' => 'PAGADO']);
-
+                // Registramos los nuevos movimientos de caja
                 foreach ($this->pagos_acumulados as $pago) {
                     MovimientoCaja::create([
                         'tipo_movimiento'  => 'INGRESO',
@@ -145,14 +149,19 @@ class ClientDebtManager extends Component
                         'factura_id'       => $this->facturaEnCobro->id,
                     ]);
                 }
+
+                // RE-CALCULAMOS EL SALDO TOTAL DESPUÉS DE LOS NUEVOS PAGOS
+                $this->facturaEnCobro->refresh(); // Refrescamos los pagos vinculados
+                $totalPagadoHistórico = $this->facturaEnCobro->pagos->sum('monto');
+
+                // Si cubrió el 100%, la factura pasa a PAGADO
+                if (round($totalPagadoHistórico, 2) >= round($this->facturaEnCobro->total, 2)) {
+                    $this->facturaEnCobro->update(['estado' => 'PAGADO']);
+                }
             });
 
-            $this->dispatch('notify', message: 'Cobro multimedio exitoso.');
+            $this->dispatch('notify', message: 'Cobro registrado correctamente.');
             $this->cancelarCobro();
-            
-            if ($this->facturasPendientes->isEmpty()) {
-                $this->modalTab = 'historial';
-            }
         } catch (\Exception $e) {
             $this->dispatch('notify', message: 'Error en el proceso.', variant: 'danger');
         }
@@ -161,18 +170,27 @@ class ClientDebtManager extends Component
     #[Computed]
     public function totalEnLaCalle()
     {
-        return Factura::where('estado', 'PENDIENTE')->sum('total');
+        // Obtenemos todas las facturas pendientes con sus pagos
+        $pendientes = Factura::where('estado', 'PENDIENTE')->with('pagos')->get();
+        
+        return $pendientes->sum(fn($f) => $f->total - $f->pagos->sum('monto'));
     }
 
     public function render()
     {
         $clientes = Client::search($this->search)
             ->query(function ($query) {
-                $query->withSum(['facturas as saldo_pendiente' => function ($q) {
-                    $q->where('estado', 'PENDIENTE');
-                }], 'total');
+                $query->with(['facturas' => function($q) {
+                    $q->where('estado', 'PENDIENTE')->with('pagos');
+                }]);
             })
             ->paginate(10);
+
+        // Calculamos el saldo real para cada cliente manualmente antes de enviar a la vista
+        $clientes->getCollection()->transform(function ($cliente) {
+            $cliente->saldo_real_pendiente = $cliente->facturas->sum(fn($f) => $f->total - $f->pagos->sum('monto'));
+            return $cliente;
+        });
 
         return view('livewire.admin.client-debt-manager', [
             'clientes' => $clientes,

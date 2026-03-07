@@ -297,24 +297,27 @@ class CajaManager extends Component
     {
         $caja = Caja::with(['user', 'movimientos.medioPago'])->findOrFail($id);
 
-        // El administrador puede imprimir cualquier caja cerrada.
-        if (! $caja->fecha_cierre) {
-            Flux::toast('Solo puedes emitir reportes de cajas que ya han sido cerradas.', variant: 'danger');
-
+        if (!Auth::user()->hasRole('admin') && $caja->user_id !== Auth::id()) {
+            $this->dispatch('notify', message: 'No tienes permisos para descargar este reporte.', variant: 'danger');
             return;
         }
 
-        // Estructurar desglose por medio de pago
-        $totalesMp = [];
-        foreach ($caja->movimientos->groupBy('medioPago.nombre') as $nombre => $movs) {
+        if (!$caja->fecha_cierre) {
+            $this->dispatch('notify', message: 'Solo puedes emitir reportes de cajas cerradas.', variant: 'warning');
+            return;
+        }
+
+        $totalesMp = $caja->movimientos->groupBy(function($mov) {
+            return $mov->medioPago->nombre ?? 'Sin especificar';
+        })->map(function ($movs) {
             $ingresos = $movs->where('tipo_movimiento', 'INGRESO')->sum('monto');
             $egresos = $movs->where('tipo_movimiento', 'EGRESO')->sum('monto');
-            $totalesMp[$nombre] = [
+            return [
                 'ingresos' => $ingresos,
                 'egresos' => $egresos,
                 'neto' => $ingresos - $egresos,
             ];
-        }
+        });
 
         $pdf = Pdf::loadView('pdf.reporte-caja', [
             'caja' => $caja,
@@ -323,7 +326,7 @@ class CajaManager extends Component
 
         return response()->streamDownload(
             fn () => print ($pdf->output()),
-            "Cierre-Caja-{$caja->id}.pdf"
+            "Reporte-Cierre-Caja-{$caja->id}.pdf"
         );
     }
 

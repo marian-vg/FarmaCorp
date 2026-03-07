@@ -24,6 +24,12 @@ class Factura extends Model
         'total' => 'decimal:2',
     ];
 
+    public function cliente(): BelongsTo
+    {
+        // Vincula el campo cliente_id de esta tabla con el modelo Client
+        return $this->belongsTo(Client::class, 'cliente_id');
+    }
+
     public function pagos()
     {
         // Una factura puede tener varios movimientos de caja (pagos parciales)
