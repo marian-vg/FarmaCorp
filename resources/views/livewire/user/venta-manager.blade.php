@@ -30,7 +30,21 @@
                                 <div>
                                     <div class="flex justify-between items-start">
                                         <flux:text size="xs" class="uppercase text-zinc-400">Medicamento</flux:text>
-                                        <flux:badge size="xs" :color="$fueraDeStock ? 'red' : 'green'">{{ $stockActual }} disp.</flux:badge>
+                                        
+                                        <div class="flex items-center gap-2">
+                                            {{-- NUEVO: Botón de Prospecto (Solo si el producto es un medicamento registrado) --}}
+                                            @if($product->medicine)
+                                                <button 
+                                                    wire:click.stop="viewLeaflet({{ $product->id }})" 
+                                                    class="text-zinc-400 hover:text-indigo-600 transition-colors"
+                                                    title="Ver Prospecto Clínico"
+                                                >
+                                                    <flux:icon.information-circle variant="micro" />
+                                                </button>
+                                            @endif
+                                            
+                                            <flux:badge size="xs" :color="$fueraDeStock ? 'red' : 'green'">{{ $stockActual }} disp.</flux:badge>
+                                        </div>
                                     </div>
                                     <flux:heading size="sm">{{ $product->name }}</flux:heading>
                                 </div>
@@ -367,6 +381,37 @@
                 <div class="flex flex-col items-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div><flux:text>Cargando...</flux:text></div>
             @endif
             <div class="flex justify-end"><flux:modal.close><flux:button variant="ghost">Cerrar</flux:button></flux:modal.close></div>
+        </div>
+    </flux:modal>
+    <flux:modal name="leaflet-modal" class="min-w-[35rem]">
+        <div class="space-y-6">
+            @if($viewingMedicine)
+                <div>
+                    <flux:heading size="lg">{{ $viewingMedicine->product->name }}</flux:heading>
+                    <flux:subheading>
+                        Dosis/Nivel: <strong>{{ $viewingMedicine->level ?: 'N/D' }}</strong>
+                        @if($viewingMedicine->is_psychotropic)
+                            <flux:badge variant="danger" size="sm" class="ml-2" inset="top bottom">Psicotrópico</flux:badge>
+                        @endif
+                    </flux:subheading>
+                </div>
+
+                <div class="bg-blue-50/50 dark:bg-zinc-800 p-4 rounded-lg border border-blue-100 dark:border-zinc-700">
+                    <flux:heading size="sm" class="mb-2 uppercase text-blue-600 dark:text-blue-400 tracking-wider font-bold">Prospecto e Indicaciones</flux:heading>
+                    @if($viewingMedicine->leaflet)
+                        {{-- Usamos whitespace-pre-wrap para respetar los saltos de línea del texto --}}
+                        <div class="text-sm text-zinc-700 dark:text-zinc-300 space-y-2 whitespace-pre-wrap">{{ $viewingMedicine->leaflet }}</div>
+                    @else
+                        <flux:text class="text-zinc-400 italic">No hay indicaciones clínicas cargadas para este producto.</flux:text>
+                    @endif
+                </div>
+            @endif
+
+            <div class="flex justify-end">
+                <flux:modal.close>
+                    <flux:button variant="primary">Entendido</flux:button>
+                </flux:modal.close>
+            </div>
         </div>
     </flux:modal>
 </div>

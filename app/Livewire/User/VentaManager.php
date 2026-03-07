@@ -31,6 +31,18 @@ class VentaManager extends Component
     public $global_adjustment = 0;
     public $pagos_realizados = [];
     public $monto_pago_actual = 0;
+    public ?\App\Models\Medicine $viewingMedicine = null;
+
+    public function viewLeaflet($productId)
+    {
+        $this->viewingMedicine = \App\Models\Medicine::with('product')->where('product_id', $productId)->first();
+
+        if ($this->viewingMedicine) {
+            Flux::modal('leaflet-modal')->show();
+        } else {
+            $this->dispatch('notify', message: 'Este producto no tiene prospecto clínico registrado.', variant: 'warning');
+        }
+    }
 
     public function descargarFactura($id)
     {
@@ -332,7 +344,8 @@ class VentaManager extends Component
             ->orderByRaw('CASE WHEN stocks.cantidad_actual > 0 THEN 0 ELSE 1 END ASC')
             ->orderBy('products.name', 'asc')
             ->select('products.*')
-            ->with('stock') 
+            // CARGA ANSIOSA: Traemos el stock y el medicamento (si existe)
+            ->with(['stock', 'medicine']) 
             ->get();
 
         return view('livewire.user.venta-manager', [
