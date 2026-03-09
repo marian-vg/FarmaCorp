@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::create('movimiento_cajas', function (Blueprint $table) {
             $table->id();
-            $table->string('tipo_movimiento'); // ej: INGRESO, EGRESO
+            $table->string('tipo_movimiento');
             $table->decimal('monto', 10, 2);
             $table->dateTime('fecha_movimiento');
-            
             $table->foreignId('id_medio_pago')->nullable()->constrained('medio_pagos');
             $table->foreignId('id_caja')->constrained('cajas');
             $table->foreignId('user_id')->constrained('users');
+            $table->foreignId('factura_id')->nullable()->constrained('facturas')->onDelete('cascade');
             
             $table->timestamps();
         });

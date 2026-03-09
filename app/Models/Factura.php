@@ -14,6 +14,7 @@ class Factura extends Model
     'tipo_comprobante',
     'fecha_emision',
     'total',
+    'ajuste_global',
     'estado',
     'user_id',
     'cliente_id',
@@ -24,6 +25,18 @@ class Factura extends Model
         'fecha_emision' => 'datetime',
         'total' => 'decimal:2',
     ];
+
+    public function cliente(): BelongsTo
+    {
+        // Vincula el campo cliente_id de esta tabla con el modelo Client
+        return $this->belongsTo(Client::class, 'cliente_id');
+    }
+
+    public function pagos()
+    {
+        // Una factura puede tener varios movimientos de caja (pagos parciales)
+        return $this->hasMany(MovimientoCaja::class, 'factura_id');
+    }
 
     // Relación con el Empleado (Responsable)
     public function user(): BelongsTo

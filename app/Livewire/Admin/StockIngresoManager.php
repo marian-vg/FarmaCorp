@@ -51,8 +51,8 @@ class StockIngresoManager extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
-            // Paso A: Crear Lote (Batch)
+        \DB::transaction(function () {
+            // Paso A: Crear Lote
             $batch = Batch::create([
                 'medicine_id' => $this->medicine_id,
                 'batch_number' => $this->batch_number,
@@ -79,11 +79,21 @@ class StockIngresoManager extends Component
             // Paso C: Crear Movimiento de Stock (StockMovement)
             StockMovement::create([
                 'batch_id' => $batch->id,
-                'user_id' => Auth::id(),
+                'user_id' => \Auth::id(),
                 'type' => 'ingreso',
                 'reason' => 'compra',
                 'quantity' => $this->quantity_received,
             ]);
+
+            // PASO C: Actualizar el Stock Global (Totalizador) [cite: 18]
+            $stock = \App\Models\Stock::firstOrNew(['product_id' => $this->medicine_id]);
+
+            // Si el registro es nuevo, 'cantidad_actual' será 0 o null automáticamente
+            $stock->stock_minimo = $this->minimum_stock;
+            $stock->cantidad_actual += $this->quantity_received;
+            $stock->fecha_actualización = now();
+
+            $stock->save();
         });
 
         Flux::modal('ingreso-modal')->close();

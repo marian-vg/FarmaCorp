@@ -17,23 +17,27 @@ class Product extends Model
         'name',
         'description',
         'status',
+        'price_updated_at',
+        'price_expires_at',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => 'boolean',
+            'price_updated_at' => 'datetime',
+            'price_expires_at' => 'date',
         ];
+    }
+
+    public function stock(): HasOne
+    {
+        return $this->hasOne(Stock::class, 'product_id');
     }
 
     public function medicine(): HasOne
     {
         return $this->hasOne(Medicine::class);
-    }
-
-    public function stock(): HasOne
-    {
-        return $this->hasOne(Stock::class);
     }
 
     public function toSearchableArray()

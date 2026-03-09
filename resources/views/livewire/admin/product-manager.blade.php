@@ -88,7 +88,19 @@
                 <div class="col-span-2">
                     <flux:textarea wire:model="productContext.description" label="Descripción (Opcional)" />
                 </div>
-                <div class="col-span-2 flex items-center mt-2">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <flux:input type="number" step="0.01" wire:model="productContext.price" label="Precio de venta unitario" required />
+                    </div>
+                    
+                    {{-- RF-18: Vencimiento COMERCIAL --}}
+                    <div>
+                        <flux:input type="date" wire:model="productContext.price_expires_at" label="Vencimiento de la OFERTA/PRECIO" />
+                        <flux:text size="xs" class="mt-1 text-orange-600 font-medium">Límite comercial del precio actual.</flux:text>
+                    </div>
+                </div>
+                
+                <div class="flex items-center mt-6">
                     <flux:switch wire:model="productContext.status" label="Producto en estado activo" />
                 </div>
             </div>
@@ -128,7 +140,8 @@
                     </div>
 
                     <div class="col-span-2 sm:col-span-1">
-                        <flux:input type="date" wire:model="medicineContext.expiration_date" label="Fecha Vto. (Referencia)" />
+                        <flux:input type="date" wire:model="medicineContext.expiration_date" label="Vencimiento CLÍNICO (Medicamento)" />
+                        <flux:text size="xs" class="mt-1 text-blue-600 font-medium">Fecha de caducidad del componente químico.</flux:text>
                     </div>
 
                     <div class="col-span-2 sm:col-span-1 flex items-center mt-6">

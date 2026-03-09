@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->integer('cantidad_actual')->default(0);
             $table->integer('stock_minimo')->default(0);
+            $table->timestamp('fecha_actualizacion')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

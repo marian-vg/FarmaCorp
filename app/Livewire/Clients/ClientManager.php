@@ -3,8 +3,10 @@
 namespace App\Livewire\Clients;
 
 use App\Models\Client;
+use App\Models\Factura; // Importante para el historial
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed; // Necesario para propiedades computadas
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -18,6 +20,10 @@ class ClientManager extends Component
     public string $statusFilter = 'all';
 
     public ?Client $editingClient = null;
+
+    public string $modalTab = 'info'; 
+    public $selectedClientId = null;
+    public $facturaSeleccionada = null;
 
     public array $clientContext = [
         'first_name' => '',
@@ -40,12 +46,13 @@ class ClientManager extends Component
     public function createClient()
     {
         abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
-        $this->reset(['clientContext', 'editingClient']);
+        $this->reset(['clientContext', 'editingClient', 'selectedClientId']);
         Flux::modal('client-form')->show();
     }
 
     public function viewClient(Client $client)
     {
+        $this->selectedClientId = $client->id;
         $this->editingClient = $client;
         $this->clientContext = [
             'first_name' => $client->first_name,
@@ -54,7 +61,39 @@ class ClientManager extends Component
             'phone' => $client->phone,
             'address' => $client->address,
         ];
+        $this->modalTab = 'info'; // Siempre empezar en info
         Flux::modal('view-client-modal')->show();
+    }
+
+    #[Computed]
+    public function historialCompras()
+    {
+        if (!$this->selectedClientId) return collect();
+
+        return Factura::where('cliente_id', $this->selectedClientId)
+            ->with(['user', 'pagos.medioPago'])
+            ->orderBy('fecha_emision', 'desc')
+            ->get();
+    }
+
+    public function verDetalleFactura($id)
+    {
+        $this->facturaSeleccionada = Factura::with(['details.product', 'pagos.medioPago', 'cliente', 'user'])->find($id);
+        Flux::modal('detalle-auditoria-modal')->show();
+    }
+
+    public function descargarFactura($id)
+    {
+        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+            'factura' => $factura,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            "Factura-{$factura->id}.pdf"
+        );
     }
 
     public function editClient(Client $client)

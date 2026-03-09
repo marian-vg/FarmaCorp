@@ -13,12 +13,14 @@ class Stock extends Model
     protected $fillable = [
         'product_id',
         'cantidad_actual',
-        'stock_minimo'
+        'stock_minimo',
+        'fecha_actualizacion'
     ];
 
     protected function casts(): array
     {
         return [
+            'fecha_actualizacion' => 'datetime',
             'cantidad_actual' => 'integer',
             'stock_minimo' => 'integer'
         ];

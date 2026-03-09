@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\ClientDebtManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\User\Dashboard as UserDashboard;
 use App\Livewire\Admin\ProfileManager;
@@ -22,11 +23,6 @@ Route::get('/', function () {
     return view('livewire.auth.login');
 })->name('principal-page')->middleware(['guest']);
 
-Route::get('/test-toast', function () {
-    return view('test-toast');
-});
-
-// This will make the login and register routes available to guests and not for users that are already logged in
 Route::middleware(['guest'])->group(function () {
     Route::get('login', function () {
         return view('livewire.auth.login');
@@ -56,17 +52,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/clientes', ClientManager::class)->name('admin.clients');
         Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
+        Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
     });
     
     // RUTAS COMPARTIDAS (ADMIN + EMPLEADO)
     Route::middleware(['role:admin|empleado'])->group(function () {
         Route::get('clients', ClientManager::class)->name('clients.index');
+        
+        // NUEVA RUTA PARA RF-20: Visualizar e Imprimir Factura
+        // Apunta al método generarPdfStream dentro de tu VentaManager
+        Route::get('/factura/imprimir/{id}', [VentaManager::class, 'generarPdfStream'])->name('factura.imprimir');
     });
 
     // RUTAS PARA EMPLEADOS (USER)
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
-    
-    // Nueva ruta para el Punto de Venta (RF-01 Facturación)
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
 
     // Módulo de Configuración

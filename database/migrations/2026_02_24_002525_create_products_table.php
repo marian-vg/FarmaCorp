@@ -16,6 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->boolean('status')->default(true);
+            $table->timestamp('price_updated_at')->nullable();
+            $table->date('price_expires_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
