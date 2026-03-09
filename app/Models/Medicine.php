@@ -13,9 +13,6 @@ class Medicine extends Model
 {
     use HasFactory, SoftDeletes, Searchable;
 
-    protected $primaryKey = 'product_id';
-    public $incrementing = false;
-
     protected $fillable = [
         'product_id',
         'presentation_name',

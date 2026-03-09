@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('batches', function (Blueprint $table) {
             $table->id();
             $table->foreignId('medicine_id')->constrained(
-                table: 'medicines', indexName: 'batches_medicine_id_foreign', column: 'product_id'
+                table: 'medicines'
             )->cascadeOnDelete();
             $table->string('batch_number');
             $table->date('expiration_date');
