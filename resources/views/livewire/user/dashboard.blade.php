@@ -157,7 +157,7 @@
                             
                             <x-table.cell class="text-right font-bold text-sm">
                                 <span class="{{ $movimiento->tipo_movimiento === 'INGRESO' ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $movimiento->tipo_movimiento === 'INGRESO' ? '+' : '-' }}${{ number_format($movimiento->monto, 2) }}
+                                    {{ $movimiento->tipo_movimiento === 'INGRESO' ? '+' : '-' }}${{ number_format((float)$movimiento->monto, 2) }}
                                 </span>
                             </x-table.cell>
                         </x-table.row>
