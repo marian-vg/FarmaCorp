@@ -4,17 +4,19 @@ namespace App\Livewire\Admin;
 
 use App\Models\Batch;
 use App\Models\StockMovement;
+use App\Models\Stock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Egreso de Stock'])]
 class StockEgresoManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $search = '';
 
@@ -56,11 +58,11 @@ class StockEgresoManager extends Component
         }
 
         DB::transaction(function () use ($batch) {
-            // Paso A: Restar la cantidad en el Lote
+            // Paso A: Restar la cantidad en el Lote (Lo que ya hacía)
             $batch->current_quantity -= $this->quantity_to_remove;
             $batch->save();
 
-            // Determinar enum exacto de reason
+            // Determinar motivo (Lógica de tu compañero)
             $mappedReason = 'ajuste';
             switch ($this->reason) {
                 case 'devolucion_proveedor': $mappedReason = 'devolucion'; break;
@@ -69,7 +71,21 @@ class StockEgresoManager extends Component
                 case 'destruccion_vencimiento': $mappedReason = 'vencimiento'; break;
             }
 
-            // Paso B: Crear Movimiento de Stock
+            // Paso B: Descontar cantidad en el Stock Global del producto
+            $medicine = $batch->medicine;
+            if ($medicine) {
+                $stock = Stock::where('product_id', $medicine->product_id)->first();
+                if ($stock) {
+                    $stock->cantidad_actual -= $this->quantity_to_remove;
+                    // Prevenir stock negativo global
+                    if ($stock->cantidad_actual < 0) {
+                        $stock->cantidad_actual = 0;
+                    }
+                    $stock->save();
+                }
+            }
+
+            // Paso C: Crear Movimiento de Stock
             StockMovement::create([
                 'batch_id' => $batch->id,
                 'user_id' => Auth::id(),
@@ -77,10 +93,20 @@ class StockEgresoManager extends Component
                 'reason' => $mappedReason,
                 'quantity' => $this->quantity_to_remove,
             ]);
+
+            // NUEVO PASO C: Actualizar el Stock Global (Totalizador) [cite: 555-573]
+            // Usamos el medicine_id del lote, que es el product_id
+            $stockGlobal = \App\Models\Stock::where('product_id', $batch->medicine_id)->first();
+            
+            if ($stockGlobal) {
+                $stockGlobal->cantidad_actual -= $this->quantity_to_remove;
+                $stockGlobal->fecha_actualización = now(); // [cite: 572]
+                $stockGlobal->save();
+            }
         });
 
         Flux::modal('egreso-modal')->close();
-        Flux::toast('Egreso registrado con éxito.');
+        $this->notify('Egreso registrado con éxito.', 'success');
         $this->reset(['batch_id', 'quantity_to_remove', 'reason', 'current_stock_display']);
     }
 

@@ -10,11 +10,13 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Productos y Medicamentos'])]
 class ProductManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
     public ?Product $editingProduct = null;
@@ -23,12 +25,13 @@ class ProductManager extends Component
     public array $productContext = [
         'name' => '',
         'description' => '',
-        'price' => null,
         'status' => true,
     ];
 
     public array $medicineContext = [
         'group_id' => null,
+        'presentation_name' => '',
+        'price' => null,
         'level' => '',
         'leaflet' => '',
         'expiration_date' => null,
@@ -53,7 +56,6 @@ class ProductManager extends Component
         $this->productContext = [
             'name' => $product->name,
             'description' => $product->description,
-            'price' => $product->price,
             'status' => $product->status,
         ];
 
@@ -61,6 +63,8 @@ class ProductManager extends Component
             $this->isMedicine = true;
             $this->medicineContext = [
                 'group_id' => $product->medicine->group_id,
+                'presentation_name' => $product->medicine->presentation_name,
+                'price' => $product->medicine->price,
                 'level' => $product->medicine->level,
                 'leaflet' => $product->medicine->leaflet,
                 'expiration_date' => $product->medicine->expiration_date ? $product->medicine->expiration_date->format('Y-m-d') : null,
@@ -78,19 +82,19 @@ class ProductManager extends Component
     {
         $rules = [
             'productContext.name' => [
-                'required',
-                'string',
-                'max:255',
+                'required', 'string', 'max:255',
                 $this->editingProduct 
                     ? Rule::unique('products', 'name')->ignore($this->editingProduct->id) 
                     : Rule::unique('products', 'name'),
             ],
             'productContext.description' => 'nullable|string',
-            'productContext.price' => 'required|numeric|min:0',
             'productContext.status' => 'boolean',
+            'productContext.price_expires_at' => 'nullable|date', // Agregamos validación para RF-18
         ];
 
         if ($this->isMedicine) {
+            $rules['medicineContext.presentation_name'] = 'nullable|string|max:255';
+            $rules['medicineContext.price'] = 'required|numeric|min:0';
             $rules['medicineContext.group_id'] = 'required|exists:groups,id';
             $rules['medicineContext.level'] = 'nullable|string|max:50';
             $rules['medicineContext.leaflet'] = 'nullable|string';
@@ -100,35 +104,47 @@ class ProductManager extends Component
 
         $this->validate($rules);
 
-        $productData = array_merge($this->productContext, [
-            // Ensure status is boolean
+        // 1. Manejo del Producto y Fecha de Actualización (RF-17)
+
+        $productData = [
+            'name' => $this->productContext['name'],
+            'description' => $this->productContext['description'],
             'status' => (bool) $this->productContext['status'],
-        ]);
+        ];
+
+        if (isset($this->productContext['price_expires_at'])) {
+            $productData['price_expires_at'] = $this->productContext['price_expires_at'];
+        }
+
+        if (array_key_exists('price', $this->productContext)) {
+             $productData['price'] = $this->productContext['price'];
+        }
 
         if ($this->editingProduct) {
+            if (isset($this->productContext['price']) && (float)$this->editingProduct->price !== (float)$this->productContext['price']) {
+                $productData['price_updated_at'] = now();
+            }
             $this->editingProduct->update($productData);
             $product = $this->editingProduct;
         } else {
+            $productData['price_updated_at'] = now();
             $product = Product::create($productData);
         }
 
+        // 2. Manejo de la extensión de Medicina
         if ($this->isMedicine) {
-            $medicineData = array_merge($this->medicineContext, [
-                'is_psychotropic' => (bool) $this->medicineContext['is_psychotropic'],
-            ]);
-
             if ($product->medicine) {
-                $product->medicine()->update($medicineData);
+                $product->medicine()->update($this->medicineContext);
             } else {
-                $product->medicine()->create($medicineData);
+                $product->medicine()->create($this->medicineContext);
             }
         } elseif ($this->editingProduct && $this->editingProduct->medicine) {
-            // If it was a medicine but is no longer marked as one, delete the medicine record.
             $this->editingProduct->medicine()->delete();
-        }
+            }
 
         Flux::modal('product-form')->close();
         $this->reset(['productContext', 'medicineContext', 'editingProduct', 'isMedicine']);
+        $this->notify('Producto guardado exitosamente.', 'success');
     }
 
     public function confirmDeactivate(Product $product)
@@ -143,6 +159,7 @@ class ProductManager extends Component
             $this->editingProduct->delete(); // Soft delete
             Flux::modal('confirm-deactivation-product')->close();
             $this->reset(['editingProduct']);
+            $this->notify('Producto desactivado con éxito.', 'success');
         }
     }
 
@@ -152,7 +169,7 @@ class ProductManager extends Component
             ->query(fn ($query) => $query->with('medicine.group'))
             ->paginate(12);
 
-        $groups = Group::orderBy('name')->get();
+        $groups = Cache::remember('groups_all', 86400, fn () => Group::orderBy('name')->get());
 
         return view('livewire.admin.product-manager', [
             'products' => $products,

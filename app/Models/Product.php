@@ -16,16 +16,23 @@ class Product extends Model
     protected $fillable = [
         'name',
         'description',
-        'price',
         'status',
+        'price_updated_at',
+        'price_expires_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'price' => 'decimal:2',
             'status' => 'boolean',
+            'price_updated_at' => 'datetime',
+            'price_expires_at' => 'date',
         ];
+    }
+
+    public function stock(): HasOne
+    {
+        return $this->hasOne(Stock::class, 'product_id');
     }
 
     public function medicine(): HasOne

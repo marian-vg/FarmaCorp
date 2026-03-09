@@ -9,11 +9,13 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
     public bool $filterPsychotropic = false;
@@ -21,6 +23,8 @@ class MedicineManager extends Component
 
     public array $context = [
         'product_id' => '',
+        'presentation_name' => '',
+        'price' => null,
         'group_id' => '',
         'level' => '',
         'leaflet' => '',
@@ -56,6 +60,8 @@ class MedicineManager extends Component
     {
         $this->validate([
             'context.product_id' => 'required|exists:products,id|unique:medicines,product_id',
+            'context.presentation_name' => 'nullable|string|max:255',
+            'context.price' => 'required|numeric|min:0',
             'context.group_id' => 'required|exists:groups,id',
             'context.level' => 'nullable|string|max:255',
             'context.leaflet' => 'nullable|string',
@@ -67,6 +73,8 @@ class MedicineManager extends Component
 
         Medicine::create([
             'product_id' => $this->context['product_id'],
+            'presentation_name' => $this->context['presentation_name'],
+            'price' => $this->context['price'],
             'group_id' => $this->context['group_id'],
             'level' => $this->context['level'],
             'leaflet' => $this->context['leaflet'],
@@ -76,13 +84,14 @@ class MedicineManager extends Component
 
         Flux::modal('medicine-form')->close();
         $this->reset('context');
+        $this->notify('Medicamento guardado exitosamente.', 'success');
     }
 
     public function render()
     {
         $medicines = Medicine::search($this->search)
             ->query(function ($query) {
-                $query->with(['product', 'group']);
+                $query->with(['product.stock', 'group']);
                 
                 if ($this->filterPsychotropic) {
                     $query->where('is_psychotropic', true);
@@ -98,7 +107,7 @@ class MedicineManager extends Component
             ->orderBy('name')
             ->get();
 
-        $groups = Group::orderBy('name')->get();
+        $groups = Cache::remember('groups_all', 86400, fn () => Group::orderBy('name')->get());
 
         return view('livewire.admin.medicine-manager', [
             'medicines' => $medicines,

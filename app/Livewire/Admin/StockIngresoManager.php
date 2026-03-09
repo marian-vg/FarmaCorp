@@ -5,17 +5,19 @@ namespace App\Livewire\Admin;
 use App\Models\Batch;
 use App\Models\Medicine;
 use App\Models\StockMovement;
+use App\Models\Stock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Ingreso de Stock'])]
 class StockIngresoManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $search = '';
 
@@ -50,8 +52,8 @@ class StockIngresoManager extends Component
     {
         $this->validate();
 
-        DB::transaction(function () {
-            // Paso A: Crear Lote (Batch)
+        \DB::transaction(function () {
+            // Paso A: Crear Lote
             $batch = Batch::create([
                 'medicine_id' => $this->medicine_id,
                 'batch_number' => $this->batch_number,
@@ -61,18 +63,42 @@ class StockIngresoManager extends Component
                 'minimum_stock' => $this->minimum_stock,
             ]);
 
-            // Paso B: Crear Movimiento de Stock (StockMovement)
+            // Paso B: Update global Stock for the Product
+            $medicine = Medicine::find($this->medicine_id);
+            $stock = Stock::firstOrCreate(
+                ['product_id' => $medicine->product_id],
+                ['cantidad_actual' => 0, 'stock_minimo' => 0]
+            );
+            
+            $stock->cantidad_actual += $this->quantity_received;
+            // Update the global minimum stock if the new batch has a higher strict limit
+            if ($this->minimum_stock > $stock->stock_minimo) {
+                $stock->stock_minimo = $this->minimum_stock;
+            }
+            $stock->save();
+
+            // Paso C: Crear Movimiento de Stock (StockMovement)
             StockMovement::create([
                 'batch_id' => $batch->id,
-                'user_id' => Auth::id(),
+                'user_id' => \Auth::id(),
                 'type' => 'ingreso',
                 'reason' => 'compra',
                 'quantity' => $this->quantity_received,
             ]);
+
+            // PASO C: Actualizar el Stock Global (Totalizador) [cite: 18]
+            $stock = \App\Models\Stock::firstOrNew(['product_id' => $this->medicine_id]);
+
+            // Si el registro es nuevo, 'cantidad_actual' será 0 o null automáticamente
+            $stock->stock_minimo = $this->minimum_stock;
+            $stock->cantidad_actual += $this->quantity_received;
+            // $stock->fecha_actualización = now(); // Columna inexistente en la base de datos
+
+            $stock->save();
         });
 
         Flux::modal('ingreso-modal')->close();
-        Flux::toast('Ingreso registrado con éxito.');
+        $this->notify('Ingreso registrado con éxito.', 'success');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
     }
 

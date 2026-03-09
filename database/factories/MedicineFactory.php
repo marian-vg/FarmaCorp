@@ -18,6 +18,8 @@ class MedicineFactory extends Factory
     {
         return [
             'product_id' => \App\Models\Product::factory(),
+            'presentation_name' => $this->faker->words(3, true),
+            'price' => $this->faker->randomFloat(2, 5, 5000),
             'level' => $this->faker->randomElement(['Baja', 'Media', 'Alta']),
             'leaflet' => $this->faker->paragraph(),
             'expiration_date' => $this->faker->dateTimeBetween('now', '+2 years')->format('Y-m-d'),

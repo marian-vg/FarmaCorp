@@ -1,0 +1,177 @@
+[
+  {
+    "name": "Ibuprofeno",
+    "description": "Analgésico, antipirético y antiinflamatorio no esteroideo (AINE)",
+    "group": "Analgésicos",
+    "medicines": [
+      {
+        "presentation_name": "Ibuprofeno 400mg x 10 Comp",
+        "price": 3500.00,
+        "level": "400mg",
+        "leaflet": "Tomar 1 cada 8 horas en caso de dolor leve a moderado. No exceder dosis.",
+        "is_psychotropic": false
+      },
+      {
+        "presentation_name": "Ibuprofeno 600mg x 20 Comp",
+        "price": 6000.00,
+        "level": "600mg",
+        "leaflet": "Venta bajo receta. Tomar 1 cada 12 horas.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Amoxicilina",
+    "description": "Antibiótico beta-lactámico bactericida",
+    "group": "Antibióticos",
+    "medicines": [
+      {
+        "presentation_name": "Amoxicilina 500mg x 21 Caps",
+        "price": 8500.00,
+        "level": "500mg",
+        "leaflet": "Tomar con o sin comida. Evitar si hay historial de alergia a penicilinas.",
+        "is_psychotropic": false
+      },
+      {
+        "presentation_name": "Amoxicilina 875mg / Ácido Clavulánico x 14 Comp",
+        "price": 14200.00,
+        "level": "875mg",
+        "leaflet": "Indicado para infecciones respiratorias. Completar siempre el ciclo.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Paracetamol",
+    "description": "Fármaco con propiedades analgésicas y antipiréticas",
+    "group": "Analgésicos",
+    "medicines": [
+      {
+        "presentation_name": "Paracetamol 500mg x 20 Comp",
+        "price": 2800.00,
+        "level": "500mg",
+        "leaflet": "No exceder los 4g diarios. Precaución en insuficiencia hepática.",
+        "is_psychotropic": false
+      },
+      {
+        "presentation_name": "Paracetamol 1g x 10 Comp Rápida Acción",
+        "price": 4100.00,
+        "level": "1g",
+        "leaflet": "Alivio rápido del dolor y fiebre.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Clonazepam",
+    "description": "Fármaco perteneciente al grupo de las benzodiazepinas",
+    "group": "Psicotrópicos",
+    "medicines": [
+      {
+        "presentation_name": "Clonazepam 0.5mg x 30 Comp",
+        "price": 7500.00,
+        "level": "0.5mg",
+        "leaflet": "Uso estrictamente regulado. Puede causar somnolencia.",
+        "is_psychotropic": true
+      },
+      {
+        "presentation_name": "Clonazepam 2mg x 30 Comp",
+        "price": 12000.00,
+        "level": "2mg",
+        "leaflet": "Evitar consumo de alcohol durante el tratamiento.",
+        "is_psychotropic": true
+      }
+    ]
+  },
+  {
+    "name": "Omeprazol",
+    "description": "Inhibidor de la bomba de protones para el estómago",
+    "group": "Gastrointestinales",
+    "medicines": [
+      {
+        "presentation_name": "Omeprazol 20mg x 28 Caps",
+        "price": 6000.00,
+        "level": "20mg",
+        "leaflet": "Tomar 30 minutos antes del desayuno para mejor absorción.",
+        "is_psychotropic": false
+      },
+      {
+        "presentation_name": "Omeprazol 40mg x 14 Caps",
+        "price": 8900.00,
+        "level": "40mg",
+        "leaflet": "Tratamiento intensivo para reflujo gastroesofágico severo.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Loratadina",
+    "description": "Fármaco antihistamínico",
+    "group": "Antihistamínicos",
+    "medicines": [
+      {
+        "presentation_name": "Loratadina 10mg x 10 Comp",
+        "price": 2500.00,
+        "level": "10mg",
+        "leaflet": "No produce somnolencia significativa en dosis estándar.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Losartán",
+    "description": "Antagonista de los receptores de angiotensina II",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Losartán 50mg x 30 Comp",
+        "price": 9500.00,
+        "level": "50mg",
+        "leaflet": "Monitorizar la presión arterial periódicamente.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Metformina",
+    "description": "Fármaco antidiabético de aplicación oral",
+    "group": "Metabólicos",
+    "medicines": [
+      {
+        "presentation_name": "Metformina 850mg x 60 Comp",
+        "price": 11000.00,
+        "level": "850mg",
+        "leaflet": "Tomar junto con las comidas para reducir molestias gastrointestinales.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Aspirina",
+    "description": "Ácido acetilsalicílico",
+    "group": "Analgésicos",
+    "medicines": [
+      {
+        "presentation_name": "Aspirina Prevent 100mg x 30 Comp",
+        "price": 3200.00,
+        "level": "100mg",
+        "leaflet": "Previene la formación de trombos cardiovasculares en terapia de bajo nivel.",
+        "is_psychotropic": false
+      }
+    ]
+  },
+  {
+    "name": "Sertralina",
+    "description": "Antidepresivo del grupo inhibidor de serotonina (SSRI)",
+    "group": "Psicotrópicos",
+    "medicines": [
+      {
+        "presentation_name": "Sertralina 50mg x 30 Comp",
+        "price": 14500.00,
+        "level": "50mg",
+        "leaflet": "Estrictamente recetado. El efecto terapéutico completo toma de 2 a 4 semanas.",
+        "is_psychotropic": true
+      }
+    ]
+  }
+]

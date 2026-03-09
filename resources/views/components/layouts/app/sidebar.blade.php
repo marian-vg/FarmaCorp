@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:sidebar sticky collapsible class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
+    <body class="min-h-screen flex bg-white dark:bg-zinc-800">
+
+        <flux:sidebar sticky collapsible class="shadow-lg shadow-farmacorp-shadow/70">
             <flux:sidebar.toggle class="flex items-center" size="sm" icon="bars-3" />
 
             {{-- VISTA ADMINISTRADOR --}}
@@ -18,6 +19,7 @@
                 <flux:sidebar.item icon="clock" href="{{ route('admin.stock.historial') }}" :current="request()->routeIs('admin.stock.historial')">Stock - Kardex</flux:sidebar.item>
                 <flux:sidebar.item icon="users" href="{{ route('admin.profiles') }}" :current="request()->routeIs('admin.profiles')">Perfiles y Accesos</flux:sidebar.item>
                 <flux:sidebar.item icon="user-group" href="{{ route('admin.clients') }}" :current="request()->routeIs('admin.clients')">Clientes</flux:sidebar.item>
+                <flux:sidebar.item icon="credit-card" href="{{ route('admin.debts') }}" :current="request()->routeIs('admin.debts')">Cuentas Corrientes</flux:sidebar.item>
                 <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
                 <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Caja</flux:sidebar.item>
             @endhasrole
@@ -25,10 +27,12 @@
             {{-- VISTA EMPLEADO --}}
             @hasrole('empleado')
                 <flux:sidebar.item icon="shopping-cart" href="{{ route('ventas.pos') }}" :current="request()->routeIs('ventas.pos')">Vender (POS)</flux:sidebar.item>
-                <flux:sidebar.item icon="wallet" href="{{ route('dashboard') }}" :current="request()->routeIs('dashboard')">Mi Caja Operativa</flux:sidebar.item>
+                <flux:sidebar.item icon="wallet" href="{{ route('user.dashboard') }}" :current="request()->routeIs('user.dashboard')">Mi Caja Operativa</flux:sidebar.item>
             @endhasrole
 
             <flux:spacer/>
+
+            <flux:sidebar.item icon="cog-6-tooth" href="{{ route('settings.index') }}" :current="request()->routeIs('settings.index')">Configuración</flux:sidebar.item>
 
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf
@@ -38,8 +42,11 @@
             </form>
         </flux:sidebar>
 
-        {{ $slot }}
+        <main class="flex-1 min-h-screen bg-white dark:bg-zinc-900">
+            {{ $slot }}
+        </main>       
 
+        <x-toast/>
         @fluxScripts
     </body>
 </html>

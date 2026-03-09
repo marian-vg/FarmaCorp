@@ -11,11 +11,12 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app')]
 class CajaManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $monto_inicial = '';
 
@@ -81,27 +82,30 @@ class CajaManager extends Component
     }
 
     // 1.1 OBTENER CAJAS CERRADAS PARA EL HISTORIAL (Paginado y Filtrado)
+    /**
+     * @return \Illuminate\Pagination\LengthAwarePaginator
+     */
     #[Computed]
     public function historialCajas()
     {
-        return Caja::with('user')
-            ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
-            ->when($this->search, function ($query) {
-                $query->whereHas('user', function ($q) {
-                    $q->where('name', 'like', '%'.$this->search.'%');
-                });
+        return Caja::search($this->search)
+            ->query(function ($query) {
+                $query->join('users', 'cajas.user_id', '=', 'users.id')
+                      ->select('cajas.*')
+                      ->with('user')
+                      ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
+                      ->when($this->filtro_usuario, function ($q) {
+                          $q->where('cajas.user_id', $this->filtro_usuario);
+                      })
+                      ->when($this->fecha_desde, function ($q) {
+                          $q->whereDate('cajas.fecha_apertura', '>=', $this->fecha_desde);
+                      })
+                      ->when($this->fecha_hasta, function ($q) {
+                          $q->whereDate('cajas.fecha_apertura', '<=', $this->fecha_hasta);
+                      });
             })
-            ->when($this->filtro_usuario, function ($query) {
-                $query->where('user_id', $this->filtro_usuario);
-            })
-            ->when($this->fecha_desde, function ($query) {
-                $query->whereDate('fecha_apertura', '>=', $this->fecha_desde);
-            })
-            ->when($this->fecha_hasta, function ($query) {
-                $query->whereDate('fecha_apertura', '<=', $this->fecha_hasta);
-            })
-            ->orderBy('fecha_cierre', 'desc')
-            ->paginate(10, ['*'], 'historialPage');
+            ->orderBy('cajas.fecha_cierre', 'desc')
+            ->paginate(10, 'historialPage');
     }
 
     // 2. OBTENER USUARIOS PARA EL DROPDOWN
@@ -175,7 +179,7 @@ class CajaManager extends Component
 
         Flux::modal('abrir-caja-form')->close();
         $this->reset(['monto_inicial', 'user_id']);
-        Flux::toast('Caja abierta correctamente.', variant: 'success');
+        $this->notify('Caja abierta correctamente.', 'success');
     }
 
     public function render()
@@ -233,7 +237,7 @@ class CajaManager extends Component
         ]);
 
         Flux::modal('registro-movimiento-form')->close();
-        Flux::toast("{$this->movimiento_tipo} registrado correctamente.", variant: 'success');
+        $this->notify("{$this->movimiento_tipo} registrado correctamente.", 'success');
 
         // Refrescar caja seleccionada
         $this->verDetalle($this->cajaSeleccionada->id);
@@ -266,8 +270,9 @@ class CajaManager extends Component
             'observaciones' => $this->observaciones_cierre,
         ]);
 
+        Flux::modal('confirm-admin-close-caja')->close();
         Flux::modal('detalle-caja-panel')->close();
-        Flux::toast('Caja cerrada con éxito.', variant: 'success');
+        $this->notify('Caja cerrada con éxito.', 'success');
         $this->reset('observaciones_cierre');
         $this->cajaSeleccionada = null; // Reset selection
     }
@@ -297,24 +302,27 @@ class CajaManager extends Component
     {
         $caja = Caja::with(['user', 'movimientos.medioPago'])->findOrFail($id);
 
-        // El administrador puede imprimir cualquier caja cerrada.
-        if (! $caja->fecha_cierre) {
-            Flux::toast('Solo puedes emitir reportes de cajas que ya han sido cerradas.', variant: 'danger');
-
+        if (!Auth::user()->hasRole('admin') && $caja->user_id !== Auth::id()) {
+            $this->notify('No tienes permisos para descargar este reporte.', 'danger');
             return;
         }
 
-        // Estructurar desglose por medio de pago
-        $totalesMp = [];
-        foreach ($caja->movimientos->groupBy('medioPago.nombre') as $nombre => $movs) {
+        if (!$caja->fecha_cierre) {
+            $this->notify('Solo puedes emitir reportes de cajas cerradas.', 'warning');
+            return;
+        }
+
+        $totalesMp = $caja->movimientos->groupBy(function($mov) {
+            return $mov->medioPago->nombre ?? 'Sin especificar';
+        })->map(function ($movs) {
             $ingresos = $movs->where('tipo_movimiento', 'INGRESO')->sum('monto');
             $egresos = $movs->where('tipo_movimiento', 'EGRESO')->sum('monto');
-            $totalesMp[$nombre] = [
+            return [
                 'ingresos' => $ingresos,
                 'egresos' => $egresos,
                 'neto' => $ingresos - $egresos,
             ];
-        }
+        });
 
         $pdf = Pdf::loadView('pdf.reporte-caja', [
             'caja' => $caja,
@@ -323,7 +331,7 @@ class CajaManager extends Component
 
         return response()->streamDownload(
             fn () => print ($pdf->output()),
-            "Cierre-Caja-{$caja->id}.pdf"
+            "Reporte-Cierre-Caja-{$caja->id}.pdf"
         );
     }
 

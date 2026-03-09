@@ -3,21 +3,28 @@
 namespace App\Livewire\Clients;
 
 use App\Models\Client;
+use App\Models\Factura; // Importante para el historial
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Computed; // Necesario para propiedades computadas
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Clientes'])]
 class ClientManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
 
     public string $statusFilter = 'all';
 
     public ?Client $editingClient = null;
+
+    public string $modalTab = 'info'; 
+    public $selectedClientId = null;
+    public $facturaSeleccionada = null;
 
     public array $clientContext = [
         'first_name' => '',
@@ -40,12 +47,13 @@ class ClientManager extends Component
     public function createClient()
     {
         abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
-        $this->reset(['clientContext', 'editingClient']);
+        $this->reset(['clientContext', 'editingClient', 'selectedClientId']);
         Flux::modal('client-form')->show();
     }
 
     public function viewClient(Client $client)
     {
+        $this->selectedClientId = $client->id;
         $this->editingClient = $client;
         $this->clientContext = [
             'first_name' => $client->first_name,
@@ -54,7 +62,39 @@ class ClientManager extends Component
             'phone' => $client->phone,
             'address' => $client->address,
         ];
+        $this->modalTab = 'info'; // Siempre empezar en info
         Flux::modal('view-client-modal')->show();
+    }
+
+    #[Computed]
+    public function historialCompras()
+    {
+        if (!$this->selectedClientId) return collect();
+
+        return Factura::where('cliente_id', $this->selectedClientId)
+            ->with(['user', 'pagos.medioPago'])
+            ->orderBy('fecha_emision', 'desc')
+            ->get();
+    }
+
+    public function verDetalleFactura($id)
+    {
+        $this->facturaSeleccionada = Factura::with(['details.product', 'pagos.medioPago', 'cliente', 'user'])->find($id);
+        Flux::modal('detalle-auditoria-modal')->show();
+    }
+
+    public function descargarFactura($id)
+    {
+        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+        
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+            'factura' => $factura,
+        ]);
+
+        return response()->streamDownload(
+            fn () => print($pdf->output()),
+            "Factura-{$factura->id}.pdf"
+        );
     }
 
     public function editClient(Client $client)
@@ -93,6 +133,7 @@ class ClientManager extends Component
 
         Flux::modal('client-form')->close();
         $this->reset(['clientContext', 'editingClient']);
+        $this->notify('Cliente guardado exitosamente.', 'success');
     }
 
     public function confirmDeactivate(Client $client)
@@ -109,6 +150,7 @@ class ClientManager extends Component
             $this->editingClient->update(['is_active' => false]);
             Flux::modal('confirm-deactivation-client')->close();
             $this->reset(['editingClient']);
+            $this->notify('Cliente desactivado con éxito.', 'success');
         }
     }
 
@@ -116,6 +158,7 @@ class ClientManager extends Component
     {
         abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $client->update(['is_active' => true]);
+        $this->notify('Cliente reactivado exitosamente.', 'success');
     }
 
     public function render()

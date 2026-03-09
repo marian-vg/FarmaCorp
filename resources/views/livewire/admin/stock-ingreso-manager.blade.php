@@ -5,49 +5,53 @@
             <flux:subheading>Busque un medicamento en el catálogo para registrar la entrada de un nuevo lote físico.</flux:subheading>
         </div>
         <div class="w-full sm:w-72">
-            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre..." />
+            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre...">
+                <x-slot name="append">
+                    <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                        <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                    </div>
+                </x-slot>
+            </flux:input>
         </div>
     </div>
 
     <!-- Resultados de Búsqueda (Native HTML Table + Tailwind) -->
     <div class="bg-white dark:bg-zinc-900 shadow-sm sm:rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-                <thead class="bg-gray-50 dark:bg-zinc-800">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Grupo</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Precio Ref.</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+            <x-table>
+                <x-table.head>
+                    <x-table.heading>Medicamento</x-table.heading>
+                    <x-table.heading>Grupo</x-table.heading>
+                    <x-table.heading>Precio Ref.</x-table.heading>
+                    <x-table.heading class="text-right">Acciones</x-table.heading>
+                </x-table.head>
+                <x-table.body>
                     @forelse($medicines as $medicine)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                                {{ $medicine->product?->name ?? 'N/D' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                        <x-table.row>
+                            <x-table.cell class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                                {{ $medicine->presentation_name ?: ($medicine->product?->name ?? 'N/D') }}
+                            </x-table.cell>
+                            <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
                                 <flux:badge variant="pill">{{ $medicine->group?->name ?? 'Sin Grupo' }}</flux:badge>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                                ${{ number_format($medicine->product?->price ?? 0, 2) }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            </x-table.cell>
+                            <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
+                                ${{ number_format($medicine->price ?? 0, 2) }}
+                            </x-table.cell>
+                            <x-table.cell class="text-right text-sm font-medium">
                                 <flux:button size="sm" variant="primary" icon="plus" wire:click="selectMedicine({{ $medicine->product_id }})">
                                     Ingresar Lote
                                 </flux:button>
-                            </td>
-                        </tr>
+                            </x-table.cell>
+                        </x-table.row>
                     @empty
-                        <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                        <x-table.row>
+                            <x-table.cell colspan="4" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
                                 No se encontraron medicamentos coincidentes con la búsqueda.
-                            </td>
-                        </tr>
+                            </x-table.cell>
+                        </x-table.row>
                     @endforelse
-                </tbody>
-            </table>
+                </x-table.body>
+            </x-table>
         </div>
         @if($medicines->hasPages())
             <div class="bg-white dark:bg-zinc-900 px-4 py-3 border-t border-gray-200 dark:border-zinc-700 sm:px-6">

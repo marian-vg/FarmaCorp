@@ -4,10 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Scout\Searchable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Client extends Model
 {
     use Searchable;
+
+    public $modalTab = 'info';
+    public $selectedClientId = null;
+    public $facturaSeleccionada = null;
 
     protected $fillable = [
         'first_name',
@@ -21,6 +26,11 @@ class Client extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function facturas(): HasMany
+    {
+        return $this->hasMany(Factura::class, 'cliente_id');
+    }
 
     public function toSearchableArray()
     {

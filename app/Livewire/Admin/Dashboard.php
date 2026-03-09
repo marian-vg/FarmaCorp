@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Profile;
 use App\Models\User;
+use App\Traits\Notifies;
 use Carbon\Carbon;
 use Flux\Flux;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,15 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.app', ['title' => 'Admin Dashboard'])]
 #[Lazy]
 class Dashboard extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
+
+    public int $priceMaxDays = 30;
 
     public string $search = '';
 
@@ -33,6 +37,8 @@ class Dashboard extends Component
     public string $newPassword = '';
 
     public string $newPasswordConfirmation = '';
+
+    public string $postSaleAction = 'preguntar';
 
     public array $newUserContext = [
         'name' => '',
@@ -60,12 +66,38 @@ class Dashboard extends Component
     public function updatedStatusFilter() { $this->resetPage(); }
     public function updatedRoleFilter() { $this->resetPage(); }
 
+    public function saveSaleConfig()
+    {
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'post_sale_action'],
+            ['value' => $this->postSaleAction]
+        );
+        $this->notify('Preferencia de comprobantes guardada.', 'success');
+    }
+
+    public function savePriceConfig()
+    {
+        $this->validate(['priceMaxDays' => 'required|integer|min:1']);
+        \App\Models\Setting::updateOrCreate(
+            ['key' => 'price_max_days'],
+            ['value' => (string) $this->priceMaxDays]
+        );
+        $this->notify('Configuración de precios actualizada.', 'success');
+    }
+
     public function mount()
     {
         $setting = \App\Models\Setting::where('key', 'alert_days')->first();
         if ($setting) {
             $this->alertDays = (int) $setting->value;
         }
+
+        $priceSetting = \App\Models\Setting::where('key', 'price_max_days')->first();
+        if ($priceSetting) {
+            $this->priceMaxDays = (int) $priceSetting->value;
+        }
+
+        $this->postSaleAction = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
     }
 
     public function saveAlertDays()
@@ -75,19 +107,19 @@ class Dashboard extends Component
             ['key' => 'alert_days'],
             ['value' => (string) $this->alertDays]
         );
-        Flux::toast('Configuración guardada correctamente.');
+        $this->notify('Configuración guardada correctamente.', 'success');
     }
 
     #[Computed]
     public function roles()
     {
-        return Role::all();
+        return Cache::remember('roles_all', 86400, fn () => Role::all());
     }
 
     #[Computed]
     public function permissions()
     {
-        $allPermissions = Permission::all();
+        $allPermissions = Cache::remember('permissions_all', 86400, fn () => Permission::all());
         
         if ($this->editingUser && $this->editingUser->hasRole('empleado')) {
             return $allPermissions->filter(function ($permission) {
@@ -101,7 +133,7 @@ class Dashboard extends Component
     #[Computed]
     public function allProfiles()
     {
-        return Profile::all();
+        return Cache::remember('profiles_all', 86400, fn () => Profile::all());
     }
 
     public function editRoles(User $user)
@@ -117,6 +149,7 @@ class Dashboard extends Component
             $this->editingUser->syncRoles($this->selectedRoles);
             Flux::modal('edit-roles')->close();
         }
+        $this->dispatch('Roles guardados exitosamente.', 'success');
     }
 
     public function editPermissions(User $user)
@@ -143,6 +176,7 @@ class Dashboard extends Component
 
             $this->editingUser->syncPermissions($this->selectedPermissions);
             Flux::modal('edit-permissions')->close();
+            $this->dispatch('Permisos guardados correctamente.', 'success');
         }
     }
 
@@ -158,6 +192,7 @@ class Dashboard extends Component
         if ($this->editingUser) {
             $this->editingUser->profiles()->sync($this->selectedProfiles);
             Flux::modal('edit-profiles')->close();
+            $this->notify('Perfiles actualizados correctamente.', 'success');
         }
     }
 
@@ -184,6 +219,7 @@ class Dashboard extends Component
         $this->reset('newUserContext');
 
         Flux::modal('add-user')->close();
+        $this->notify('Usuario creado correctamente.', 'success');
     }
 
     public function deactivateUser(User $user)
@@ -210,6 +246,7 @@ class Dashboard extends Component
         $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
 
         Flux::modal('edit-user')->show();
+        $this->notify('Usuario editado correctamente.', 'success');
     }
 
     public function updateUser()
@@ -235,6 +272,7 @@ class Dashboard extends Component
 
         Flux::modal('edit-user')->close();
         $this->reset(['editUserContext', 'selectedRoles', 'selectedPermissions', 'editingUser']);
+        $this->notify('Usuario actualizado correctamente.', 'success');
     }
 
     public function updatePassword(User $user)
@@ -247,6 +285,7 @@ class Dashboard extends Component
         $user->save();
 
         $this->reset(['newPassword', 'newPasswordConfirmation']);
+        $this->notify('Contraseña actualizada correctamente.', 'success');
     }
 
     public function placeholder()
@@ -258,7 +297,7 @@ class Dashboard extends Component
     {
         $users = User::search($this->search)
             ->query(function ($query) {
-                $query->with(['roles.permissions', 'permissions']);
+                $query->with(['roles.permissions', 'permissions', 'profiles']);
 
                 if ($this->statusFilter === 'active') {
                     $query->where('is_active', true);

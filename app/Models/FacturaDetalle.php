@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class FacturaDetalle extends Model
 {
     protected $fillable = [
-        'cantidad',        // [cite: 526]
-        'precio_unitario', // [cite: 527]
-        'descuento',       // [cite: 527]
-        'factura_id',      // FK [cite: 528]
-        'product_id',      // FK [cite: 529]
+        'cantidad',        
+        'precio_unitario', 
+        'descuento',       
+        'factura_id',      
+        'product_id',      
     ];
 
     public function product(): BelongsTo

@@ -7,11 +7,13 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Grupos'])]
 class GroupManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
 
@@ -64,8 +66,10 @@ class GroupManager extends Component
             Group::create($this->groupContext);
         }
 
+        Cache::forget('groups_all');
         Flux::modal('group-form')->close();
         $this->reset(['groupContext', 'editingGroup']);
+        $this->notify('Grupo guardado exitosamente.', 'success');
     }
 
     public function confirmDeactivate(Group $group)
@@ -78,8 +82,10 @@ class GroupManager extends Component
     {
         if ($this->editingGroup) {
             $this->editingGroup->delete(); // Soft delete
+            Cache::forget('groups_all');
             Flux::modal('confirm-deactivation-group')->close();
             $this->reset(['editingGroup']);
+            $this->notify('Grupo desactivado con éxito.', 'success');
         }
     }
 

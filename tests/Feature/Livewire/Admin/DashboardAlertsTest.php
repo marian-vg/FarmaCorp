@@ -25,7 +25,7 @@ class DashboardAlertsTest extends TestCase
     {
         $group = Group::create(['name' => 'Antibiotics']);
         $product = Product::factory()->create(['name' => 'Amoxicillin']);
-        $medicine = Medicine::create(['product_id' => $product->id, 'group_id' => $group->id]);
+        $medicine = Medicine::create(['product_id' => $product->id, 'group_id' => $group->id, 'price' => 10]);
 
         // Valid batch
         $validBatch = Batch::create([
@@ -70,7 +70,7 @@ class DashboardAlertsTest extends TestCase
 
         $group = Group::create(['name' => 'Painkillers']);
         $product = Product::factory()->create(['name' => 'Ibuprofen']);
-        $medicine = Medicine::create(['product_id' => $product->id, 'group_id' => $group->id]);
+        $medicine = Medicine::create(['product_id' => $product->id, 'group_id' => $group->id, 'price' => 10]);
 
         // Normal stock
         Batch::create([

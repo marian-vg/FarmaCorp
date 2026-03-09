@@ -28,7 +28,7 @@ class StockEgresoTest extends TestCase
 
         $group = Group::create(['name' => 'Painkillers']);
         $product = Product::factory()->create(['name' => 'Paracetamol']);
-        $medicine = Medicine::create(['product_id' => $product->id, 'group_id' => $group->id]);
+        $medicine = Medicine::create(['product_id' => $product->id, 'group_id' => $group->id, 'price' => 10]);
 
         // Create initial batch with 10 units
         $batch = Batch::create([

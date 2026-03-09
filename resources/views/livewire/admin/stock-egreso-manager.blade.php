@@ -12,50 +12,48 @@
     <!-- Resultados de Búsqueda (Native HTML Table + Tailwind) -->
     <div class="bg-white dark:bg-zinc-900 shadow-sm sm:rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-700">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-                <thead class="bg-gray-50 dark:bg-zinc-800">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Medicamento</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Lote</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Vencimiento</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Stock Actual</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Restar</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+            <x-table>
+                <x-table.head>
+                    <x-table.heading>Medicamento</x-table.heading>
+                    <x-table.heading>Lote</x-table.heading>
+                    <x-table.heading>Vencimiento</x-table.heading>
+                    <x-table.heading class="text-right">Stock Actual</x-table.heading>
+                    <x-table.heading class="text-right">Restar</x-table.heading>
+                </x-table.head>
+                <x-table.body>
                     @forelse($batches as $batch)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        <x-table.row>
+                            <x-table.cell class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                                 {{ $batch->medicine?->product?->name ?? 'N/D' }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                            </x-table.cell>
+                            <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
                                 <flux:badge variant="pill">{{ $batch->batch_number }}</flux:badge>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                            </x-table.cell>
+                            <x-table.cell class="text-sm text-zinc-500 dark:text-zinc-400">
                                 @if(Carbon\Carbon::parse($batch->expiration_date)->isPast())
                                     <span class="text-red-600 font-medium">{{ Carbon\Carbon::parse($batch->expiration_date)->format('d/m/Y') }} (Vencido)</span>
                                 @else
                                     {{ Carbon\Carbon::parse($batch->expiration_date)->format('d/m/Y') }}
                                 @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium {{ $batch->current_quantity <= $batch->minimum_stock ? 'text-orange-600' : 'text-zinc-900 dark:text-zinc-100' }}">
+                            </x-table.cell>
+                            <x-table.cell class="text-right text-sm font-medium {{ $batch->current_quantity <= $batch->minimum_stock ? 'text-orange-600' : 'text-zinc-900 dark:text-zinc-100' }}">
                                 {{ $batch->current_quantity }} u.
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            </x-table.cell>
+                            <x-table.cell class="text-right text-sm font-medium">
                                 <flux:button size="sm" variant="danger" icon="minus" wire:click="selectBatch({{ $batch->id }}, {{ $batch->current_quantity }})">
                                     Retirar
                                 </flux:button>
-                            </td>
-                        </tr>
+                            </x-table.cell>
+                        </x-table.row>
                     @empty
-                        <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                        <x-table.row>
+                            <x-table.cell colspan="5" class="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
                                 No se encontraron lotes con stock activo.
-                            </td>
-                        </tr>
+                            </x-table.cell>
+                        </x-table.row>
                     @endforelse
-                </tbody>
-            </table>
+                </x-table.body>
+            </x-table>
         </div>
         @if($batches->hasPages())
             <div class="bg-white dark:bg-zinc-900 px-4 py-3 border-t border-gray-200 dark:border-zinc-700 sm:px-6">

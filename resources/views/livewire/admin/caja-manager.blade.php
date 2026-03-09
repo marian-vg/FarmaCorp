@@ -29,47 +29,51 @@
             {{-- Filtros Rápidos Gestión --}}
             <div class="flex flex-wrap items-end gap-4 mb-2">
                 <div class="flex-1">
-                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por usuario..." class="min-w-64" />
+                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar por usuario..." class="min-w-64">
+                        <x-slot name="append">
+                            <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                                <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                            </div>
+                        </x-slot>
+                    </flux:input>
                 </div>
                 <flux:button wire:click="limpiarFiltros" variant="outline" icon="trash">Limpiar</flux:button>
             </div>
 
             {{-- Tabla Cajas Abiertas --}}
-            <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <flux:table>
-                    <flux:table.columns>
-                        <flux:table.column>Usuario (Credencial)</flux:table.column>
-                        <flux:table.column>Apertura</flux:table.column>
-                        <flux:table.column>Monto Inicial</flux:table.column>
-                        <flux:table.column>Estado</flux:table.column>
-                        <flux:table.column align="end">Acciones</flux:table.column>
-                    </flux:table.columns>
-                    <flux:table.rows>
+            <x-table>
+                <x-table.head>
+                    <x-table.heading>Usuario</x-table.heading>
+                    <x-table.heading>Apertura</x-table.heading>
+                    <x-table.heading>Monto Inicial</x-table.heading>
+                    <x-table.heading>Estado</x-table.heading>
+                    <x-table.heading class="text-right">Acciones</x-table.heading>
+                </x-table.head>
+                <x-table.body>
                         @forelse($this->cajas as $caja)
-                            <flux:table.row :key="'gestion-'.$caja->id">
-                                <flux:table.cell>
+                            <x-table.row wire:key="gestion-{{ $caja->id }}">
+                                <x-table.cell>
                                     <div class="flex items-center gap-2">
                                         <flux:avatar size="xs" :name="$caja->user->name" />
                                         <span>{{ $caja->user->name }}</span>
                                     </div>
-                                </flux:table.cell>
-                                <flux:table.cell>{{ $caja->fecha_apertura->format('d/m/Y H:i') }}</flux:table.cell>
-                                <flux:table.cell>${{ number_format($caja->monto_inicial, 2) }}</flux:table.cell>
-                                <flux:table.cell>
+                                </x-table.cell>
+                                <x-table.cell>{{ $caja->fecha_apertura->format('d/m/Y H:i') }}</x-table.cell>
+                                <x-table.cell>${{ number_format($caja->monto_inicial, 2) }}</x-table.cell>
+                                <x-table.cell>
                                     <flux:badge color="green" inset="top bottom">Abierta</flux:badge>
-                                </flux:table.cell>
-                                <flux:table.cell align="end">
+                                </x-table.cell>
+                                <x-table.cell class="text-right">
                                     <flux:button size="sm" variant="ghost" icon="eye" wire:click="verDetalle({{ $caja->id }})" />
-                                </flux:table.cell>
-                            </flux:table.row>
+                                </x-table.cell>
+                            </x-table.row>
                         @empty
-                            <flux:table.row>
-                                <flux:table.cell colspan="5" class="text-center py-10 text-zinc-500">No hay cajas abiertas.</flux:table.cell>
-                            </flux:table.row>
+                            <x-table.row>
+                                <x-table.cell colspan="5" class="py-10 text-center text-zinc-500">No hay cajas abiertas.</x-table.cell>
+                            </x-table.row>
                         @endforelse
-                    </flux:table.rows>
-                </flux:table>
-            </div>
+                </x-table.body>
+            </x-table>
         </div>
     @endif
 
@@ -147,50 +151,54 @@
 
             {{-- Filtros Historial --}}
             <div class="flex flex-wrap items-end gap-4">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Buscar usuario..." class="flex-1" />
+                <flux:input wire:model.live.debounce.300ms="search" placeholder="Buscar usuario..." class="flex-1">
+                    <x-slot name="append">
+                        <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
+                            <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />
+                        </div>
+                    </x-slot>
+                </flux:input>
                 <flux:input wire:model.live="fecha_desde" type="date" label="Desde" />
                 <flux:input wire:model.live="fecha_hasta" type="date" label="Hasta" />
                 <flux:button wire:click="limpiarFiltros" variant="outline">Limpiar</flux:button>
             </div>
 
             {{-- Tabla Historial --}}
-            <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-                <flux:table>
-                    <flux:table.columns>
-                        <flux:table.column>Usuario</flux:table.column>
-                        <flux:table.column>Apertura</flux:table.column>
-                        <flux:table.column>Cierre</flux:table.column>
-                        <flux:table.column align="end">Monto Final</flux:table.column>
-                        <flux:table.column align="end">Acciones</flux:table.column>
-                    </flux:table.columns>
-                    <flux:table.rows>
+            <x-table>
+                <x-table.head>
+                    <x-table.heading>Usuario</x-table.heading>
+                    <x-table.heading>Apertura</x-table.heading>
+                    <x-table.heading>Cierre</x-table.heading>
+                    <x-table.heading class="text-right">Monto Final</x-table.heading>
+                    <x-table.heading class="text-right">Acciones</x-table.heading>
+                </x-table.head>
+                <x-table.body>
                         @forelse($this->historialCajas as $caja)
-                            <flux:table.row :key="'historial-'.$caja->id">
-                                <flux:table.cell>{{ $caja->user->name }}</flux:table.cell>
-                                <flux:table.cell>{{ $caja->fecha_apertura->format('d/m H:i') }}</flux:table.cell>
-                                <flux:table.cell>{{ $caja->fecha_cierre->format('d/m H:i') }}</flux:table.cell>
-                                <flux:table.cell align="end" class="font-bold text-indigo-600">${{ number_format($caja->monto_final, 2) }}</flux:table.cell>
-                                <flux:table.cell align="end">
+                            <x-table.row wire:key="historial-{{ $caja->id }}">
+                                <x-table.cell>{{ $caja->user->name }}</x-table.cell>
+                                <x-table.cell>{{ $caja->fecha_apertura->format('d/m H:i') }}</x-table.cell>
+                                <x-table.cell>{{ $caja->fecha_cierre->format('d/m H:i') }}</x-table.cell>
+                                <x-table.cell class="text-right font-bold text-indigo-600">${{ number_format($caja->monto_final, 2) }}</x-table.cell>
+                                <x-table.cell class="text-right">
                                     <div class="flex justify-end gap-2">
                                         <flux:button size="sm" variant="ghost" icon="eye" wire:click="verDetalle({{ $caja->id }})" />
                                         <flux:button size="sm" variant="ghost" icon="document-arrow-down" wire:click="descargarReporte({{ $caja->id }})" />
                                     </div>
-                                </flux:table.cell>
-                            </flux:table.row>
+                                </x-table.cell>
+                            </x-table.row>
                         @empty
-                            <flux:table.row>
-                                <flux:table.cell colspan="5" class="text-center py-10">No hay registros históricos.</flux:table.cell>
-                            </flux:table.row>
+                            <x-table.row>
+                                <x-table.cell colspan="5" class="py-10 text-center text-zinc-500">No hay registros históricos.</x-table.cell>
+                            </x-table.row>
                         @endforelse
-                    </flux:table.rows>
-                </flux:table>
-            </div>
+                </x-table.body>
+            </x-table>
             {{ $this->historialCajas->links() }}
         </div>
     @endif
 
     {{-- MODAL APERTURA --}}
-    <flux:modal name="abrir-caja-form" class="min-w-[30rem]">
+    <flux:modal name="abrir-caja-form" class="min-w-120">
         <form wire:submit="abrirCaja" class="space-y-6">
             <div>
                 <flux:heading size="lg">Abrir Nueva Caja</flux:heading>
@@ -211,8 +219,7 @@
     </flux:modal>
 
     {{-- MODAL DETALLE LATERAL --}}
-    {{-- MODAL DETALLE LATERAL --}}
-<flux:modal name="detalle-caja-panel" variant="side" class="min-w-[45rem]">
+<flux:modal name="detalle-caja-panel" variant="side" class="min-w-180">
     @if($cajaSeleccionada)
         <div class="space-y-6">
             <flux:heading size="xl">Detalle de Caja #{{ $cajaSeleccionada->id }}</flux:heading>
@@ -288,40 +295,36 @@
                     @endif
                 </div>
 
-                <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-                    <flux:table>
-                        <flux:table.columns>
-                            <flux:table.column>Hora</flux:table.column>
-                            <flux:table.column>Responsable</flux:table.column>
-                            <flux:table.column>Medio de Pago</flux:table.column> {{-- NUEVA COLUMNA --}}
-                            <flux:table.column align="end">Monto</flux:table.column>
-                        </flux:table.columns>
-                        <flux:table.rows>
+                <x-table>
+                    <x-table.head>
+                        <x-table.heading>Hora</x-table.heading>
+                        <x-table.heading>Responsable</x-table.heading>
+                        <x-table.heading>Medio de Pago</x-table.heading>
+                        <x-table.heading class="text-right">Monto</x-table.heading>
+                    </x-table.head>
+                    <x-table.body>
                             @forelse($cajaSeleccionada->movimientos()->with('user', 'medioPago')->get() as $mov)
-                                <flux:table.row>
-                                    <flux:table.cell class="text-xs font-mono">{{ $mov->fecha_movimiento->format('H:i') }}</flux:table.cell>
-                                    <flux:table.cell class="text-xs">{{ $mov->user->name }}</flux:table.cell>
-                                    {{-- Celda del Medio de Pago --}}
-                                    <flux:table.cell class="text-xs">
+                                <x-table.row>
+                                    <x-table.cell class="text-xs font-mono">{{ $mov->fecha_movimiento->format('H:i') }}</x-table.cell>
+                                    <x-table.cell class="text-xs">{{ $mov->user->name }}</x-table.cell>
+                                    <x-table.cell class="text-xs">
                                         <flux:badge size="sm" variant="outline" color="zinc">
                                             {{ $mov->medioPago->nombre }}
                                         </flux:badge>
-                                    </flux:table.cell>
-                                    <flux:table.cell align="end" class="font-bold {{ $mov->tipo_movimiento === 'INGRESO' ? 'text-green-600' : 'text-red-600' }}">
+                                    </x-table.cell>
+                                    <x-table.cell class="text-right font-bold {{ $mov->tipo_movimiento === 'INGRESO' ? 'text-green-600' : 'text-red-600' }}">
                                         {{ $mov->tipo_movimiento === 'INGRESO' ? '+' : '-' }}${{ number_format($mov->monto, 2) }}
-                                    </flux:table.cell>
-                                </flux:table.row>
+                                    </x-table.cell>
+                                </x-table.row>
                             @empty
-                                <flux:table.row>
-                                    {{-- Ajustamos el colspan a 4 columnas --}}
-                                    <flux:table.cell colspan="4" class="text-center py-8 text-zinc-500 italic">
+                                <x-table.row>
+                                    <x-table.cell colspan="4" class="py-8 text-center text-zinc-500 italic">
                                         Sin ingresos ni egresos registrados en este turno de caja.
-                                    </flux:table.cell>
-                                </flux:table.row>
+                                    </x-table.cell>
+                                </x-table.row>
                             @endforelse
-                        </flux:table.rows>
-                    </flux:table>
-                </div>
+                    </x-table.body>
+                </x-table>
             </div>
 
             <div class="flex justify-end gap-2 pt-4">
@@ -337,7 +340,7 @@
 </flux:modal>
 
     {{-- MODAL CIERRE FINAL --}}
-    <flux:modal name="confirm-admin-close-caja" class="min-w-[32rem]">
+    <flux:modal name="confirm-admin-close-caja" class="min-w-lg">
         <form wire:submit="cerrarCaja" class="space-y-6">
             <flux:heading size="lg" class="text-red-600">Auditoría Final</flux:heading>
             @if($cajaSeleccionada)
@@ -355,7 +358,7 @@
     </flux:modal>
 
     {{-- MODAL REGISTRO MOVIMIENTO --}}
-    <flux:modal name="registro-movimiento-form" class="min-w-[30rem]">
+    <flux:modal name="registro-movimiento-form" class="min-w-120">
         <form wire:submit="registrarMovimiento" class="space-y-6">
             <flux:heading size="lg">Registrar Movimiento</flux:heading>
             <div class="grid grid-cols-2 gap-4">

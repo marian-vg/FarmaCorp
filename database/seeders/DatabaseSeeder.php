@@ -42,11 +42,9 @@ class DatabaseSeeder extends Seeder
         $testUser->assignRole($empleadoRole);
 
         $this->call([
-            ProductSeeder::class,
-            GroupSeeder::class,
             MedioPagoSeeder::class,
             CajaHistorySeeder::class,
-            MedicineSeeder::class
+            VademecumSeeder::class
         ]);
     }
 }

@@ -45,14 +45,14 @@ class ProductManagerTest extends TestCase
 
     public function test_component_renders_products()
     {
-        Product::factory()->create(['name' => 'Gasa', 'description' => 'Insumo Médico', 'price' => 10.50, 'status' => true]);
+        Product::factory()->create(['name' => 'Gasa', 'description' => 'Insumo Médico', 'status' => true]);
 
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
         Livewire::actingAs($admin)->test(ProductManager::class)
             ->assertSee('Gasa')
-            ->assertSee('10.50')
+            ->assertSee('N/D')
             ->assertSee('Insumo/General');
     }
 
@@ -61,13 +61,13 @@ class ProductManagerTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        Product::create(['name' => 'Paracetamol', 'description' => 'Pastilla', 'price' => 5.0, 'status' => true]);
-        Product::create(['name' => 'Ibuprofeno', 'description' => 'Jarabe', 'price' => 15.0, 'status' => true]);
+        Product::create(['name' => 'Paracetamol', 'description' => 'Pastilla', 'status' => true]);
+        Product::create(['name' => 'Diclofenaco', 'description' => 'Jarabe', 'status' => true]);
 
         Livewire::actingAs($admin)->test(ProductManager::class)
             ->set('search', 'Para')
             ->assertSee('Paracetamol')
-            ->assertDontSee('Ibuprofeno');
+            ->assertDontSee('Diclofenaco');
     }
 
     public function test_admin_can_create_standard_product()
@@ -78,13 +78,12 @@ class ProductManagerTest extends TestCase
         Livewire::actingAs($admin)->test(ProductManager::class)
             ->set('productContext.name', 'Jeringa')
             ->set('productContext.description', '10ml')
-            ->set('productContext.price', 1.50)
             ->set('productContext.status', true)
             ->set('isMedicine', false)
             ->call('saveProduct')
             ->assertHasNoErrors();
 
-        $this->assertDatabaseHas('products', ['name' => 'Jeringa', 'price' => 1.50]);
+        $this->assertDatabaseHas('products', ['name' => 'Jeringa']);
     }
 
     public function test_admin_can_create_medicine()
@@ -97,9 +96,9 @@ class ProductManagerTest extends TestCase
         Livewire::actingAs($admin)->test(ProductManager::class)
             ->set('productContext.name', 'Tafirol')
             ->set('productContext.description', '1g')
-            ->set('productContext.price', 500.0)
             ->set('productContext.status', true)
             ->set('isMedicine', true)
+            ->set('medicineContext.price', 500.0)
             ->set('medicineContext.group_id', $group->id)
             ->set('medicineContext.level', 'Alta')
             ->set('medicineContext.leaflet', 'Tomar cada 8hs')
@@ -113,6 +112,7 @@ class ProductManagerTest extends TestCase
 
         $this->assertDatabaseHas('medicines', [
             'product_id' => $product->id,
+            'price' => 500.0,
             'group_id' => $group->id,
             'level' => 'Alta',
         ]);
@@ -123,7 +123,7 @@ class ProductManagerTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        $product = Product::create(['name' => 'OldName', 'description' => 'OldDesc', 'price' => 10, 'status' => true]);
+        $product = Product::create(['name' => 'OldName', 'description' => 'OldDesc', 'status' => true]);
 
         Livewire::actingAs($admin)->test(ProductManager::class)
             ->call('editProduct', $product->id)
@@ -139,7 +139,7 @@ class ProductManagerTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
-        $product = Product::create(['name' => 'ToDelete', 'description' => 'To Soft Delete', 'price' => 10, 'status' => true]);
+        $product = Product::create(['name' => 'ToDelete', 'description' => 'To Soft Delete', 'status' => true]);
 
         Livewire::actingAs($admin)->test(ProductManager::class)
             ->call('confirmDeactivate', $product->id)

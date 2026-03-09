@@ -9,40 +9,37 @@
     </div>
 
     <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
-            <thead class="bg-gray-50 dark:bg-zinc-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Nombre</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Descripción</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-zinc-400">Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody class="bg-white divide-y divide-gray-200 dark:bg-zinc-900 dark:divide-zinc-700">
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Nombre</x-table.heading>
+                <x-table.heading>Descripción</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
+            <x-table.body>
                 @forelse($groups as $group)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                    <x-table.row>
+                        <x-table.cell>
                             <flux:text class="font-medium">{{ $group->name }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4">
+                        </x-table.cell>
+                        <x-table.cell>
                             <flux:text class="text-sm text-gray-600 dark:text-gray-400 truncate max-w-sm">{{ $group->description ?: 'Sin descripción' }}</flux:text>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                        </x-table.cell>
+                        <x-table.cell class="text-right">
                             <div class="flex justify-end gap-2">
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editGroup({{ $group->id }})" />
                                 <flux:button size="sm" icon="trash" variant="danger" ghost wire:click="confirmDeactivate({{ $group->id }})" />
                             </div>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <tr>
-                        <td colspan="3" class="px-6 py-4 text-center">
+                    <x-table.row>
+                        <x-table.cell colspan="3" class="text-center">
                             <flux:text class="text-gray-500 dark:text-gray-400">No se encontraron grupos.</flux:text>
-                        </td>
-                    </tr>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </tbody>
-        </table>
+            </x-table.body>
+        </x-table>
     </div>
 
     <div class="mt-4">
@@ -50,7 +47,7 @@
     </div>
 
     <!-- Modals -->
-    <flux:modal name="group-form" class="min-w-[32rem]">
+    <flux:modal name="group-form" class="min-w-lg">
         <form wire:submit="saveGroup" class="space-y-6">
             <div>
                 <flux:heading size="lg">{{ $editingGroup ? 'Editar Grupo' : 'Registrar Nuevo Grupo' }}</flux:heading>
@@ -71,7 +68,7 @@
         </form>
     </flux:modal>
 
-    <flux:modal name="confirm-deactivation-group" class="min-w-[22rem]">
+    <flux:modal name="confirm-deactivation-group" class="min-w-xs">
         <div class="space-y-6">
             <div>
                 <flux:heading size="lg" class="text-left text-red-600 dark:text-red-400">¿Desactivar grupo?</flux:heading>
