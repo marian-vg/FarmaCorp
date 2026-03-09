@@ -10,11 +10,12 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Cache;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Profile Manager'])]
 class ProfileManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
 
@@ -99,7 +100,7 @@ class ProfileManager extends Component
         Cache::forget('profiles_all');
         Flux::modal('profile-form')->close();
         $this->reset(['profileContext', 'selectedPermissions', 'editingProfile']);
-        $this->dispatch('notify', message: 'Perfil guardado exitosamente.', type: 'success');
+        $this->notify('Perfil guardado exitosamente.', 'success');
     }
 
     public function deleteProfile()
@@ -109,7 +110,7 @@ class ProfileManager extends Component
             Cache::forget('profiles_all');
             Flux::modal('confirm-delete-profile')->close();
             $this->reset(['editingProfile']);
-            $this->dispatch('notify', message: 'Perfil eliminado.', type: 'success');
+            $this->notify('Perfil eliminado.', 'success');
         }
     }
 
@@ -168,7 +169,7 @@ class ProfileManager extends Component
 
         Flux::modal('permission-form')->close();
         $this->reset(['permissionContext', 'editingPermission']);
-        $this->dispatch('notify', message: 'Permiso guardado exitosamente.', type: 'success');
+        $this->notify('Permiso guardado exitosamente.', 'success');
     }
 
     public function confirmDeletePermission(Permission $permission)
@@ -185,7 +186,7 @@ class ProfileManager extends Component
             Cache::forget('permissions_all');
             Flux::modal('confirm-delete-permission')->close();
             $this->reset(['editingPermission']);
-            $this->dispatch('notify', message: 'Permiso eliminado.', type: 'success');
+            $this->notify('Permiso eliminado.', 'success');
         }
     }
 

@@ -12,11 +12,12 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Ingreso de Stock'])]
 class StockIngresoManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $search = '';
 
@@ -91,13 +92,13 @@ class StockIngresoManager extends Component
             // Si el registro es nuevo, 'cantidad_actual' será 0 o null automáticamente
             $stock->stock_minimo = $this->minimum_stock;
             $stock->cantidad_actual += $this->quantity_received;
-            $stock->fecha_actualización = now();
+            // $stock->fecha_actualización = now(); // Columna inexistente en la base de datos
 
             $stock->save();
         });
 
         Flux::modal('ingreso-modal')->close();
-        $this->dispatch('notify', message: 'Ingreso registrado con éxito.', type: 'success');
+        $this->notify('Ingreso registrado con éxito.', 'success');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
     }
 

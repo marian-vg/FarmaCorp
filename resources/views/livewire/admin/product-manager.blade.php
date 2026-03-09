@@ -89,18 +89,15 @@
                     <flux:textarea wire:model="productContext.description" label="Descripción (Opcional)" />
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <flux:input type="number" step="0.01" wire:model="productContext.price" label="Precio de venta unitario" required />
-                    </div>
                     
                     {{-- RF-18: Vencimiento COMERCIAL --}}
-                    <div>
+                    <div class="col-span-2">
                         <flux:input type="date" wire:model="productContext.price_expires_at" label="Vencimiento de la OFERTA/PRECIO" />
                         <flux:text size="xs" class="mt-1 text-orange-600 font-medium">Límite comercial del precio actual.</flux:text>
                     </div>
                 </div>
                 
-                <div class="flex items-center mt-6">
+                <div class="flex items-center mt-6 col-end-2">
                     <flux:switch wire:model="productContext.status" label="Producto en estado activo" />
                 </div>
             </div>

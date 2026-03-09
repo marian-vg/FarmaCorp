@@ -13,8 +13,6 @@ use App\Livewire\Admin\SalesManager;
 use App\Livewire\User\VentaManager;
 use App\Livewire\Actions\SettingsManager;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
-use Livewire\Volt\Volt;
 use App\Livewire\Admin\StockIngresoManager;
 use App\Livewire\Admin\StockEgresoManager;
 use App\Livewire\Admin\StockHistorialManager;
@@ -55,39 +53,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
     });
     
-    // RUTAS COMPARTIDAS (ADMIN + EMPLEADO)
     Route::middleware(['role:admin|empleado'])->group(function () {
         Route::get('clients', ClientManager::class)->name('clients.index');
-        
-        // NUEVA RUTA PARA RF-20: Visualizar e Imprimir Factura
-        // Apunta al método generarPdfStream dentro de tu VentaManager
+
         Route::get('/factura/imprimir/{id}', [VentaManager::class, 'generarPdfStream'])->name('factura.imprimir');
     });
-
-    // RUTAS PARA EMPLEADOS (USER)
+    
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
-
-    // Módulo de Configuración
     Route::get('configuracion', SettingsManager::class)->name('settings.index');
-});
-
-// Starter Kit Routes
-Route::middleware(['auth'])->group(function () {
-    Route::redirect('settings', 'settings/profile');
-
-    Volt::route('settings/profile', 'settings.profile')->name('profile.edit');
-    Volt::route('settings/password', 'settings.password')->name('user-password.edit');
-    Volt::route('settings/appearance', 'settings.appearance')->name('appearance.edit');
-
-    Volt::route('settings/two-factor', 'settings.two-factor')
-        ->middleware(
-            when(
-                Features::canManageTwoFactorAuthentication()
-                    && Features::optionEnabled(Features::twoFactorAuthentication(), 'confirmPassword'),
-                ['password.confirm'],
-                [],
-            ),
-        )
-        ->name('two-factor.show');
 });

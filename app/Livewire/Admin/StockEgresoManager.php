@@ -11,11 +11,12 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
 use Livewire\Attributes\Layout;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Egreso de Stock'])]
 class StockEgresoManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $search = '';
 
@@ -105,7 +106,7 @@ class StockEgresoManager extends Component
         });
 
         Flux::modal('egreso-modal')->close();
-        $this->dispatch('notify', message: 'Egreso registrado con éxito.', type: 'success');
+        $this->notify('Egreso registrado con éxito.', 'success');
         $this->reset(['batch_id', 'quantity_to_remove', 'reason', 'current_stock_display']);
     }
 

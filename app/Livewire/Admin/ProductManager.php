@@ -11,11 +11,12 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
 use Illuminate\Support\Facades\Cache;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Productos y Medicamentos'])]
 class ProductManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
     public ?Product $editingProduct = null;
@@ -108,13 +109,19 @@ class ProductManager extends Component
         $productData = [
             'name' => $this->productContext['name'],
             'description' => $this->productContext['description'],
-            'price' => $this->productContext['price'],
             'status' => (bool) $this->productContext['status'],
-            'price_expires_at' => $this->productContext['price_expires_at'],
         ];
 
+        if (isset($this->productContext['price_expires_at'])) {
+            $productData['price_expires_at'] = $this->productContext['price_expires_at'];
+        }
+
+        if (array_key_exists('price', $this->productContext)) {
+             $productData['price'] = $this->productContext['price'];
+        }
+
         if ($this->editingProduct) {
-            if ((float)$this->editingProduct->price !== (float)$this->productContext['price']) {
+            if (isset($this->productContext['price']) && (float)$this->editingProduct->price !== (float)$this->productContext['price']) {
                 $productData['price_updated_at'] = now();
             }
             $this->editingProduct->update($productData);
@@ -137,7 +144,7 @@ class ProductManager extends Component
 
         Flux::modal('product-form')->close();
         $this->reset(['productContext', 'medicineContext', 'editingProduct', 'isMedicine']);
-        $this->dispatch('notify', message: 'Producto guardado exitosamente.', type: 'success');
+        $this->notify('Producto guardado exitosamente.', 'success');
     }
 
     public function confirmDeactivate(Product $product)
@@ -152,7 +159,7 @@ class ProductManager extends Component
             $this->editingProduct->delete(); // Soft delete
             Flux::modal('confirm-deactivation-product')->close();
             $this->reset(['editingProduct']);
-            $this->dispatch('notify', message: 'Producto desactivado con éxito.', type: 'success');
+            $this->notify('Producto desactivado con éxito.', 'success');
         }
     }
 

@@ -28,14 +28,14 @@
                 @forelse($medicines as $medicine)
                     <x-table.row>
                         <x-table.cell>
-                            <flux:text class="font-medium">{{ $medicine->presentation_name ?: $medicine->product->name }}</flux:text>
+                            <flux:text class="font-medium">{{ $medicine->presentation_name ?? $medicine->product->name }}</flux:text>
                             <div class="text-xs text-gray-500">${{ number_format($medicine->price, 2) }}</div>
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:text>{{ $medicine->group->name }}</flux:text>
+                            <flux:text>{{ $medicine->group->name ?? 'N/A' }}</flux:text>
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:text>{{ $medicine->level ?: 'N/A' }}</flux:text>
+                            <flux:text>{{ $medicine->level ?? 'N/A' }}</flux:text>
                         </x-table.cell>
                         <x-table.cell>
                             <flux:badge variant="solid" color="zinc">{{ $medicine->product->stock?->cantidad_actual ?? 0 }}</flux:badge>

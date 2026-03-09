@@ -9,11 +9,12 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed; // Necesario para propiedades computadas
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Clientes'])]
 class ClientManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
 
@@ -132,7 +133,7 @@ class ClientManager extends Component
 
         Flux::modal('client-form')->close();
         $this->reset(['clientContext', 'editingClient']);
-        $this->dispatch('notify', message: 'Cliente guardado exitosamente.', type: 'success');
+        $this->notify('Cliente guardado exitosamente.', 'success');
     }
 
     public function confirmDeactivate(Client $client)
@@ -149,7 +150,7 @@ class ClientManager extends Component
             $this->editingClient->update(['is_active' => false]);
             Flux::modal('confirm-deactivation-client')->close();
             $this->reset(['editingClient']);
-            $this->dispatch('notify', message: 'Cliente desactivado con éxito.', type: 'success');
+            $this->notify('Cliente desactivado con éxito.', 'success');
         }
     }
 
@@ -157,7 +158,7 @@ class ClientManager extends Component
     {
         abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
         $client->update(['is_active' => true]);
-        $this->dispatch('notify', message: 'Cliente reactivado exitosamente.', type: 'success');
+        $this->notify('Cliente reactivado exitosamente.', 'success');
     }
 
     public function render()

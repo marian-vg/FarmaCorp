@@ -7,11 +7,12 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Permisos'])]
 class PermissionManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
     public ?Permission $editingPermission = null;
@@ -64,7 +65,7 @@ class PermissionManager extends Component
 
         Flux::modal('permission-form')->close();
         $this->reset(['permissionContext', 'editingPermission']);
-        $this->dispatch('notify', message: 'Permiso guardado exitosamente.', type: 'success');
+        $this->notify('Permiso guardado exitosamente.', 'success');
     }
 
     public function confirmDelete(Permission $permission)
@@ -79,7 +80,7 @@ class PermissionManager extends Component
             $this->editingPermission->delete();
             Flux::modal('confirm-delete-permission')->close();
             $this->reset(['editingPermission']);
-            $this->dispatch('notify', message: 'Permiso eliminado.', type: 'success');
+            $this->notify('Permiso eliminado.', 'success');
         }
     }
 

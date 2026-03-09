@@ -10,11 +10,12 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Flux\Flux;
 use Illuminate\Support\Facades\Cache;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public string $search = '';
     public bool $filterPsychotropic = false;
@@ -83,7 +84,7 @@ class MedicineManager extends Component
 
         Flux::modal('medicine-form')->close();
         $this->reset('context');
-        $this->dispatch('notify', message: 'Medicamento guardado exitosamente.', type: 'success');
+        $this->notify('Medicamento guardado exitosamente.', 'success');
     }
 
     public function render()

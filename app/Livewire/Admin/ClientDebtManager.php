@@ -13,11 +13,12 @@ use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Computed;
 use Flux\Flux;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Saldos de Cuentas Corrientes'])]
 class ClientDebtManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $search = '';
     public $selectedClientId;
@@ -151,19 +152,19 @@ class ClientDebtManager extends Component
     {
         $this->selectedClientId = $clientId;
         $this->modalTab = 'pendientes';
-        \Flux::modal('cobro-modal')->show();
+        Flux::modal('cobro-modal')->show();
     }
 
     public function cobrarFactura()
     {
         if (!$this->cajaActiva) {
-            $this->dispatch('notify', message: 'Error: Abre tu caja antes.', variant: 'danger');
+            $this->notify('Error: Abre tu caja antes.', 'danger');
             return;
         }
 
         // Validamos que el pago nuevo no sea cero
         if (empty($this->pagos_acumulados)) {
-            $this->dispatch('notify', message: 'Debe registrar al menos un pago.', variant: 'warning');
+            $this->notify('Debe registrar al menos un pago.', 'warning');
             return;
         }
 
@@ -193,10 +194,10 @@ class ClientDebtManager extends Component
                 }
             });
 
-            $this->dispatch('notify', message: 'Cobro registrado correctamente.');
+            $this->notify('Cobro registrado correctamente.', 'success');
             $this->cancelarCobro();
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: 'Error en el proceso.', variant: 'danger');
+            $this->notify('Error en el proceso.', 'danger');
         }
     }
 

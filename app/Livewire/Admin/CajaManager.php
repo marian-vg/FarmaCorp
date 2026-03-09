@@ -11,11 +11,12 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app')]
 class CajaManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $monto_inicial = '';
 
@@ -178,7 +179,7 @@ class CajaManager extends Component
 
         Flux::modal('abrir-caja-form')->close();
         $this->reset(['monto_inicial', 'user_id']);
-        $this->dispatch('notify', message: 'Caja abierta correctamente.', type: 'success');
+        $this->notify('Caja abierta correctamente.', 'success');
     }
 
     public function render()
@@ -236,7 +237,7 @@ class CajaManager extends Component
         ]);
 
         Flux::modal('registro-movimiento-form')->close();
-        $this->dispatch('notify', message: "{$this->movimiento_tipo} registrado correctamente.", type: 'success');
+        $this->notify("{$this->movimiento_tipo} registrado correctamente.", 'success');
 
         // Refrescar caja seleccionada
         $this->verDetalle($this->cajaSeleccionada->id);
@@ -271,7 +272,7 @@ class CajaManager extends Component
 
         Flux::modal('confirm-admin-close-caja')->close();
         Flux::modal('detalle-caja-panel')->close();
-        $this->dispatch('notify', message: 'Caja cerrada con éxito.', type: 'success');
+        $this->notify('Caja cerrada con éxito.', 'success');
         $this->reset('observaciones_cierre');
         $this->cajaSeleccionada = null; // Reset selection
     }
@@ -302,12 +303,12 @@ class CajaManager extends Component
         $caja = Caja::with(['user', 'movimientos.medioPago'])->findOrFail($id);
 
         if (!Auth::user()->hasRole('admin') && $caja->user_id !== Auth::id()) {
-            $this->dispatch('notify', message: 'No tienes permisos para descargar este reporte.', variant: 'danger');
+            $this->notify('No tienes permisos para descargar este reporte.', 'danger');
             return;
         }
 
         if (!$caja->fecha_cierre) {
-            $this->dispatch('notify', message: 'Solo puedes emitir reportes de cajas cerradas.', variant: 'warning');
+            $this->notify('Solo puedes emitir reportes de cajas cerradas.', 'warning');
             return;
         }
 

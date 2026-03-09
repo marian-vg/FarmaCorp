@@ -12,11 +12,12 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'User Dashboard'])]
 class Dashboard extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $monto_inicial = '';
 
@@ -148,7 +149,7 @@ class Dashboard extends Component
 
             Flux::modal('confirm-close-caja')->close();
             $this->reset('observaciones_cierre');
-            $this->dispatch('notify', message: 'Has cerrado tu turno correctamente.', type: 'success');
+            $this->notify('Has cerrado tu turno correctamente.', 'success');
         }
     }
 
@@ -189,7 +190,7 @@ class Dashboard extends Component
             ->findOrFail($id);
 
         if (! $caja->fecha_cierre) {
-            $this->dispatch('notify', message: 'Solo puedes generar reportes de turnos finalizados.', type: 'error');
+            $this->notify('Solo puedes generar reportes de turnos finalizados.', 'error');
 
             return;
         }

@@ -13,10 +13,11 @@ use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Flux\Flux;
+use App\Traits\Notifies;
 
 class VentaManager extends Component
 {
-    use WithPagination;
+    use WithPagination, Notifies;
 
     public $carrito = [];
     public $search = '';
@@ -41,7 +42,7 @@ class VentaManager extends Component
         if ($this->viewingMedicine) {
             Flux::modal('leaflet-modal')->show();
         } else {
-            $this->dispatch('notify', message: 'Este producto no tiene prospecto clínico registrado.', variant: 'warning');
+            $this->notify('Este producto no tiene prospecto clínico registrado.', 'warning');
         }
     }
 
@@ -50,9 +51,8 @@ class VentaManager extends Component
         // Cargamos la factura con todas sus relaciones para el reporte
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
 
-        // Seguridad Básica: Solo admin o el usuario que la emitió
         if (!Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
-            $this->dispatch('notify', message: 'No tiene permisos para descargar este comprobante.', variant: 'danger');
+            $this->notify('No tiene permisos para descargar este comprobante.', 'danger');
             return;
         }
 
@@ -70,13 +70,9 @@ class VentaManager extends Component
     {
         $totalPagado = collect($this->pagos_realizados)->sum('monto');
         
-        // Si al poner el descuento, lo que ya pagaron supera el nuevo total...
         if ($totalPagado > $this->totalFinal) {
             $this->pagos_realizados = []; // Limpiamos los pagos por seguridad
-            $this->dispatch('notify', 
-                message: 'El total ha cambiado y supera los pagos registrados. Por favor, cargue los medios de pago nuevamente.', 
-                variant: 'warning'
-            );
+            $this->notify('El total ha cambiado y supera los pagos registrados. Por favor, cargue los medios de pago nuevamente.', 'warning');
         }
     }
 
@@ -104,7 +100,7 @@ class VentaManager extends Component
         ]);
 
         if ((float)$this->monto_pago_actual > ($this->montoRestante + 0.01)) {
-            $this->dispatch('notify', message: 'El monto supera el saldo restante.', variant: 'warning');
+            $this->notify('El monto supera el saldo restante.', 'warning');
             return;
         }
 
@@ -138,7 +134,7 @@ class VentaManager extends Component
     {
         $this->facturaSeleccionada = null; 
         $this->facturaSeleccionada = Factura::with(['details.product', 'pagos.medioPago'])->findOrFail($facturaId);
-        \Flux::modal('detalle-venta-modal')->show();
+        Flux::modal('detalle-venta-modal')->show();
     }
 
     #[Computed]
@@ -160,10 +156,7 @@ class VentaManager extends Component
         $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
 
         if ($product->price_expires_at && $product->price_expires_at->isPast()) {
-            $this->dispatch('notify', 
-                message: "BLOQUEO: El precio de {$product->name} caducó el " . $product->price_expires_at->format('d/m/Y') . ". Actualícelo en el catálogo.", 
-                variant: 'danger'
-            );
+            $this->notify("BLOQUEO: El precio de {$product->name} caducó el " . $product->price_expires_at->format('d/m/Y') . ". Actualícelo en el catálogo.", 'error');
             return;
         }
 
@@ -171,15 +164,12 @@ class VentaManager extends Component
         $diasAntiguedad = $ultimoCambio->diffInDays(now());
 
         if ($diasAntiguedad > $maxDays) {
-            $this->dispatch('notify', 
-                message: "ALERTA: El precio de {$product->name} tiene {$diasAntiguedad} días de antigüedad (Límite: {$maxDays}). Debe ser actualizado para poder facturarse.", 
-                variant: 'danger'
-            );
+            $this->notify("ALERTA: El precio de {$product->name} tiene {$diasAntiguedad} días de antigüedad (Límite: {$maxDays}). Debe ser actualizado para poder facturarse.", 'error');
             return;
         }
 
         if (!$this->tipo_comprobante) {
-            $this->dispatch('notify', message: 'Primero selecciona un tipo de comprobante.', variant: 'warning');
+            $this->notify('Primero selecciona un tipo de comprobante.', 'error');
             return;
         }
 
@@ -187,7 +177,7 @@ class VentaManager extends Component
         $cantidadEnCarrito = isset($this->carrito[$product->id]) ? $this->carrito[$product->id]['cantidad'] : 0;
 
         if ($stockDisponible <= $cantidadEnCarrito) {
-            $this->dispatch('notify', message: 'No hay más stock disponible.', variant: 'danger');
+            $this->notify('No hay más stock disponible.', 'error');
             return;
         }
 
@@ -201,7 +191,7 @@ class VentaManager extends Component
                 'cantidad' => 1,
             ];
         }
-        $this->dispatch('notify', message: 'Añadido: ' . $product->name, type: 'success');
+        $this->notify('Añadido: ' . $product->name, 'success');
     }
 
     public function quitarDelCarrito($productId)
@@ -219,12 +209,12 @@ class VentaManager extends Component
     {
         // 1. Validaciones Iniciales (Caja, Carrito, Totales)
         if (!$this->cajaActiva) {
-            $this->dispatch('notify', message: 'Error: Debes abrir caja antes de vender.', type: 'error');
+            $this->notify('Error: Debes abrir caja antes de vender.', 'error');
             return;
         }
 
         if (empty($this->carrito)) {
-            $this->dispatch('notify', message: 'El carrito está vacío.', type: 'error');
+            $this->notify('El carrito está vacío.', 'error');
             return;
         }
 
@@ -233,20 +223,17 @@ class VentaManager extends Component
         $pagadoReal = round((float)$totalPagado, 2);
 
         if ($pagadoReal > $montoVenta) {
-            $this->dispatch('notify', 
-                message: 'Error: El monto pagado ($' . number_format($pagadoReal, 2) . ') supera el total. Ajuste los pagos.', 
-                variant: 'danger'
-            );
+            $this->notify('Error: El monto pagado ($' . number_format($pagadoReal, 2) . ') supera el total. Ajuste los pagos.', 'error');
             return;
         }
 
         if ($pagadoReal < $montoVenta && !$this->cliente_id) {
-            $this->dispatch('notify', message: 'Falta cubrir $' . number_format($montoVenta - $pagadoReal, 2) . '. Selecciona un cliente para dejar saldo pendiente.', variant: 'warning');
+            $this->notify('Falta cubrir $' . number_format($montoVenta - $pagadoReal, 2) . '. Selecciona un cliente para dejar saldo pendiente.', 'warning');
             return;
         }
 
         if ($montoVenta < 0) {
-            $this->dispatch('notify', message: 'El descuento no puede superar el monto total.', variant: 'danger');
+            $this->notify('El descuento no puede superar el monto total.', 'danger');
             return;
         }
 
@@ -341,7 +328,7 @@ class VentaManager extends Component
         } else {
             // 'solo_guardar': Solo notificamos y limpiamos
             $this->limpiarVenta();
-            $this->dispatch('notify', message: 'Operación registrada con éxito.', type: 'success');
+            $this->notify('Operación registrada con éxito.', 'success');
         }
     }
 
