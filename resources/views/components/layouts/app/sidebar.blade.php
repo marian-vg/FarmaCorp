@@ -27,7 +27,7 @@
             {{-- VISTA EMPLEADO --}}
             @hasrole('empleado')
                 <flux:sidebar.item icon="shopping-cart" href="{{ route('ventas.pos') }}" :current="request()->routeIs('ventas.pos')">Vender (POS)</flux:sidebar.item>
-                <flux:sidebar.item icon="wallet" href="{{ route('dashboard') }}" :current="request()->routeIs('dashboard')">Mi Caja Operativa</flux:sidebar.item>
+                <flux:sidebar.item icon="wallet" href="{{ route('user.dashboard') }}" :current="request()->routeIs('user.dashboard')">Mi Caja Operativa</flux:sidebar.item>
             @endhasrole
 
             <flux:spacer/>
