@@ -179,12 +179,33 @@
 
                     {{-- Totales y Ajustes --}}
                     <div class="pt-4 border-t space-y-4">
-                        <flux:input wire:model.live="global_adjustment" type="number" label="Ajuste (+/-)" size="sm" />
-                        
-                        <div class="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg flex justify-between items-center">
-                            <flux:text size="xs" class="uppercase font-bold">Total Final</flux:text>
-                            <flux:heading size="xl" class="text-indigo-600">${{ number_format($this->totalFinal, 2) }}</flux:heading>
-                        </div>
+                        <flux:select wire:model.live="promotion_id" label="Promoción / Recargo (%)" placeholder="Ninguno (Precio Lista)">
+        <option value="">Precio de Lista (Sin ajuste)</option>
+        @foreach(\App\Models\Promotion::where('status', true)->get() as $promo)
+            <option value="{{ $promo->id }}">
+                [{{ $promo->type === 'discount' ? '-' : '+' }}] {{ $promo->name }} ({{ number_format($promo->value, 0) }}%)
+            </option>
+        @endforeach
+    </flux:select>
+
+    <div class="space-y-2">
+        <div class="flex justify-between text-xs text-zinc-500 px-1">
+            <span>Subtotal:</span>
+            <span>${{ number_format($this->subtotal, 2) }}</span>
+        </div>
+        
+        @if($global_adjustment != 0)
+            <div class="flex justify-between text-xs px-1 {{ $global_adjustment < 0 ? 'text-green-600' : 'text-orange-600' }}">
+                <span>Ajuste aplicado:</span>
+                <span class="font-bold">{{ $global_adjustment < 0 ? '-' : '+' }} ${{ number_format(abs($global_adjustment), 2) }}</span>
+            </div>
+        @endif
+
+        <div class="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-2xl flex justify-between items-center border border-indigo-100 dark:border-indigo-800">
+            <flux:text size="sm" class="uppercase font-black text-indigo-700 dark:text-indigo-300">Total Final</flux:text>
+            <flux:heading size="xl" class="text-indigo-600 font-black">${{ number_format($this->totalFinal, 2) }}</flux:heading>
+        </div>
+    </div>
 
                         {{-- Medios de Pago --}}
                         <div class="space-y-4">

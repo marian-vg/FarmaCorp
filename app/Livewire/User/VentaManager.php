@@ -34,6 +34,7 @@ class VentaManager extends Component
     public $monto_pago_actual = 0;
     public ?\App\Models\Medicine $viewingMedicine = null;
     public $ultimaFacturaId = null;
+    public $promotion_id = null;
 
     // Fase 11: Cantidades Personalizadas de Carrito
     public $customQuantity = 1;
@@ -145,8 +146,7 @@ class VentaManager extends Component
     #[Computed]
     public function totalFinal()
     {
-        $sumaProductos = collect($this->carrito)->sum(fn($item) => $item['price'] * $item['cantidad']);
-        return floatval($sumaProductos) + floatval($this->global_adjustment);
+        return round($this->subtotal + $this->global_adjustment, 2);
     }
 
     #[Computed]
@@ -277,6 +277,34 @@ class VentaManager extends Component
     {
         return collect($this->carrito)->sum(fn($item) => $item['price'] * $item['cantidad']);
     }
+
+    public function updatedPromotionId($id)
+    {
+        if (!$id) {
+            $this->global_adjustment = 0;
+            return;
+        }
+
+        $promo = \App\Models\Promotion::find($id);
+        $sub = $this->subtotal;
+
+        if ($promo->type === 'discount') {
+            // Descuento: Guardamos como NEGATIVO
+            $this->global_adjustment = -($sub * ($promo->value / 100));
+        } else {
+            // Recargo: Guardamos como POSITIVO
+            $this->global_adjustment = ($sub * ($promo->value / 100));
+        }
+    }
+
+    public function updatedCarrito()
+    {
+        if ($this->promotion_id) {
+            $this->updatedPromotionId($this->promotion_id);
+        }
+    }
+
+    
 
     public function procesarVenta()
     {
