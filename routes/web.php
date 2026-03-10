@@ -62,4 +62,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
     Route::get('configuracion', SettingsManager::class)->name('settings.index');
+    Route::get('/manual', function () {return view('manual.index');})->name('manual');
 });

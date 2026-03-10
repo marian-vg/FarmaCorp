@@ -31,7 +31,8 @@
             @endhasrole
 
             <flux:spacer/>
-
+            
+            <flux:sidebar.item icon="book-open" href="/manual" target="_blank">Manual de Usuario</flux:sidebar.item>
             <flux:sidebar.item icon="cog-6-tooth" href="{{ route('settings.index') }}" :current="request()->routeIs('settings.index')">Configuración</flux:sidebar.item>
 
             <form method="POST" action="{{ route('logout') }}" class="w-full">
