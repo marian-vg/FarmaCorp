@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class MovimientoCaja extends Model
 {
     protected $fillable = [
-    'tipo_movimiento',
-    'monto',
-    'motivo',
-    'fecha_movimiento',
-    'id_medio_pago',
-    'id_caja',
-    'user_id',
-    'factura_id',
-];
+        'tipo_movimiento',
+        'monto',
+        'motivo',
+        'fecha_movimiento',
+        'id_medio_pago',
+        'id_caja',
+        'user_id',
+        'factura_id',
+    ];
 
     protected function casts(): array
     {

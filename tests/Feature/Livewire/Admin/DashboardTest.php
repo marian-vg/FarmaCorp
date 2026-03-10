@@ -6,6 +6,7 @@ use App\Livewire\Admin\Dashboard;
 use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Blade;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -18,9 +19,9 @@ class DashboardTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Register/Flush View Compiler caches for Flux to avoid test re-render resolution errors
-        \Illuminate\Support\Facades\Blade::component('flux::card', 'flux::components.card');
+        Blade::component('flux::card', 'flux::components.card');
 
         Role::firstOrCreate(['name' => 'admin']);
     }

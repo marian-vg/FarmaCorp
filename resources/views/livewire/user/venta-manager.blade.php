@@ -25,8 +25,8 @@
                         </flux:select>
                     </div>
                     
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        @forelse($medicines as $medicine)
+                    <div wire:key="grid-meds-{{ $this->renderToken }}" class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                        @forelse($this->medicines as $medicine)
                             @php
                                 // Resta dinámica "En Vivo" Fase 10
                                 $cantidadEnCarrito = isset($carrito[$medicine->id]) ? $carrito[$medicine->id]['cantidad'] : 0;
@@ -46,6 +46,7 @@
                             @endphp
 
                             <flux:card 
+                                wire:key="med-{{ $medicine->id }}-stock-{{ $stockActual }}-price-{{ $medicine->price }}"
                                 class="flex flex-col justify-between transition-all {{ $bloqueadoParaVenta ? 'opacity-60 grayscale' : 'hover:shadow-md cursor-pointer group' }}" 
                                 wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$medicine->id.')' }}"
                             >
@@ -166,7 +167,7 @@
                     {{-- Lista Carrito --}}
                     <div class="space-y-3 max-h-64 overflow-y-auto">
                         @forelse($carrito as $item)
-                            <div class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                            <div wire:key="cart-item-{{ $item['id'] }}-{{ $item['cantidad'] }}" class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2">
                                 <div class="flex-1 pr-2">
                                     <flux:text class="font-medium truncate">{{ $item['name'] }}</flux:text>
                                     <flux:text size="xs" class="text-zinc-500">{{ $item['cantidad'] }} x ${{ number_format($item['price'], 2) }}</flux:text>
@@ -531,6 +532,16 @@
 <script>
     window.addEventListener('abrir-impresion', event => {
         window.open(event.detail.url, '_blank');
+    });
+
+    document.addEventListener('livewire:initialized', () => {
+        if (window.Echo) {
+            window.Echo.channel('stock-channel')
+                .listen('.stock.actualizado', (e) => {
+                    console.log('Stock actualizado recibido por Echo JS nativo, refrescando Livewire componente VentaManager');
+                    Livewire.dispatch('refrescarMedicamentosListener');
+                 });
+        }
     });
 </script>
 </div>

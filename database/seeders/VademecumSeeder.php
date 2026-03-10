@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Group;
+use App\Models\Medicine;
+use App\Models\Product;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
-use App\Models\Group;
-use App\Models\Product;
-use App\Models\Medicine;
 
 class VademecumSeeder extends Seeder
 {
@@ -17,9 +16,10 @@ class VademecumSeeder extends Seeder
     public function run(): void
     {
         $jsonPath = database_path('data/vademecum_mock.json');
-        
-        if (!File::exists($jsonPath)) {
+
+        if (! File::exists($jsonPath)) {
             $this->command->warn("El archivo Vademécum {$jsonPath} no existe.");
+
             return;
         }
 

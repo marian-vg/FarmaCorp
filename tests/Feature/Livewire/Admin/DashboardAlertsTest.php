@@ -7,6 +7,7 @@ use App\Models\Medicine;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -58,7 +59,7 @@ class DashboardAlertsTest extends TestCase
         ]);
 
         $vendibles = Batch::vendibles()->get();
-        
+
         $this->assertCount(1, $vendibles);
         $this->assertEquals($validBatch->id, $vendibles->first()->id);
     }
@@ -97,9 +98,9 @@ class DashboardAlertsTest extends TestCase
         // Instead of assertSee directly because flux skeletons/wire:loading might obscure DOM output initially
         // we assert the component can mount without failing (meaning the widget query is syntactically sound)
         $component->assertStatus(200);
-        
+
         // Assert logically that our factory actually triggered the condition in DB correctly
-        $queryResult = \App\Models\Batch::where('current_quantity', '<=', \Illuminate\Support\Facades\DB::raw('minimum_stock'))->get();
+        $queryResult = Batch::where('current_quantity', '<=', DB::raw('minimum_stock'))->get();
         $this->assertCount(1, $queryResult);
         $this->assertEquals($criticalBatch->id, $queryResult->first()->id);
     }

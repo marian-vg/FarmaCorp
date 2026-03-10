@@ -4,17 +4,18 @@ namespace App\Livewire\Clients;
 
 use App\Models\Client;
 use App\Models\Factura; // Importante para el historial
-use Flux\Flux;
+use App\Traits\Notifies;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Flux\Flux; // Necesario para propiedades computadas
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed; // Necesario para propiedades computadas
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Clientes'])]
 class ClientManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public string $search = '';
 
@@ -22,8 +23,10 @@ class ClientManager extends Component
 
     public ?Client $editingClient = null;
 
-    public string $modalTab = 'info'; 
+    public string $modalTab = 'info';
+
     public $selectedClientId = null;
+
     public $facturaSeleccionada = null;
 
     public array $clientContext = [
@@ -69,7 +72,9 @@ class ClientManager extends Component
     #[Computed]
     public function historialCompras()
     {
-        if (!$this->selectedClientId) return collect();
+        if (! $this->selectedClientId) {
+            return collect();
+        }
 
         return Factura::where('cliente_id', $this->selectedClientId)
             ->with(['user', 'pagos.medioPago'])
@@ -86,13 +91,13 @@ class ClientManager extends Component
     public function descargarFactura($id)
     {
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+
+        $pdf = Pdf::loadView('pdf.factura', [
             'factura' => $factura,
         ]);
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn () => print ($pdf->output()),
             "Factura-{$factura->id}.pdf"
         );
     }

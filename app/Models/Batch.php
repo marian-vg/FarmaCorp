@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\BatchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Laravel\Scout\Searchable;
 
 class Batch extends Model
 {
-    /** @use HasFactory<\Database\Factories\BatchFactory> */
+    /** @use HasFactory<BatchFactory> */
     use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [

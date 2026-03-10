@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Stock extends Model
@@ -14,7 +14,7 @@ class Stock extends Model
         'medicine_id',
         'cantidad_actual',
         'stock_minimo',
-        'fecha_actualizacion'
+        'fecha_actualizacion',
     ];
 
     protected function casts(): array
@@ -22,11 +22,11 @@ class Stock extends Model
         return [
             'fecha_actualizacion' => 'datetime',
             'cantidad_actual' => 'integer',
-            'stock_minimo' => 'integer'
+            'stock_minimo' => 'integer',
         ];
     }
 
-    public function medicine(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function medicine(): BelongsTo
     {
         return $this->belongsTo(Medicine::class);
     }

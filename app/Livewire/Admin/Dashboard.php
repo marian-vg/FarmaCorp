@@ -2,13 +2,17 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Batch;
 use App\Models\Profile;
+use App\Models\Setting;
 use App\Models\User;
 use App\Traits\Notifies;
 use Carbon\Carbon;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Lazy;
@@ -16,13 +20,12 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Cache;
 
 #[Layout('components.layouts.app', ['title' => 'Admin Dashboard'])]
 #[Lazy]
 class Dashboard extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public int $priceMaxDays = 30;
 
@@ -62,13 +65,24 @@ class Dashboard extends Component
 
     public array $selectedProfiles = [];
 
-    public function updatedSearch() { $this->resetPage(); }
-    public function updatedStatusFilter() { $this->resetPage(); }
-    public function updatedRoleFilter() { $this->resetPage(); }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedRoleFilter()
+    {
+        $this->resetPage();
+    }
 
     public function saveSaleConfig()
     {
-        \App\Models\Setting::updateOrCreate(
+        Setting::updateOrCreate(
             ['key' => 'post_sale_action'],
             ['value' => $this->postSaleAction]
         );
@@ -78,7 +92,7 @@ class Dashboard extends Component
     public function savePriceConfig()
     {
         $this->validate(['priceMaxDays' => 'required|integer|min:1']);
-        \App\Models\Setting::updateOrCreate(
+        Setting::updateOrCreate(
             ['key' => 'price_max_days'],
             ['value' => (string) $this->priceMaxDays]
         );
@@ -87,23 +101,23 @@ class Dashboard extends Component
 
     public function mount()
     {
-        $setting = \App\Models\Setting::where('key', 'alert_days')->first();
+        $setting = Setting::where('key', 'alert_days')->first();
         if ($setting) {
             $this->alertDays = (int) $setting->value;
         }
 
-        $priceSetting = \App\Models\Setting::where('key', 'price_max_days')->first();
+        $priceSetting = Setting::where('key', 'price_max_days')->first();
         if ($priceSetting) {
             $this->priceMaxDays = (int) $priceSetting->value;
         }
 
-        $this->postSaleAction = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+        $this->postSaleAction = Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
     }
 
     public function saveAlertDays()
     {
         $this->validate(['alertDays' => 'required|integer|min:1|max:365']);
-        \App\Models\Setting::updateOrCreate(
+        Setting::updateOrCreate(
             ['key' => 'alert_days'],
             ['value' => (string) $this->alertDays]
         );
@@ -120,13 +134,13 @@ class Dashboard extends Component
     public function permissions()
     {
         $allPermissions = Cache::remember('permissions_all', 86400, fn () => Permission::all());
-        
+
         if ($this->editingUser && $this->editingUser->hasRole('empleado')) {
             return $allPermissions->filter(function ($permission) {
-                return !str($permission->name)->contains(['user', 'role', 'permission', 'profile']);
+                return ! str($permission->name)->contains(['user', 'role', 'permission', 'profile']);
             });
         }
-        
+
         return $allPermissions;
     }
 
@@ -168,7 +182,7 @@ class Dashboard extends Component
                 });
 
                 if ($hasAdminPermissions) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                    throw ValidationException::withMessages([
                         'selectedPermissions' => 'Bloqueo de Seguridad: No se pueden asignar permisos administrativos a un perfil de empleado.',
                     ]);
                 }
@@ -314,7 +328,7 @@ class Dashboard extends Component
             ->paginate(12);
 
         // 1. Expiring Batches (Current logic)
-        $expiringBatches = \App\Models\Batch::where('current_quantity', '>', 0)
+        $expiringBatches = Batch::where('current_quantity', '>', 0)
             ->where('expiration_date', '<=', Carbon::now()->addDays($this->alertDays))
             ->orderBy('expiration_date', 'asc')
             ->with(['medicine.product']) // Eager loading the correct relation keys
@@ -322,7 +336,7 @@ class Dashboard extends Component
             ->get();
 
         // 2. Minimum Stock Alerts (New Logic for RF-05)
-        $lowStockBatches = \App\Models\Batch::where('current_quantity', '<=', DB::raw('minimum_stock'))
+        $lowStockBatches = Batch::where('current_quantity', '<=', DB::raw('minimum_stock'))
             ->where('current_quantity', '>', 0)
             ->orderBy('current_quantity', 'asc')
             ->with(['medicine.product'])

@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             'password' => 'password',
             'is_active' => true,
         ]);
-        
+
         $adminRole = Role::create(['name' => 'admin']);
         $empleadoRole = Role::create(['name' => 'empleado']);
 
@@ -44,7 +44,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             MedioPagoSeeder::class,
             CajaHistorySeeder::class,
-            VademecumSeeder::class
+            VademecumSeeder::class,
         ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\GroupFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -9,8 +10,8 @@ use Laravel\Scout\Searchable;
 
 class Group extends Model
 {
-    /** @use HasFactory<\Database\Factories\GroupFactory> */
-    use HasFactory, SoftDeletes, Searchable;
+    /** @use HasFactory<GroupFactory> */
+    use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
         'name',

@@ -8,6 +8,7 @@ use Laravel\Scout\Searchable;
 class Caja extends Model
 {
     use Searchable;
+
     protected $fillable = [
         'fecha_apertura',
         'fecha_cierre',

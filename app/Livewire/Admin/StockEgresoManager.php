@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\StockActualizado;
 use App\Models\Batch;
+use App\Models\Group;
 use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Traits\Notifies;
@@ -110,7 +112,7 @@ class StockEgresoManager extends Component
         });
 
         Flux::modal('egreso-modal')->close();
-        $this->dispatch('stock-actualizado');
+        StockActualizado::dispatch();
         $this->notify('Egreso registrado con éxito.', 'success');
         $this->reset(['batch_id', 'quantity_to_remove', 'reason', 'current_stock_display']);
     }
@@ -133,7 +135,7 @@ class StockEgresoManager extends Component
 
         return view('livewire.admin.stock-egreso-manager', [
             'batches' => $batches,
-            'groups' => \App\Models\Group::orderBy('name')->get(),
+            'groups' => Group::orderBy('name')->get(),
         ]);
     }
 }

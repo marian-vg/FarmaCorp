@@ -2,37 +2,48 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\Caja;
 use App\Models\Client;
 use App\Models\Factura;
-use App\Models\Caja;
+use App\Models\MedioPago;
 use App\Models\MovimientoCaja;
+use App\Traits\Notifies;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Livewire\Attributes\Layout;
-use Livewire\Attributes\Computed;
-use Flux\Flux;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Saldos de Cuentas Corrientes'])]
 class ClientDebtManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $search = '';
+
     public $selectedClientId;
+
     public $modalTab = 'pendientes';
+
     public $medio_pago_id = '';
+
     public $facturaEnCobro = null;
+
     public $pagos_acumulados = [];
+
     public $monto_pago_actual = 0;
+
     public $facturaSeleccionada = null;
 
     #[Computed]
     public function historialCompras()
     {
-        if (!$this->selectedClientId) return collect();
+        if (! $this->selectedClientId) {
+            return collect();
+        }
 
         return Factura::where('cliente_id', $this->selectedClientId)
             ->with(['pagos.medioPago', 'details.product'])
@@ -49,13 +60,13 @@ class ClientDebtManager extends Component
     public function descargarFactura($id)
     {
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+
+        $pdf = Pdf::loadView('pdf.factura', [
             'factura' => $factura,
         ]);
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn () => print ($pdf->output()),
             "Factura-{$factura->id}.pdf"
         );
     }
@@ -76,12 +87,15 @@ class ClientDebtManager extends Component
     #[Computed]
     public function montoRestanteFactura()
     {
-        if (!$this->facturaEnCobro) return 0;
-        
+        if (! $this->facturaEnCobro) {
+            return 0;
+        }
+
         $pagosPrevios = $this->facturaEnCobro->pagos->sum('monto');
         $pagosNuevos = collect($this->pagos_acumulados)->sum('monto');
-        
-        $restante = (float)$this->facturaEnCobro->total - $pagosPrevios - $pagosNuevos;
+
+        $restante = (float) $this->facturaEnCobro->total - $pagosPrevios - $pagosNuevos;
+
         return round($restante, 2);
     }
 
@@ -94,10 +108,10 @@ class ClientDebtManager extends Component
     {
         $this->validate([
             'medio_pago_id' => 'required|exists:medio_pagos,id',
-            'monto_pago_actual' => 'required|numeric|min:0.01|max:' . ($this->montoRestanteFactura + 0.01),
+            'monto_pago_actual' => 'required|numeric|min:0.01|max:'.($this->montoRestanteFactura + 0.01),
         ]);
 
-        $medio = \App\Models\MedioPago::find($this->medio_pago_id);
+        $medio = MedioPago::find($this->medio_pago_id);
 
         $this->pagos_acumulados[] = [
             'medio_id' => $this->medio_pago_id,
@@ -126,7 +140,9 @@ class ClientDebtManager extends Component
     #[Computed]
     public function facturasPendientes()
     {
-        if (!$this->selectedClientId) return collect();
+        if (! $this->selectedClientId) {
+            return collect();
+        }
 
         return Factura::where('cliente_id', $this->selectedClientId)
             ->where('estado', 'PENDIENTE')
@@ -139,7 +155,9 @@ class ClientDebtManager extends Component
     #[Computed]
     public function facturasPagadas()
     {
-        if (!$this->selectedClientId) return collect();
+        if (! $this->selectedClientId) {
+            return collect();
+        }
 
         return Factura::where('cliente_id', $this->selectedClientId)
             ->where('estado', 'PAGADO')
@@ -157,14 +175,16 @@ class ClientDebtManager extends Component
 
     public function cobrarFactura()
     {
-        if (!$this->cajaActiva) {
+        if (! $this->cajaActiva) {
             $this->notify('Error: Abre tu caja antes.', 'danger');
+
             return;
         }
 
         // Validamos que el pago nuevo no sea cero
         if (empty($this->pagos_acumulados)) {
             $this->notify('Debe registrar al menos un pago.', 'warning');
+
             return;
         }
 
@@ -173,14 +193,14 @@ class ClientDebtManager extends Component
                 // Registramos los nuevos movimientos de caja
                 foreach ($this->pagos_acumulados as $pago) {
                     MovimientoCaja::create([
-                        'tipo_movimiento'  => 'INGRESO',
-                        'monto'            => $pago['monto'],
-                        'motivo'           => "Cobro Cta. Cte. #{$this->facturaEnCobro->id} - {$pago['nombre']}",
+                        'tipo_movimiento' => 'INGRESO',
+                        'monto' => $pago['monto'],
+                        'motivo' => "Cobro Cta. Cte. #{$this->facturaEnCobro->id} - {$pago['nombre']}",
                         'fecha_movimiento' => now(),
-                        'id_medio_pago'    => $pago['medio_id'],
-                        'id_caja'          => $this->cajaActiva->id,
-                        'user_id'          => Auth::id(),
-                        'factura_id'       => $this->facturaEnCobro->id,
+                        'id_medio_pago' => $pago['medio_id'],
+                        'id_caja' => $this->cajaActiva->id,
+                        'user_id' => Auth::id(),
+                        'factura_id' => $this->facturaEnCobro->id,
                     ]);
                 }
 
@@ -206,15 +226,15 @@ class ClientDebtManager extends Component
     {
         // Obtenemos todas las facturas pendientes con sus pagos
         $pendientes = Factura::where('estado', 'PENDIENTE')->with('pagos')->get();
-        
-        return $pendientes->sum(fn($f) => $f->total - $f->pagos->sum('monto'));
+
+        return $pendientes->sum(fn ($f) => $f->total - $f->pagos->sum('monto'));
     }
 
     public function render()
     {
         $clientes = Client::search($this->search)
             ->query(function ($query) {
-                $query->with(['facturas' => function($q) {
+                $query->with(['facturas' => function ($q) {
                     $q->where('estado', 'PENDIENTE')->with('pagos');
                 }]);
             })
@@ -222,13 +242,14 @@ class ClientDebtManager extends Component
 
         // Calculamos el saldo real para cada cliente manualmente antes de enviar a la vista
         $clientes->getCollection()->transform(function ($cliente) {
-            $cliente->saldo_real_pendiente = $cliente->facturas->sum(fn($f) => $f->total - $f->pagos->sum('monto'));
+            $cliente->saldo_real_pendiente = $cliente->facturas->sum(fn ($f) => $f->total - $f->pagos->sum('monto'));
+
             return $cliente;
         });
 
         return view('livewire.admin.client-debt-manager', [
             'clientes' => $clientes,
-            'mediosPago' => \App\Models\MedioPago::all()
+            'mediosPago' => MedioPago::all(),
         ]);
     }
 }

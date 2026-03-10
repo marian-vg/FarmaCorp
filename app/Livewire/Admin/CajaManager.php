@@ -3,20 +3,24 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Caja;
-use App\Models\User; // Importamos User
+use App\Models\MedioPago; // Importamos User
+use App\Models\MovimientoCaja;
+use App\Models\User;
+use App\Traits\Notifies; // Para los datos reactivos
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Flux\Flux;
-use Illuminate\Support\Facades\Auth; // Para los datos reactivos
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app')]
 class CajaManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $monto_inicial = '';
 
@@ -83,7 +87,7 @@ class CajaManager extends Component
 
     // 1.1 OBTENER CAJAS CERRADAS PARA EL HISTORIAL (Paginado y Filtrado)
     /**
-     * @return \Illuminate\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
     #[Computed]
     public function historialCajas()
@@ -91,18 +95,18 @@ class CajaManager extends Component
         return Caja::search($this->search)
             ->query(function ($query) {
                 $query->join('users', 'cajas.user_id', '=', 'users.id')
-                      ->select('cajas.*')
-                      ->with('user')
-                      ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
-                      ->when($this->filtro_usuario, function ($q) {
-                          $q->where('cajas.user_id', $this->filtro_usuario);
-                      })
-                      ->when($this->fecha_desde, function ($q) {
-                          $q->whereDate('cajas.fecha_apertura', '>=', $this->fecha_desde);
-                      })
-                      ->when($this->fecha_hasta, function ($q) {
-                          $q->whereDate('cajas.fecha_apertura', '<=', $this->fecha_hasta);
-                      });
+                    ->select('cajas.*')
+                    ->with('user')
+                    ->whereNotNull('fecha_cierre') // SÓLO CERRADAS
+                    ->when($this->filtro_usuario, function ($q) {
+                        $q->where('cajas.user_id', $this->filtro_usuario);
+                    })
+                    ->when($this->fecha_desde, function ($q) {
+                        $q->whereDate('cajas.fecha_apertura', '>=', $this->fecha_desde);
+                    })
+                    ->when($this->fecha_hasta, function ($q) {
+                        $q->whereDate('cajas.fecha_apertura', '<=', $this->fecha_hasta);
+                    });
             })
             ->orderBy('cajas.fecha_cierre', 'desc')
             ->paginate(10, 'historialPage');
@@ -136,7 +140,7 @@ class CajaManager extends Component
         $datosFinales = [];
         $labels = [];
         foreach ($fechas as $fecha) {
-            $labels[] = \Carbon\Carbon::parse($fecha)->format('d/m');
+            $labels[] = Carbon::parse($fecha)->format('d/m');
             $datosFinales[] = isset($estadisticas[$fecha]) ? (float) $estadisticas[$fecha] : 0;
         }
 
@@ -150,7 +154,7 @@ class CajaManager extends Component
     #[Computed]
     public function mediosPago()
     {
-        return \App\Models\MedioPago::all();
+        return MedioPago::all();
     }
 
     public function abrirCaja()
@@ -224,7 +228,7 @@ class CajaManager extends Component
             'movimiento_medio_pago' => 'required|exists:medio_pagos,id',
         ]);
 
-        \App\Models\MovimientoCaja::create([
+        MovimientoCaja::create([
             'tipo_movimiento' => $this->movimiento_tipo,
             'monto' => $this->movimiento_monto,
             'motivo' => $this->movimiento_motivo,
@@ -252,11 +256,11 @@ class CajaManager extends Component
         }
 
         // Recalculamos usando BD sum para mayor precisión
-        $ingresos = \App\Models\MovimientoCaja::where('id_caja', $this->cajaSeleccionada->id)
+        $ingresos = MovimientoCaja::where('id_caja', $this->cajaSeleccionada->id)
             ->where('tipo_movimiento', 'INGRESO')
             ->sum('monto');
 
-        $egresos = \App\Models\MovimientoCaja::where('id_caja', $this->cajaSeleccionada->id)
+        $egresos = MovimientoCaja::where('id_caja', $this->cajaSeleccionada->id)
             ->where('tipo_movimiento', 'EGRESO')
             ->sum('monto');
 
@@ -300,21 +304,24 @@ class CajaManager extends Component
     {
         $caja = Caja::with(['user', 'movimientos.medioPago'])->findOrFail($id);
 
-        if (!Auth::user()->hasRole('admin') && $caja->user_id !== Auth::id()) {
+        if (! Auth::user()->hasRole('admin') && $caja->user_id !== Auth::id()) {
             $this->notify('No tienes permisos para descargar este reporte.', 'danger');
+
             return;
         }
 
-        if (!$caja->fecha_cierre) {
+        if (! $caja->fecha_cierre) {
             $this->notify('Solo puedes emitir reportes de cajas cerradas.', 'warning');
+
             return;
         }
 
-        $totalesMp = $caja->movimientos->groupBy(function($mov) {
+        $totalesMp = $caja->movimientos->groupBy(function ($mov) {
             return $mov->medioPago->nombre ?? 'Sin especificar';
         })->map(function ($movs) {
             $ingresos = $movs->where('tipo_movimiento', 'INGRESO')->sum('monto');
             $egresos = $movs->where('tipo_movimiento', 'EGRESO')->sum('monto');
+
             return [
                 'ingresos' => $ingresos,
                 'egresos' => $egresos,
@@ -338,22 +345,22 @@ class CajaManager extends Component
     {
         $stats = $this->estadisticasSieteDias;
         $datos = collect($stats['datos']);
-        
+
         if ($datos->isEmpty() || $datos->sum() == 0) {
             return [
                 'mejor_monto' => 0,
                 'mejor_dia' => 'N/A',
-                'promedio' => 0
+                'promedio' => 0,
             ];
         }
 
         // Buscamos el índice del valor más alto
         $maxIndice = $datos->search($datos->max());
-        
+
         return [
             'mejor_monto' => $datos->max(),
             'mejor_dia' => $stats['labels'][$maxIndice],
-            'promedio' => $datos->avg()
+            'promedio' => $datos->avg(),
         ];
     }
 }

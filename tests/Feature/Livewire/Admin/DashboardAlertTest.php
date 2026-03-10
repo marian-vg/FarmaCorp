@@ -1,11 +1,10 @@
 <?php
 
 use App\Livewire\Admin\Dashboard;
+use App\Models\Batch;
 use App\Models\Group;
 use App\Models\Medicine;
-use App\Models\Batch;
 use App\Models\Product;
-use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;

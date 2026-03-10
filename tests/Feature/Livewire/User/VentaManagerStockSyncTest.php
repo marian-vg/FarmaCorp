@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Events\StockActualizado;
 use App\Livewire\Admin\StockEgresoManager;
 use App\Livewire\Admin\StockIngresoManager;
 use App\Livewire\User\VentaManager;
@@ -12,6 +13,7 @@ use App\Models\Product;
 use App\Models\Stock;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -57,7 +59,9 @@ beforeEach(function () {
     ]);
 });
 
-it('dispatches stock-actualizado event when stock ingress is saved', function () {
+it('broadcasts StockActualizado event when stock ingress is saved', function () {
+    Event::fake([StockActualizado::class]);
+
     Livewire::actingAs($this->admin)
         ->test(StockIngresoManager::class)
         ->set('medicine_id', $this->medicine->id)
@@ -65,24 +69,67 @@ it('dispatches stock-actualizado event when stock ingress is saved', function ()
         ->set('expiration_date', now()->addYear()->format('Y-m-d'))
         ->set('quantity_received', 10)
         ->set('minimum_stock', 5)
-        ->call('save')
-        ->assertDispatched('stock-actualizado');
+        ->call('save');
+
+    Event::assertDispatched(StockActualizado::class);
 });
 
-it('dispatches stock-actualizado event when stock egress is saved', function () {
+it('broadcasts StockActualizado event when stock egress is saved', function () {
+    Event::fake([StockActualizado::class]);
+
     Livewire::actingAs($this->admin)
         ->test(StockEgresoManager::class)
         ->set('batch_id', $this->batch->id)
         ->set('current_stock_display', 50)
         ->set('quantity_to_remove', 5)
         ->set('reason', 'merma_rotura')
-        ->call('save')
-        ->assertDispatched('stock-actualizado');
+        ->call('save');
+
+    Event::assertDispatched(StockActualizado::class);
 });
 
-it('VentaManager listens to stock-actualizado and refreshes', function () {
+it('VentaManager reacts to generic stock refresh event listener', function () {
     Livewire::actingAs($this->employee)
         ->test(VentaManager::class)
-        ->dispatch('stock-actualizado')
+        ->dispatch('refrescarMedicamentosListener')
         ->assertStatus(200);
+});
+
+it('StockActualizado event broadcasts on stock-channel', function () {
+    $event = new StockActualizado;
+
+    $channels = $event->broadcastOn();
+
+    expect($channels)->toHaveCount(1);
+    expect($channels[0]->name)->toBe('stock-channel');
+});
+
+it('StockActualizado event uses correct broadcast name', function () {
+    $event = new StockActualizado;
+
+    expect($event->broadcastAs())->toBe('stock.actualizado');
+});
+
+it('refreshes medicine stock display when Echo event is received', function () {
+    $component = Livewire::actingAs($this->employee)
+        ->test(VentaManager::class)
+        ->assertSee('50 disponibles');
+
+    Stock::where('medicine_id', $this->medicine->id)
+        ->update(['cantidad_actual' => 100]);
+
+    $component->dispatch('refrescarMedicamentosListener')
+        ->assertSee('100 disponibles');
+});
+
+it('refreshes medicine stock display when manual listener receives event', function () {
+    $component = Livewire::actingAs($this->employee)
+        ->test(VentaManager::class)
+        ->assertSee('50 disponibles');
+
+    Stock::where('medicine_id', $this->medicine->id)
+        ->update(['cantidad_actual' => 100]);
+
+    $component->dispatch('refrescarMedicamentosListener')
+        ->assertSee('100 disponibles');
 });

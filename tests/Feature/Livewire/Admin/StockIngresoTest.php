@@ -1,10 +1,12 @@
 <?php
 
 use App\Livewire\Admin\StockIngresoManager;
+use App\Models\Batch;
 use App\Models\Group;
 use App\Models\Medicine;
 use App\Models\Product;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -50,13 +52,13 @@ class StockIngresoTest extends TestCase
         $this->assertDatabaseHas('batches', [
             'medicine_id' => $medicine->product_id,
             'batch_number' => 'LOTE-1234',
-            'expiration_date' => clone \Carbon\Carbon::parse($futureDate)->startOfDay(),
+            'expiration_date' => clone Carbon::parse($futureDate)->startOfDay(),
             'initial_quantity' => 100,
             'current_quantity' => 100, // Should be same as initial right after creation
             'minimum_stock' => 15,
         ]);
 
-        $batchId = \App\Models\Batch::where('batch_number', 'LOTE-1234')->first()->id;
+        $batchId = Batch::where('batch_number', 'LOTE-1234')->first()->id;
 
         // Verify DB integrity for Stock Movement (MovimientoStock) ensuring 'ingreso' and 'compra'
         $this->assertDatabaseHas('stock_movements', [

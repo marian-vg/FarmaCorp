@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Spatie\Permission\Traits\HasPermissions;
 use Laravel\Scout\Searchable;
+use Spatie\Permission\Traits\HasPermissions;
 
 class Profile extends Model
 {

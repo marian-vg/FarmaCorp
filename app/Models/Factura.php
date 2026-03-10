@@ -10,16 +10,17 @@ use Laravel\Scout\Searchable;
 class Factura extends Model
 {
     use Searchable;
+
     protected $fillable = [
-    'tipo_comprobante',
-    'fecha_emision',
-    'total',
-    'ajuste_global',
-    'estado',
-    'user_id',
-    'cliente_id',
-    'medio_pago_id',
-];
+        'tipo_comprobante',
+        'fecha_emision',
+        'total',
+        'ajuste_global',
+        'estado',
+        'user_id',
+        'cliente_id',
+        'medio_pago_id',
+    ];
 
     protected $casts = [
         'fecha_emision' => 'datetime',
@@ -49,7 +50,7 @@ class Factura extends Model
     {
         return $this->hasMany(FacturaDetalle::class);
     }
-    
+
     // Relación opcional con el medio de pago (si lo agregas al modelo luego)
     public function medioPago(): BelongsTo
     {

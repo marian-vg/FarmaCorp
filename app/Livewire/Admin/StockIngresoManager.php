@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\StockActualizado;
 use App\Models\Batch;
+use App\Models\Group;
 use App\Models\Medicine;
 use App\Models\Stock;
 use App\Models\StockMovement;
@@ -113,7 +115,7 @@ class StockIngresoManager extends Component
         });
 
         Flux::modal('ingreso-modal')->close();
-        $this->dispatch('stock-actualizado');
+        StockActualizado::dispatch();
         $this->notify('Ingreso registrado con éxito.', 'success');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
     }
@@ -136,7 +138,7 @@ class StockIngresoManager extends Component
 
         return view('livewire.admin.stock-ingreso-manager', [
             'medicines' => $medicines,
-            'groups' => \App\Models\Group::orderBy('name')->get(),
+            'groups' => Group::orderBy('name')->get(),
         ]);
     }
 }

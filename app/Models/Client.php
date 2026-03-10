@@ -3,15 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Laravel\Scout\Searchable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Scout\Searchable;
 
 class Client extends Model
 {
     use Searchable;
 
     public $modalTab = 'info';
+
     public $selectedClientId = null;
+
     public $facturaSeleccionada = null;
 
     protected $fillable = [

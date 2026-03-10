@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "laravel-expert": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "4707e544bef5a1d72786cd152b51e338d960f785eff508c8e70b1de0b4c960e2"
+    },
     "playwright-cli": {
       "source": "microsoft/playwright-cli",
       "sourceType": "github",

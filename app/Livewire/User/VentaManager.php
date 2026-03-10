@@ -2,14 +2,23 @@
 
 namespace App\Livewire\User;
 
+use App\Models\Batch;
 use App\Models\Caja;
 use App\Models\Client;
 use App\Models\Factura;
+use App\Models\FacturaDetalle;
+use App\Models\Group;
+use App\Models\Medicine;
 use App\Models\MedioPago;
 use App\Models\MovimientoCaja;
 use App\Models\Product;
+use App\Models\Setting;
+use App\Models\Stock;
+use App\Models\StockMovement;
 use App\Traits\Notifies;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Flux\Flux;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -23,10 +32,13 @@ class VentaManager extends Component
     /**
      * Refreshes medicine availability when stock changes are recorded by admins.
      */
-    #[On('stock-actualizado')]
+    #[On('echo:stock-channel,.stock.actualizado')]
+    #[On('refrescarMedicamentosListener')]
     public function refrescarMedicamentos(): void
     {
-        $this->resetPage();
+        $this->renderToken++;
+        unset($this->medicines);
+        $this->dispatch('$refresh');
     }
 
     /**
@@ -37,6 +49,8 @@ class VentaManager extends Component
     {
         return \DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
+
+    public $renderToken = 0;
 
     public $carrito = [];
 
@@ -64,7 +78,7 @@ class VentaManager extends Component
 
     public $monto_pago_actual = 0;
 
-    public ?\App\Models\Medicine $viewingMedicine = null;
+    public ?Medicine $viewingMedicine = null;
 
     public $ultimaFacturaId = null;
 
@@ -83,7 +97,7 @@ class VentaManager extends Component
 
     public function viewLeaflet($productId)
     {
-        $this->viewingMedicine = \App\Models\Medicine::with('product')->where('product_id', $productId)->first();
+        $this->viewingMedicine = Medicine::with('product')->where('product_id', $productId)->first();
 
         if ($this->viewingMedicine) {
             Flux::modal('leaflet-modal')->show();
@@ -103,7 +117,7 @@ class VentaManager extends Component
             return;
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+        $pdf = Pdf::loadView('pdf.factura', [
             'factura' => $factura,
         ]);
 
@@ -199,9 +213,9 @@ class VentaManager extends Component
         return Caja::where('user_id', Auth::id())->whereNull('fecha_cierre')->first();
     }
 
-    public function agregarAlCarrito(\App\Models\Medicine $medicine)
+    public function agregarAlCarrito(Medicine $medicine)
     {
-        $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+        $maxDays = (int) (Setting::where('key', 'price_max_days')->first()?->value ?? 30);
 
         // Ya que el precio está en la presentación en el nuevo Vademécum
         // Por seguridad fall-back a price_expires_at del product (como estaba antes), o se podría migrar tmb
@@ -275,7 +289,7 @@ class VentaManager extends Component
             'customQuantity' => 'required|integer|min:1',
         ]);
 
-        $medicine = \App\Models\Medicine::with('product', 'stock')->find($this->customMedicineId);
+        $medicine = Medicine::with('product', 'stock')->find($this->customMedicineId);
 
         if (! $medicine) {
             return;
@@ -384,7 +398,7 @@ class VentaManager extends Component
             ]);
 
             foreach ($this->carrito as $item) {
-                \App\Models\FacturaDetalle::create([
+                FacturaDetalle::create([
                     'cantidad' => $item['cantidad'],
                     'precio_unitario' => $item['price'],
                     'descuento' => 0,
@@ -392,14 +406,14 @@ class VentaManager extends Component
                     'product_id' => $item['product_id'], // Factura detalle todavía hace fk a product_id (históricamente)
                 ]);
 
-                $stockGlobal = \App\Models\Stock::where('medicine_id', $item['id'])->first();
+                $stockGlobal = Stock::where('medicine_id', $item['id'])->first();
                 if ($stockGlobal) {
                     $stockGlobal->cantidad_actual -= $item['cantidad'];
                     $stockGlobal->save();
                 }
 
                 $cantidadRestante = $item['cantidad'];
-                $lotes = \App\Models\Batch::where('medicine_id', $item['id'])
+                $lotes = Batch::where('medicine_id', $item['id'])
                     ->where('current_quantity', '>', 0)
                     ->orderBy('expiration_date', 'asc')
                     ->get();
@@ -412,7 +426,7 @@ class VentaManager extends Component
                     $lote->current_quantity -= $aQuitar;
                     $lote->save();
 
-                    \App\Models\StockMovement::create([
+                    StockMovement::create([
                         'batch_id' => $lote->id,
                         'user_id' => Auth::id(),
                         'type' => 'egreso',
@@ -442,11 +456,10 @@ class VentaManager extends Component
         $this->ultimaFacturaId = $facturaID;
 
         // 3. Lógica del RF-20: Comportamiento de Cierre
-        $action = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+        $action = Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
 
         if ($action === 'auto_imprimir') {
             $this->limpiarVenta();
-            // En lugar de return, disparamos un evento de JavaScript para abrir en pestaña nueva
             $url = route('factura.imprimir', ['id' => $facturaID]);
             $this->dispatch('abrir-impresion', url: $url);
 
@@ -468,7 +481,7 @@ class VentaManager extends Component
     {
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+        $pdf = Pdf::loadView('pdf.factura', [
             'factura' => $factura,
         ]);
 
@@ -510,13 +523,12 @@ class VentaManager extends Component
             ->paginate(10);
     }
 
-    public function render()
+    #[Computed]
+    public function medicines(): Collection
     {
-        // Obtenemos la configuración una sola vez para la vista (RF-21)
-        $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
-
         $lk = $this->likeOperator();
-        $medicines = \App\Models\Medicine::query()
+
+        return Medicine::query()
             ->with(['product', 'stock'])
             ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
             ->join('products', 'medicines.product_id', '=', 'products.id')
@@ -532,12 +544,16 @@ class VentaManager extends Component
             ->orderBy('products.name', 'asc')
             ->select('medicines.*')
             ->get();
+    }
+
+    public function render()
+    {
+        $maxDays = (int) (Setting::where('key', 'price_max_days')->first()?->value ?? 30);
 
         return view('livewire.user.venta-manager', [
-            'medicines' => $medicines,
             'mediosPago' => MedioPago::all(),
-            'maxDays' => $maxDays, // Enviamos el límite a la vista
-            'groups' => \App\Models\Group::orderBy('name')->get(),
+            'maxDays' => $maxDays,
+            'groups' => Group::orderBy('name')->get(),
         ])->layout('components.layouts.app');
     }
 }

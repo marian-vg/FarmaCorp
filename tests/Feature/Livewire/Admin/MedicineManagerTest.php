@@ -90,17 +90,17 @@ class MedicineManagerTest extends TestCase
         $admin->assignRole('admin');
 
         $availableProduct = Product::factory()->create(['name' => 'Ibuprofeno', 'status' => true]);
-        
+
         $productWithMedicine = Product::factory()->create(['name' => 'Paracetamol', 'status' => true]);
         $group = Group::create(['name' => 'Analgésicos']);
         Medicine::create(['product_id' => $productWithMedicine->id, 'group_id' => $group->id, 'price' => 10, 'level' => '1g', 'is_psychotropic' => false]);
-        
+
         $inactiveProduct = Product::factory()->create(['name' => 'Descontinuado', 'status' => false]);
 
         Livewire::actingAs($admin)->test(MedicineManager::class)
             ->assertSee('Ibuprofeno') // Available selection
             ->assertDontSee($inactiveProduct->name); // Except in the general text, but let's check it's not in the selection. Actually, the Livewire assertSee checks the whole HTML.
-        
+
         // Let's assert from a different angle to be certain: Check the component's rendered data properties
         $component = Livewire::actingAs($admin)->test(MedicineManager::class);
         $availableProducts = $component->viewData('availableProducts');
@@ -138,11 +138,11 @@ class MedicineManagerTest extends TestCase
         $prod = Product::factory()->create(['name' => 'LeafletMed']);
         $group = Group::create(['name' => 'General']);
         $medicine = Medicine::create([
-            'product_id' => $prod->id, 
-            'group_id' => $group->id, 
+            'product_id' => $prod->id,
+            'group_id' => $group->id,
             'price' => 10,
             'level' => '100mg',
-            'leaflet' => 'Este es el texto del prospecto clínico.'
+            'leaflet' => 'Este es el texto del prospecto clínico.',
         ]);
 
         Livewire::actingAs($admin)->test(MedicineManager::class)

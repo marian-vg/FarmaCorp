@@ -2,19 +2,20 @@
 
 namespace App\Livewire\Admin;
 
-use Spatie\Permission\Models\Permission;
+use App\Traits\Notifies;
+use Flux\Flux;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
-use App\Traits\Notifies;
+use Spatie\Permission\Models\Permission;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Permisos'])]
 class PermissionManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public string $search = '';
+
     public ?Permission $editingPermission = null;
 
     public array $permissionContext = [
@@ -46,7 +47,7 @@ class PermissionManager extends Component
     public function savePermission()
     {
         $this->validate([
-            'permissionContext.name' => 'required|string|max:255|unique:permissions,name' . ($this->editingPermission ? ',' . $this->editingPermission->id : ''),
+            'permissionContext.name' => 'required|string|max:255|unique:permissions,name'.($this->editingPermission ? ','.$this->editingPermission->id : ''),
             'permissionContext.description' => 'nullable|string|max:500',
         ]);
 
@@ -89,8 +90,8 @@ class PermissionManager extends Component
         $query = Permission::query();
 
         if ($this->search) {
-            $query->where('name', 'ilike', '%' . $this->search . '%')
-                  ->orWhere('description', 'ilike', '%' . $this->search . '%');
+            $query->where('name', 'ilike', '%'.$this->search.'%')
+                ->orWhere('description', 'ilike', '%'.$this->search.'%');
         }
 
         return view('livewire.admin.permission-manager', [

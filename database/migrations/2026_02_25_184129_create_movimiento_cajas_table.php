@@ -20,7 +20,7 @@ return new class extends Migration
             $table->foreignId('id_caja')->constrained('cajas');
             $table->foreignId('user_id')->constrained('users');
             $table->foreignId('factura_id')->nullable()->constrained('facturas')->onDelete('cascade');
-            
+
             $table->timestamps();
         });
     }

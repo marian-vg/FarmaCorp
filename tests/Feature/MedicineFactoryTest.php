@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Medicine;
+use Database\Seeders\VademecumSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -19,12 +20,12 @@ it('can create a medicine using the factory', function () {
 
     $this->assertDatabaseHas('medicines', [
         'product_id' => $medicine->product_id,
-        'level' => $medicine->level
+        'level' => $medicine->level,
     ]);
 });
 
 it('can run the medicine seeder successfully', function () {
-    $this->seed(\Database\Seeders\VademecumSeeder::class);
-    
+    $this->seed(VademecumSeeder::class);
+
     expect(Medicine::count())->toBe(15);
 });

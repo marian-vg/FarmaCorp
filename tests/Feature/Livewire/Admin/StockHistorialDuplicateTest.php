@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Admin\StockHistorialManager;
 use App\Models\Batch;
 use App\Models\Group;
 use App\Models\Medicine;
@@ -81,7 +82,7 @@ beforeEach(function () {
 
 it('lists stock movements correctly without duplicate joins or incorrect medicine assignments', function () {
     Livewire::actingAs($this->admin)
-        ->test(\App\Livewire\Admin\StockHistorialManager::class)
+        ->test(StockHistorialManager::class)
         ->assertStatus(200)
         ->assertViewHas('movements', function ($movements) {
             // There should be exactly 2 movements in the list

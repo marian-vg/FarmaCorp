@@ -3,17 +3,17 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Group;
+use App\Traits\Notifies;
+use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
-use Illuminate\Support\Facades\Cache;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Grupos'])]
 class GroupManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public string $search = '';
 
@@ -53,7 +53,7 @@ class GroupManager extends Component
         ];
 
         if ($this->editingGroup) {
-            $rules['groupContext.name'] .= '|unique:groups,name,' . $this->editingGroup->id;
+            $rules['groupContext.name'] .= '|unique:groups,name,'.$this->editingGroup->id;
         } else {
             $rules['groupContext.name'] .= '|unique:groups,name';
         }
