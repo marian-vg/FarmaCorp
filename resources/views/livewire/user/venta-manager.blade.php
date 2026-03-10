@@ -15,7 +15,15 @@
 
             <div class="lg:col-span-2 space-y-4">
                 <div class="{{ !$tipo_comprobante ? 'opacity-40 pointer-events-none' : '' }} transition-all duration-300">
-                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." />
+                    <div class="flex gap-2">
+                        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." class="flex-1" />
+                        <flux:select wire:model.live="filterGroup" placeholder="Categoría" class="w-48 min-w-48">
+                            <flux:select.option value="">Todas las categorías</flux:select.option>
+                            @foreach($groups as $g)
+                                <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    </div>
                     
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         @forelse($medicines as $medicine)
@@ -111,7 +119,7 @@
 
             {{-- Lado Derecho: Carrito --}}
             <div wire:key="resumen-venta-{{ count($carrito) }}-{{ count($pagos_realizados) }}"
-                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto sticky top-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-700">
+                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto flex flex-col sticky top-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-700">
                 
                 @if(!$this->cajaActiva)
                     <div class="flex flex-col items-center justify-center py-10 text-center space-y-4">
@@ -261,11 +269,15 @@
     <div class="space-y-4">
         <div class="flex justify-between items-center">
             <flux:heading size="lg">Registro de Ventas</flux:heading>
-            <flux:select wire:model.live="filtroEstado" size="sm" class="w-48">
-                <option value="">Todos los estados</option>
-                <option value="PAGADO">Solo Pagados</option>
-                <option value="PENDIENTE">Solo Cta. Corriente</option>
-            </flux:select>
+            <div class="flex gap-2">
+                <flux:input type="date" wire:model.live="fecha_desde" size="sm" aria-label="Desde fecha" />
+                <flux:input type="date" wire:model.live="fecha_hasta" size="sm" aria-label="Hasta fecha" />
+                <flux:select wire:model.live="filtroEstado" size="sm" class="w-48">
+                    <option value="">Todos los estados</option>
+                    <option value="PAGADO">Solo Pagados</option>
+                    <option value="PENDIENTE">Solo Cta. Corriente</option>
+                </flux:select>
+            </div>
         </div>
         
         <div class="w-full overflow-hidden rounded-lg border border-zinc-200">

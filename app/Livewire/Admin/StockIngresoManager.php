@@ -4,28 +4,37 @@ namespace App\Livewire\Admin;
 
 use App\Models\Batch;
 use App\Models\Medicine;
-use App\Models\StockMovement;
 use App\Models\Stock;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Models\StockMovement;
+use App\Traits\Notifies;
 use Flux\Flux;
 use Livewire\Attributes\Layout;
-use App\Traits\Notifies;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('components.layouts.app', ['title' => 'Ingreso de Stock'])]
 class StockIngresoManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $search = '';
 
+    public $filterGroup = '';
+
+    public function updatedFilterGroup()
+    {
+        $this->resetPage();
+    }
+
     // Form properties
     public $medicine_id;
+
     public $batch_number;
+
     public $expiration_date;
+
     public $quantity_received;
+
     public $minimum_stock;
 
     protected $rules = [
@@ -55,8 +64,8 @@ class StockIngresoManager extends Component
         \DB::transaction(function () {
             // Paso A: Buscar Lote o Crearlo (Upserting para evitar Lotes Duplicados)
             $batch = Batch::where('medicine_id', $this->medicine_id)
-                          ->where('batch_number', $this->batch_number)
-                          ->first();
+                ->where('batch_number', $this->batch_number)
+                ->first();
 
             if ($batch) {
                 // Si el lote existe, sumamos cantidades y actualizamos vencimiento y stock mínimo
@@ -85,7 +94,7 @@ class StockIngresoManager extends Component
                 ['medicine_id' => $this->medicine_id],
                 ['cantidad_actual' => 0, 'stock_minimo' => 0]
             );
-            
+
             $stock->cantidad_actual += $this->quantity_received;
             // Update the global minimum stock if the new batch has a higher strict limit
             if ($this->minimum_stock > $stock->stock_minimo) {
@@ -112,16 +121,21 @@ class StockIngresoManager extends Component
     {
         // Usa Scout o fallbacks a ilike para buscar medicamentos reales
         $medicines = Medicine::search($this->search)
-            ->query(function($builder){
+            ->query(function ($builder) {
                 $builder->with(['product', 'group'])
                     ->join('products', 'medicines.product_id', '=', 'products.id')
                     ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
                     ->select('medicines.*');
-            })    
+
+                if ($this->filterGroup !== '') {
+                    $builder->where('medicines.group_id', $this->filterGroup);
+                }
+            })
             ->paginate(12);
 
         return view('livewire.admin.stock-ingreso-manager', [
-            'medicines' => $medicines
+            'medicines' => $medicines,
+            'groups' => \App\Models\Group::orderBy('name')->get(),
         ]);
     }
 }

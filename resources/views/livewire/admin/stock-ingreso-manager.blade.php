@@ -4,8 +4,14 @@
             <flux:heading size="xl" level="1">Ingreso de Mercadería</flux:heading>
             <flux:subheading>Busque un medicamento en el catálogo para registrar la entrada de un nuevo lote físico.</flux:subheading>
         </div>
-        <div class="w-full sm:w-72">
-            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre...">
+        <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+            <flux:select wire:model.live="filterGroup" placeholder="Categoría" class="w-48 min-w-48">
+                <flux:select.option value="">Todas las categorías</flux:select.option>
+                @foreach($groups as $g)
+                    <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre..." class="w-64">
                 <x-slot name="append">
                     <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
                         <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />

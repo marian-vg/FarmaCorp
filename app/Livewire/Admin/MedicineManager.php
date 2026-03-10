@@ -5,20 +5,24 @@ namespace App\Livewire\Admin;
 use App\Models\Group;
 use App\Models\Medicine;
 use App\Models\Product;
+use App\Traits\Notifies;
+use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
-use Illuminate\Support\Facades\Cache;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public string $search = '';
+
     public bool $filterPsychotropic = false;
+
+    public string $filterGroup = '';
+
     public ?Medicine $viewingMedicine = null;
 
     public array $context = [
@@ -38,6 +42,11 @@ class MedicineManager extends Component
     }
 
     public function updatedFilterPsychotropic()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterGroup()
     {
         $this->resetPage();
     }
@@ -79,7 +88,7 @@ class MedicineManager extends Component
             'level' => $this->context['level'],
             'leaflet' => $this->context['leaflet'],
             'expiration_date' => $this->context['expiration_date'] ?: null,
-            'is_psychotropic' => (bool)$this->context['is_psychotropic'],
+            'is_psychotropic' => (bool) $this->context['is_psychotropic'],
         ]);
 
         Flux::modal('medicine-form')->close();
@@ -92,9 +101,12 @@ class MedicineManager extends Component
         $medicines = Medicine::search($this->search)
             ->query(function ($query) {
                 $query->with(['product', 'stock', 'group']);
-                
+
                 if ($this->filterPsychotropic) {
                     $query->where('is_psychotropic', true);
+                }
+                if ($this->filterGroup) {
+                    $query->where('group_id', $this->filterGroup);
                 }
                 $query->join('products', 'medicines.product_id', '=', 'products.id')
                     ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')

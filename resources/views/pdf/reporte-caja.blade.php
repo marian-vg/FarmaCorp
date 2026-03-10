@@ -144,6 +144,16 @@
             <td class="label">Cierre:</td>
             <td>{{ $caja->fecha_cierre ? $caja->fecha_cierre->format('d/m/Y H:i:s') : 'PENDIENTE' }}</td>
         </tr>
+        <tr>
+            <td class="label">Duración del Turno:</td>
+            <td colspan="3">
+                @if($caja->fecha_cierre)
+                    {{ $caja->fecha_apertura->diff($caja->fecha_cierre)->format('%H:%I:%S') }} hrs
+                @else
+                    EN CURSO
+                @endif
+            </td>
+        </tr>
     </table>
 
     <table class="financial-table">

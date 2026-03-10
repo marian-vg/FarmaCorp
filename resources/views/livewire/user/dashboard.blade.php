@@ -384,14 +384,15 @@
                 
                 const h = Math.floor(diff / 3600);
                 const m = Math.floor((diff % 3600) / 60);
+                const s = Math.floor(diff % 60);
                 
-                this.timeString = `${h}h ${m}m`;
+                this.timeString = `${h}h ${m}m ${s}s`;
             };
             
             // Calculamos inmediatamente antes de empezar a tickear
             updateTime();
-            // Refrescamos cada 60000ms (1 minuto) dado que quitamos los segundos
-            this.interval = setInterval(updateTime, 60000);
+            // Refrescamos cada 1000ms (1 segundo)
+            this.interval = setInterval(updateTime, 1000);
         },
         destroy() {
             if (this.interval) clearInterval(this.interval);

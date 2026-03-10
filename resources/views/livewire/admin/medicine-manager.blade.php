@@ -9,6 +9,14 @@
             <flux:separator vertical/>
 
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." class="w-64" />
+            
+            <flux:select wire:model.live="filterGroup" placeholder="Grupo Farmacológico" class="w-48 min-w-48">
+                <flux:select.option value="">Todos los grupos</flux:select.option>
+                @foreach($groups as $g)
+                    <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+
             <flux:button icon="plus" wire:click="createMedicine" variant="primary">Registrar Medicamento</flux:button>
         </div>
     </div>
