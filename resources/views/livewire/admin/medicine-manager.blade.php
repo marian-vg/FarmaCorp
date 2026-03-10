@@ -16,6 +16,12 @@
                     <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
                 @endforeach
             </flux:select>
+            
+            <flux:select wire:model.live="stockSort" placeholder="Orden de Stock" class="w-40 min-w-40">
+                <flux:select.option value="">Sin Filtro</flux:select.option>
+                <flux:select.option value="desc">Mayor a Menor</flux:select.option>
+                <flux:select.option value="asc">Menor a Mayor</flux:select.option>
+            </flux:select>
 
             <flux:button icon="plus" wire:click="createMedicine" variant="primary">Registrar Medicamento</flux:button>
         </div>

@@ -11,7 +11,7 @@
                     <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
                 @endforeach
             </flux:select>
-            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre..." class="w-64">
+            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar medicamento por nombre..." class="flex-1 min-w-[250px]">
                 <x-slot name="append">
                     <div x-data x-show="$wire.search !== ''" style="display: none;" class="flex items-center pe-2">
                         <flux:button variant="subtle" size="sm" icon="x-mark" wire:click="$set('search', '')" class="h-6 w-6 px-0" />

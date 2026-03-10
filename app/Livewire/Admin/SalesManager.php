@@ -39,19 +39,15 @@ class SalesManager extends Component
     public function ventas()
     {
         return Factura::with(['user', 'cliente', 'pagos.medioPago'])
-        // Filtro por responsable (Buscador actual)
         ->when($this->search, function($q) {
-            $q->whereHas('user', fn($u) => $u->where('name', 'like', "%{$this->search}%"));
+            $q->whereHas('user', fn($u) => $u->where('name', 'ilike', "%{$this->search}%"));
         })
-        // RF-25: Filtro por Cliente
         ->when($this->filtroCliente, function($q) {
             $q->where('cliente_id', $this->filtroCliente);
         })
-        // RF-25: Filtro por Tipo de Comprobante
         ->when($this->filtroTipo, function($q) {
             $q->where('tipo_comprobante', $this->filtroTipo);
         })
-        // RF-25: Filtro por Rango de Fechas
         ->when($this->fechaInicio, function($q) {
             $q->whereDate('fecha_emision', '>=', $this->fechaInicio);
         })

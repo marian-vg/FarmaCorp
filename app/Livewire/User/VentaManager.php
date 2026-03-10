@@ -502,8 +502,8 @@ class VentaManager extends Component
             ->join('products', 'medicines.product_id', '=', 'products.id')
             ->where('products.status', true)
             ->where(function ($q) {
-                $q->where('products.name', 'like', "%{$this->search}%")
-                    ->orWhere('medicines.presentation_name', 'like', "%{$this->search}%");
+                $q->where('products.name', 'ilike', "%{$this->search}%")
+                    ->orWhere('medicines.presentation_name', 'ilike', "%{$this->search}%");
             })
             ->when($this->filterGroup, function ($q) {
                 $q->where('medicines.group_id', $this->filterGroup);

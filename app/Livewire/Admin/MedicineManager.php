@@ -23,6 +23,8 @@ class MedicineManager extends Component
 
     public string $filterGroup = '';
 
+    public string $stockSort = '';
+
     public ?Medicine $viewingMedicine = null;
 
     public array $context = [
@@ -47,6 +49,11 @@ class MedicineManager extends Component
     }
 
     public function updatedFilterGroup()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStockSort()
     {
         $this->resetPage();
     }
@@ -98,21 +105,38 @@ class MedicineManager extends Component
 
     public function render()
     {
-        $medicines = Medicine::search($this->search)
-            ->query(function ($query) {
-                $query->with(['product', 'stock', 'group']);
+        $query = Medicine::query()
+            ->with(['product', 'stock', 'group'])
+            ->join('products', 'medicines.product_id', '=', 'products.id')
+            ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
+            ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
+            ->select('medicines.*', 'stocks.cantidad_actual');
 
-                if ($this->filterPsychotropic) {
-                    $query->where('is_psychotropic', true);
-                }
-                if ($this->filterGroup) {
-                    $query->where('group_id', $this->filterGroup);
-                }
-                $query->join('products', 'medicines.product_id', '=', 'products.id')
-                    ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
-                    ->select('medicines.*');
-            })
-            ->paginate(12);
+        if ($this->search !== '') {
+            $query->where(function ($q) {
+                $q->where('products.name', 'ilike', '%'.$this->search.'%')
+                    ->orWhere('medicines.presentation_name', 'ilike', '%'.$this->search.'%')
+                    ->orWhere('medicines.level', 'ilike', '%'.$this->search.'%')
+                    ->orWhere('groups.name', 'ilike', '%'.$this->search.'%');
+            });
+        }
+
+        if ($this->filterPsychotropic) {
+            $query->where('medicines.is_psychotropic', true);
+        }
+        if ($this->filterGroup) {
+            $query->where('medicines.group_id', $this->filterGroup);
+        }
+
+        if ($this->stockSort === 'asc') {
+            $query->orderByRaw('COALESCE(stocks.cantidad_actual, 0) ASC');
+        } elseif ($this->stockSort === 'desc') {
+            $query->orderByRaw('COALESCE(stocks.cantidad_actual, 0) DESC');
+        } else {
+            $query->orderBy('medicines.id', 'desc');
+        }
+
+        $medicines = $query->paginate(12);
 
         $availableProducts = Product::where('status', true)
             ->doesntHave('medicine')

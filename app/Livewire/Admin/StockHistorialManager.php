@@ -40,7 +40,7 @@ class StockHistorialManager extends Component
         $movements = StockMovement::search($this->search)
             ->query(function ($builder) {
                 $builder->join('batches', 'stock_movements.batch_id', '=', 'batches.id')
-                    ->join('medicines', 'batches.medicine_id', '=', 'medicines.product_id')
+                    ->join('medicines', 'batches.medicine_id', '=', 'medicines.id')
                     ->join('products', 'medicines.product_id', '=', 'products.id')
                     ->join('users', 'stock_movements.user_id', '=', 'users.id')
                     ->select('stock_movements.*')

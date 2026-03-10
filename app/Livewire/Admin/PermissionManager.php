@@ -89,8 +89,8 @@ class PermissionManager extends Component
         $query = Permission::query();
 
         if ($this->search) {
-            $query->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('description', 'like', '%' . $this->search . '%');
+            $query->where('name', 'ilike', '%' . $this->search . '%')
+                  ->orWhere('description', 'ilike', '%' . $this->search . '%');
         }
 
         return view('livewire.admin.permission-manager', [

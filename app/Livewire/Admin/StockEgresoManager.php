@@ -119,7 +119,7 @@ class StockEgresoManager extends Component
         $batches = Batch::search($this->search)
             ->query(function ($builder) {
                 $builder->where('current_quantity', '>', 0)
-                    ->join('medicines', 'batches.medicine_id', '=', 'medicines.product_id')
+                    ->join('medicines', 'batches.medicine_id', '=', 'medicines.id')
                     ->join('products', 'medicines.product_id', '=', 'products.id')
                     ->select('batches.*') // Strict select to avoid ID collisions
                     ->with(['medicine.product', 'medicine.group']);
