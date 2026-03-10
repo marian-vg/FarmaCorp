@@ -53,6 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
         Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
         Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions');
+        Route::get('/admin/mantenimiento', \App\Livewire\Admin\BackupManager::class)->name('admin.backup');
     });
     
     Route::middleware(['role:admin|empleado'])->group(function () {
