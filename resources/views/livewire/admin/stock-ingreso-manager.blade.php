@@ -38,7 +38,7 @@
                                 ${{ number_format($medicine->price ?? 0, 2) }}
                             </x-table.cell>
                             <x-table.cell class="text-right text-sm font-medium">
-                                <flux:button size="sm" variant="primary" icon="plus" wire:click="selectMedicine({{ $medicine->product_id }})">
+                                <flux:button size="sm" variant="primary" icon="plus" wire:click="selectMedicine({{ $medicine->id }})">
                                     Ingresar Lote
                                 </flux:button>
                             </x-table.cell>

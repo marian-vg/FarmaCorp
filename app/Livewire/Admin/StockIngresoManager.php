@@ -29,7 +29,7 @@ class StockIngresoManager extends Component
     public $minimum_stock;
 
     protected $rules = [
-        'medicine_id' => 'required|exists:medicines,product_id',
+        'medicine_id' => 'required|exists:medicines,id',
         'batch_number' => 'required|string|max:255',
         'expiration_date' => 'required|date|after:today',
         'quantity_received' => 'required|integer|min:1',
@@ -53,15 +53,32 @@ class StockIngresoManager extends Component
         $this->validate();
 
         \DB::transaction(function () {
-            // Paso A: Crear Lote
-            $batch = Batch::create([
-                'medicine_id' => $this->medicine_id,
-                'batch_number' => $this->batch_number,
-                'expiration_date' => $this->expiration_date,
-                'initial_quantity' => $this->quantity_received,
-                'current_quantity' => $this->quantity_received,
-                'minimum_stock' => $this->minimum_stock,
-            ]);
+            // Paso A: Buscar Lote o Crearlo (Upserting para evitar Lotes Duplicados)
+            $batch = Batch::where('medicine_id', $this->medicine_id)
+                          ->where('batch_number', $this->batch_number)
+                          ->first();
+
+            if ($batch) {
+                // Si el lote existe, sumamos cantidades y actualizamos vencimiento y stock mínimo
+                $batch->initial_quantity += $this->quantity_received;
+                $batch->current_quantity += $this->quantity_received;
+                // Asumimos la fecha de vencimiento más reciente del remito
+                $batch->expiration_date = $this->expiration_date;
+                if ($this->minimum_stock > $batch->minimum_stock) {
+                    $batch->minimum_stock = $this->minimum_stock;
+                }
+                $batch->save();
+            } else {
+                // Si no existe, lo creamos convencionalmente
+                $batch = Batch::create([
+                    'medicine_id' => $this->medicine_id,
+                    'batch_number' => $this->batch_number,
+                    'expiration_date' => $this->expiration_date,
+                    'initial_quantity' => $this->quantity_received,
+                    'current_quantity' => $this->quantity_received,
+                    'minimum_stock' => $this->minimum_stock,
+                ]);
+            }
 
             // Paso B: Update global Stock for the Medicine
             $stock = Stock::firstOrCreate(

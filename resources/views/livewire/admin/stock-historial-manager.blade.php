@@ -31,7 +31,7 @@
                                 {{ $movement->user?->name ?? 'Sistema' }}
                             </x-table.cell>
                             <x-table.cell class="text-sm text-zinc-900 dark:text-zinc-100">
-                                <span class="font-semibold">{{ $movement->batch?->medicine?->product?->name ?? 'N/D' }}</span>
+                                <span class="font-semibold">{{ $movement->batch?->medicine?->presentation_name ?? 'N/D' }}</span>
                                 <span class="text-zinc-500 dark:text-zinc-400 ml-1">({{ $movement->batch?->batch_number ?? 'N/D' }})</span>
                             </x-table.cell>
                             <x-table.cell class="text-sm">

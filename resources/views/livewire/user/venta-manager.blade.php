@@ -20,7 +20,11 @@
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
                         @forelse($medicines as $medicine)
                             @php
-                                $stockActual = $medicine->stock?->cantidad_actual ?? 0;
+                                // Resta dinámica "En Vivo" Fase 10
+                                $cantidadEnCarrito = isset($carrito[$medicine->id]) ? $carrito[$medicine->id]['cantidad'] : 0;
+                                $stockRealDB = $medicine->stock?->cantidad_actual ?? 0;
+                                $stockActual = max(0, $stockRealDB - $cantidadEnCarrito);
+                                
                                 $fueraDeStock = $stockActual <= 0;
                                 $product = $medicine->product;
 
@@ -64,7 +68,9 @@
                                         <flux:heading size="sm" class="leading-tight">{{ $medicine->presentation_name ?: $product->name }}</flux:heading>
                                         
                                         <div class="flex items-center gap-1.5">
-                                            @if($fueraDeStock)
+                                            @if($fueraDeStock && $stockRealDB > 0)
+                                                <flux:badge size="xs" color="orange" variant="solid">Lim. Carrito</flux:badge>
+                                            @elseif($fueraDeStock)
                                                 <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
                                             @else
                                                 <flux:badge size="xs" :color="$stockActual <= ($medicine->stock?->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
@@ -84,7 +90,10 @@
                                     </div>
                                     
                                     @if(!$bloqueadoParaVenta)
-                                        <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" />
+                                        <div class="flex gap-1">
+                                            <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" wire:click.stop="agregarAlCarrito({{ $medicine->id }})" tooltip="Agregar 1 unidad" />
+                                            <flux:button size="xs" icon="squares-plus" variant="ghost" class="group-hover:text-indigo-600" wire:click.stop="openCustomModal({{ $medicine->id }}, 'agregar')" tooltip="Agregar cantidad personalizada" />
+                                        </div>
                                     @else
                                         <flux:icon.x-mark class="text-red-400 w-4 h-4" />
                                     @endif
@@ -122,7 +131,7 @@
                         </flux:select>
 
                         <div class="relative">
-                            <flux:input wire:model.live.debounce.300ms="search_cliente" label="Cliente (RF-22)" icon="user" placeholder="Buscar..." />
+                            <flux:input wire:model.live.debounce.300ms="search_cliente" label="Cliente" icon="user" placeholder="Buscar..." />
                             @if($search_cliente && $this->clientes->isNotEmpty() && !$cliente_id)
                                 <div class="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg overflow-hidden">
                                     @foreach($this->clientes as $cli)
@@ -150,11 +159,15 @@
                     <div class="space-y-3 max-h-64 overflow-y-auto">
                         @forelse($carrito as $item)
                             <div class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                                <div class="flex-1">
-                                    <flux:text class="font-medium">{{ $item['name'] }}</flux:text>
+                                <div class="flex-1 pr-2">
+                                    <flux:text class="font-medium truncate">{{ $item['name'] }}</flux:text>
                                     <flux:text size="xs" class="text-zinc-500">{{ $item['cantidad'] }} x ${{ number_format($item['price'], 2) }}</flux:text>
                                 </div>
-                                <flux:button variant="ghost" icon="trash" size="xs" class="text-red-500" wire:click="quitarDelCarrito({{ $item['id'] }})" />
+                                <div class="flex items-center gap-1">
+                                    <flux:button variant="ghost" icon="minus" size="xs" class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200" wire:click="quitarUnoDelCarrito({{ $item['id'] }})" tooltip="Quitar 1" />
+                                    <flux:button variant="ghost" icon="pencil-square" size="xs" class="text-zinc-400 hover:text-indigo-600" wire:click="openCustomModal({{ $item['id'] }}, 'quitar')" tooltip="Quitar personalizado" />
+                                    <flux:button variant="ghost" icon="trash" size="xs" class="text-red-500 hover:text-red-700" wire:click="quitarDelCarrito({{ $item['id'] }})" tooltip="Eliminar ítem" />
+                                </div>
                             </div>
                         @empty
                             <div class="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500 italic">
@@ -498,6 +511,28 @@
         </div>
     </div>
 </flux:modal>
+
+{{-- MODAL ENTRADA CANTIDAD PERSONALIZADA (Fase 11) --}}
+<flux:modal name="custom-quantity-modal" class="md:w-96">
+    <form wire:submit="processCustomQuantity" class="space-y-6">
+        <div>
+            <flux:heading size="lg">
+                {{ $customOperation === 'agregar' ? 'Múltiples Unidades' : 'Quitar Múltiples' }}
+            </flux:heading>
+            <flux:subheading>Ingresa el monto a {{ $customOperation === 'agregar' ? 'añadir' : 'retirar' }} del Carrito</flux:subheading>
+        </div>
+
+        <flux:input wire:model="customQuantity" type="number" label="Cantidad" placeholder="1" min="1" required autofocus />
+
+        <div class="flex justify-between gap-2">
+            <flux:modal.close>
+                <flux:button variant="ghost" wire:click="$reset(['customQuantity', 'customMedicineId', 'customOperation'])">Cancelar</flux:button>
+            </flux:modal.close>
+            <flux:button variant="primary" type="submit">Confirmar</flux:button>
+        </div>
+    </form>
+</flux:modal>
+
 <script>
     window.addEventListener('abrir-impresion', event => {
         // Abrimos la URL de la factura en una pestaña nueva/ventana popup

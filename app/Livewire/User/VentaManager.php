@@ -35,6 +35,11 @@ class VentaManager extends Component
     public ?\App\Models\Medicine $viewingMedicine = null;
     public $ultimaFacturaId = null;
 
+    // Fase 11: Cantidades Personalizadas de Carrito
+    public $customQuantity = 1;
+    public $customMedicineId = null;
+    public $customOperation = 'agregar'; // 'agregar' o 'quitar'
+
     public function viewLeaflet($productId)
     {
         $this->viewingMedicine = \App\Models\Medicine::with('product')->where('product_id', $productId)->first();
@@ -196,6 +201,70 @@ class VentaManager extends Component
             ];
         }
         $this->notify('Añadido: ' . ($medicine->presentation_name ?: $product->name), 'success');
+    }
+
+    public function quitarUnoDelCarrito($medicineId)
+    {
+        if (isset($this->carrito[$medicineId])) {
+            $this->carrito[$medicineId]['cantidad']--;
+            if ($this->carrito[$medicineId]['cantidad'] <= 0) {
+                unset($this->carrito[$medicineId]);
+            }
+        }
+    }
+
+    public function openCustomModal($medicineId, $operation = 'agregar')
+    {
+        $this->customMedicineId = $medicineId;
+        $this->customOperation = $operation;
+        $this->customQuantity = 1;
+        Flux::modal('custom-quantity-modal')->show();
+    }
+
+    public function processCustomQuantity()
+    {
+        $this->validate([
+            'customQuantity' => 'required|integer|min:1'
+        ]);
+
+        $medicine = \App\Models\Medicine::with('product', 'stock')->find($this->customMedicineId);
+        
+        if (!$medicine) return; // Salvaguardia
+
+        $cantidadActual = isset($this->carrito[$medicine->id]) ? $this->carrito[$medicine->id]['cantidad'] : 0;
+        $stockDisponible = $medicine->stock?->cantidad_actual ?? 0;
+
+        if ($this->customOperation === 'agregar') {
+            if (($cantidadActual + $this->customQuantity) > $stockDisponible) {
+                $this->notify('Error: Deseas añadir '.$this->customQuantity.', pero el inventario solo admite ' . ($stockDisponible - $cantidadActual) . ' unidades más de este lote físico.', 'error');
+                Flux::modal('custom-quantity-modal')->close();
+                return;
+            }
+
+            if (isset($this->carrito[$medicine->id])) {
+                $this->carrito[$medicine->id]['cantidad'] += $this->customQuantity;
+            } else {
+                $this->carrito[$medicine->id] = [
+                    'id' => $medicine->id,
+                    'product_id' => $medicine->product->id,
+                    'name' => $medicine->presentation_name ?: $medicine->product->name,
+                    'price' => $medicine->price,
+                    'cantidad' => $this->customQuantity,
+                ];
+            }
+            $this->notify('Se añadieron '.$this->customQuantity.' unidades correctamente.', 'success');
+
+        } elseif ($this->customOperation === 'quitar') {
+            if ($this->customQuantity >= $cantidadActual) {
+                unset($this->carrito[$medicine->id]);
+            } else {
+                $this->carrito[$medicine->id]['cantidad'] -= $this->customQuantity;
+            }
+            $this->notify('Se quitaron unidades correctamente.', 'success');
+        }
+
+        Flux::modal('custom-quantity-modal')->close();
+        $this->reset(['customQuantity', 'customMedicineId', 'customOperation']);
     }
 
     public function quitarDelCarrito($medicineId)
