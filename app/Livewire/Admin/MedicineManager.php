@@ -17,6 +17,11 @@ class MedicineManager extends Component
 {
     use Notifies, WithPagination;
 
+    private function likeOperator(): string
+    {
+        return \DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+    }
+
     public string $search = '';
 
     public bool $filterPsychotropic = false;
@@ -113,11 +118,12 @@ class MedicineManager extends Component
             ->select('medicines.*', 'stocks.cantidad_actual');
 
         if ($this->search !== '') {
-            $query->where(function ($q) {
-                $q->where('products.name', 'ilike', '%'.$this->search.'%')
-                    ->orWhere('medicines.presentation_name', 'ilike', '%'.$this->search.'%')
-                    ->orWhere('medicines.level', 'ilike', '%'.$this->search.'%')
-                    ->orWhere('groups.name', 'ilike', '%'.$this->search.'%');
+            $lk = $this->likeOperator();
+            $query->where(function ($q) use ($lk) {
+                $q->where('products.name', $lk, '%'.$this->search.'%')
+                    ->orWhere('medicines.presentation_name', $lk, '%'.$this->search.'%')
+                    ->orWhere('medicines.level', $lk, '%'.$this->search.'%')
+                    ->orWhere('groups.name', $lk, '%'.$this->search.'%');
             });
         }
 

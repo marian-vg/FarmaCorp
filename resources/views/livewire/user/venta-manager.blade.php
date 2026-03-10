@@ -264,7 +264,6 @@
         </div>
     @endif
 
-    {{-- 3. CONTENIDO: PESTAÑA HISTORIAL --}}
     @if($tabActiva === 'historial')
     <div class="space-y-4">
         <div class="flex justify-between items-center">
@@ -280,27 +279,22 @@
             </div>
         </div>
         
-        <div class="w-full overflow-hidden rounded-lg border border-zinc-200">
-            <x-table>
-                <x-slot:head>
-                    <x-table.row>
-                        <x-table.heading>Fecha</x-table.heading>
-                        <x-table.heading>Cliente</x-table.heading>
-                        <x-table.heading>Medio / Estado</x-table.heading>
-                        <x-table.heading class="text-right">Monto Total</x-table.heading>
-                        <x-table.heading class="text-right">Acciones</x-table.heading>
-                    </x-table.row>
-                </x-slot:head>
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Fecha</x-table.heading>
+                <x-table.heading>Cliente</x-table.heading>
+                <x-table.heading>Medio / Estado</x-table.heading>
+                <x-table.heading class="text-right">Monto Total</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
 
                 <x-table.body>
                     @forelse($this->historialVentas as $venta)
                         <x-table.row :key="'venta-'.$venta->id">
-                            {{-- Celda 1: Fecha --}}
                             <x-table.cell class="text-xs font-mono">
                                 {{ $venta->fecha_emision->format('d/m/Y H:i') }}
                             </x-table.cell>
 
-                            {{-- Celda 2: CLIENTE (RF-22) --}}
                             <x-table.cell>
                                 @if($venta->cliente)
                                     <div class="flex flex-col">
@@ -314,7 +308,6 @@
                                 @endif
                             </x-table.cell>
 
-                            {{-- Celda 3: Medio / Estado --}}
                             <x-table.cell>
                                 @if($venta->estado === 'PENDIENTE')
                                     <flux:badge size="sm" color="red" variant="solid" icon="clock">Cuenta Corriente</flux:badge>
@@ -331,15 +324,12 @@
                                 @endif
                             </x-table.cell>
 
-                            {{-- Celda 4: Monto Total --}}
                             <x-table.cell class="text-right font-bold text-indigo-600">
                                 ${{ number_format($venta->total, 2) }}
                             </x-table.cell>
 
-                            {{-- Celda 5: Acciones --}}
                             <x-table.cell class="text-right">
                                 <div class="flex gap-2 justify-end">
-                                    {{-- Botón de Detalle --}}
                                     <flux:button 
                                         icon="information-circle" 
                                         size="xs" 
@@ -348,7 +338,6 @@
                                         tooltip="Ver detalle"
                                     />
 
-                                    {{-- BOTÓN DE DESCARGA (RF-19) --}}
                                     <flux:button 
                                         icon="document-arrow-down" 
                                         size="xs" 
@@ -361,7 +350,6 @@
                             </x-table.cell>
                         </x-table.row>
                     @empty
-                        {{-- Ajustamos el colspan a 5 porque ahora hay 5 columnas --}}
                         <x-table.row>
                             <x-table.cell colspan="5" class="text-center py-10 italic text-zinc-400">
                                 No hay ventas registradas en este período.
@@ -370,12 +358,10 @@
                     @endforelse
                 </x-table.body>
             </x-table>
-        </div>
         {{ $this->historialVentas->links() }}
     </div>
 @endif
 
-    {{-- 4. MODAL DETALLE DE VENTA --}}
     <flux:modal name="detalle-venta-modal" class="md:w-5/12">
         <div class="space-y-6">
             @if($facturaSeleccionada)
@@ -431,7 +417,6 @@
                         </div>
                     @endif
 
-                    {{-- Resumen Consolidado --}}
                     <div class="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border">
                         <div class="flex justify-between text-sm text-zinc-500 italic">
                             <span>Subtotal Medicamentos:</span>
@@ -508,7 +493,6 @@
         </div>
 
         <div class="grid grid-cols-1 gap-2">
-            {{-- Opción de IMPRIMIR/GUARDAR (PDF) --}}
             <flux:button 
                 variant="primary" 
                 icon="document-arrow-down" 
@@ -524,7 +508,6 @@
     </div>
 </flux:modal>
 
-{{-- MODAL ENTRADA CANTIDAD PERSONALIZADA (Fase 11) --}}
 <flux:modal name="custom-quantity-modal" class="md:w-96">
     <form wire:submit="processCustomQuantity" class="space-y-6">
         <div>
@@ -547,7 +530,6 @@
 
 <script>
     window.addEventListener('abrir-impresion', event => {
-        // Abrimos la URL de la factura en una pestaña nueva/ventana popup
         window.open(event.detail.url, '_blank');
     });
 </script>

@@ -110,6 +110,7 @@ class StockEgresoManager extends Component
         });
 
         Flux::modal('egreso-modal')->close();
+        $this->dispatch('stock-actualizado');
         $this->notify('Egreso registrado con éxito.', 'success');
         $this->reset(['batch_id', 'quantity_to_remove', 'reason', 'current_stock_display']);
     }

@@ -12,12 +12,31 @@ use App\Traits\Notifies;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class VentaManager extends Component
 {
     use Notifies, WithPagination;
+
+    /**
+     * Refreshes medicine availability when stock changes are recorded by admins.
+     */
+    #[On('stock-actualizado')]
+    public function refrescarMedicamentos(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Returns the correct SQL LIKE operator for the current database driver.
+     * PostgreSQL uses ILIKE for case-insensitive matching; SQLite uses LIKE.
+     */
+    private function likeOperator(): string
+    {
+        return \DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+    }
 
     public $carrito = [];
 
@@ -496,14 +515,15 @@ class VentaManager extends Component
         // Obtenemos la configuración una sola vez para la vista (RF-21)
         $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
 
+        $lk = $this->likeOperator();
         $medicines = \App\Models\Medicine::query()
             ->with(['product', 'stock'])
             ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
             ->join('products', 'medicines.product_id', '=', 'products.id')
             ->where('products.status', true)
-            ->where(function ($q) {
-                $q->where('products.name', 'ilike', "%{$this->search}%")
-                    ->orWhere('medicines.presentation_name', 'ilike', "%{$this->search}%");
+            ->where(function ($q) use ($lk) {
+                $q->where('products.name', $lk, "%{$this->search}%")
+                    ->orWhere('medicines.presentation_name', $lk, "%{$this->search}%");
             })
             ->when($this->filterGroup, function ($q) {
                 $q->where('medicines.group_id', $this->filterGroup);
