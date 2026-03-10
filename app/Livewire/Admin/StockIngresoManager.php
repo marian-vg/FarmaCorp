@@ -63,10 +63,9 @@ class StockIngresoManager extends Component
                 'minimum_stock' => $this->minimum_stock,
             ]);
 
-            // Paso B: Update global Stock for the Product
-            $medicine = Medicine::find($this->medicine_id);
+            // Paso B: Update global Stock for the Medicine
             $stock = Stock::firstOrCreate(
-                ['product_id' => $medicine->product_id],
+                ['medicine_id' => $this->medicine_id],
                 ['cantidad_actual' => 0, 'stock_minimo' => 0]
             );
             
@@ -85,16 +84,6 @@ class StockIngresoManager extends Component
                 'reason' => 'compra',
                 'quantity' => $this->quantity_received,
             ]);
-
-            // PASO C: Actualizar el Stock Global (Totalizador) [cite: 18]
-            $stock = \App\Models\Stock::firstOrNew(['product_id' => $this->medicine_id]);
-
-            // Si el registro es nuevo, 'cantidad_actual' será 0 o null automáticamente
-            $stock->stock_minimo = $this->minimum_stock;
-            $stock->cantidad_actual += $this->quantity_received;
-            // $stock->fecha_actualización = now(); // Columna inexistente en la base de datos
-
-            $stock->save();
         });
 
         Flux::modal('ingreso-modal')->close();

@@ -38,10 +38,10 @@
                             <flux:text>{{ $medicine->level ?? 'N/A' }}</flux:text>
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:badge variant="solid" color="zinc">{{ $medicine->product->stock?->cantidad_actual ?? 0 }}</flux:badge>
+                            <flux:badge variant="solid" color="zinc">{{ $medicine->stock?->cantidad_actual ?? 0 }}</flux:badge>
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:text class="text-gray-500">{{ $medicine->product->stock?->stock_minimo ?? 0 }}</flux:text>
+                            <flux:text class="text-gray-500">{{ $medicine->stock?->stock_minimo ?? 0 }}</flux:text>
                         </x-table.cell>
                         <x-table.cell>
                             @if($medicine->expiration_date)

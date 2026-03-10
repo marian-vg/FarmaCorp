@@ -43,6 +43,11 @@ class Medicine extends Model
         return $this->belongsTo(Group::class);
     }
 
+    public function stock(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Stock::class);
+    }
+
     public function batches(): HasMany
     {
         return $this->hasMany(Batch::class);

@@ -18,10 +18,11 @@
                     <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." />
                     
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        @forelse($products as $product)
+                        @forelse($medicines as $medicine)
                             @php
-                                $stockActual = $product->stock?->cantidad_actual ?? 0;
+                                $stockActual = $medicine->stock?->cantidad_actual ?? 0;
                                 $fueraDeStock = $stockActual <= 0;
+                                $product = $medicine->product;
 
                                 $precioVencido = $product->price_expires_at && $product->price_expires_at->isPast();
                                 
@@ -34,7 +35,7 @@
 
                             <flux:card 
                                 class="flex flex-col justify-between transition-all {{ $bloqueadoParaVenta ? 'opacity-60 grayscale' : 'hover:shadow-md cursor-pointer group' }}" 
-                                wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$product->id.')' }}"
+                                wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$medicine->id.')' }}"
                             >
                                 <div>
                                     <div class="flex justify-between items-start mb-2">
@@ -48,7 +49,7 @@
                                             @endif
                                         </div>
                                         
-                                        @if($product->medicine)
+                                        @if($medicine->leaflet)
                                             <button 
                                                 wire:click.stop="viewLeaflet({{ $product->id }})" 
                                                 class="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-colors"
@@ -60,13 +61,13 @@
                                     </div>
 
                                     <div class="space-y-1">
-                                        <flux:heading size="sm" class="leading-tight">{{ $product->name }}</flux:heading>
+                                        <flux:heading size="sm" class="leading-tight">{{ $medicine->presentation_name ?: $product->name }}</flux:heading>
                                         
                                         <div class="flex items-center gap-1.5">
                                             @if($fueraDeStock)
                                                 <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
                                             @else
-                                                <flux:badge size="xs" :color="$stockActual <= ($product->stock->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
+                                                <flux:badge size="xs" :color="$stockActual <= ($medicine->stock?->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
                                                     {{ $stockActual }} disponibles
                                                 </flux:badge>
                                             @endif
@@ -76,7 +77,7 @@
 
                                 <div class="mt-4 flex justify-between items-center pt-2 border-t border-zinc-50 dark:border-zinc-800/50">
                                     <div class="flex flex-col">
-                                        <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
+                                        <flux:text class="font-bold text-indigo-600">${{ number_format($medicine->price, 2) }}</flux:text>
                                         @if($precioAntiguo)
                                             <span class="text-[9px] text-zinc-400">Act. hace {{ $diasAntiguedad }} d</span>
                                         @endif
@@ -232,7 +233,6 @@
                             class="w-full" 
                             wire:click="procesarVenta" 
                             icon="banknotes" 
-                            {{-- BLOQUEO: Agregamos la condición de que el total pagado no sea superior al total final --}}
                             :disabled="!$tipo_comprobante || empty($carrito) || ($this->montoRestante > 0.01 && !$cliente_id) || (collect($pagos_realizados)->sum('monto') > $this->totalFinal)"
                         >
                             {{ (collect($pagos_realizados)->sum('monto') > $this->totalFinal) ? 'Monto Excedido' : (($this->montoRestante > 0.01 && $cliente_id) ? 'Vender con Saldo Deudor' : 'Confirmar y Facturar') }}
@@ -256,25 +256,27 @@
         </div>
         
         <div class="w-full overflow-hidden rounded-lg border border-zinc-200">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Fecha</flux:table.column>
-                    <flux:table.column>Cliente</flux:table.column> {{-- Columna 2 --}}
-                    <flux:table.column>Medio / Estado</flux:table.column> {{-- Columna 3 --}}
-                    <flux:table.column align="end">Monto Total</flux:table.column> {{-- Columna 4 --}}
-                    <flux:table.column align="end">Acciones</flux:table.column> {{-- Columna 5 --}}
-                </flux:table.columns>
+            <x-table>
+                <x-slot:head>
+                    <x-table.row>
+                        <x-table.heading>Fecha</x-table.heading>
+                        <x-table.heading>Cliente</x-table.heading>
+                        <x-table.heading>Medio / Estado</x-table.heading>
+                        <x-table.heading class="text-right">Monto Total</x-table.heading>
+                        <x-table.heading class="text-right">Acciones</x-table.heading>
+                    </x-table.row>
+                </x-slot:head>
 
-                <flux:table.rows>
+                <x-table.body>
                     @forelse($this->historialVentas as $venta)
-                        <flux:table.row :key="'venta-'.$venta->id">
+                        <x-table.row :key="'venta-'.$venta->id">
                             {{-- Celda 1: Fecha --}}
-                            <flux:table.cell class="text-xs font-mono">
+                            <x-table.cell class="text-xs font-mono">
                                 {{ $venta->fecha_emision->format('d/m/Y H:i') }}
-                            </flux:table.cell>
+                            </x-table.cell>
 
                             {{-- Celda 2: CLIENTE (RF-22) --}}
-                            <flux:table.cell>
+                            <x-table.cell>
                                 @if($venta->cliente)
                                     <div class="flex flex-col">
                                         <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -285,10 +287,10 @@
                                 @else
                                     <span class="text-xs text-zinc-400 italic">Consumidor Final</span>
                                 @endif
-                            </flux:table.cell>
+                            </x-table.cell>
 
                             {{-- Celda 3: Medio / Estado --}}
-                            <flux:table.cell>
+                            <x-table.cell>
                                 @if($venta->estado === 'PENDIENTE')
                                     <flux:badge size="sm" color="red" variant="solid" icon="clock">Cuenta Corriente</flux:badge>
                                     @if($venta->pagos->isNotEmpty())
@@ -302,16 +304,16 @@
                                         {{ $mediosUnicos > 1 ? 'Combinado' : ($venta->pagos->first()?->medioPago?->nombre ?? 'N/D') }}
                                     </flux:badge>
                                 @endif
-                            </flux:table.cell>
+                            </x-table.cell>
 
                             {{-- Celda 4: Monto Total --}}
-                            <flux:table.cell align="end" class="font-bold text-indigo-600">
+                            <x-table.cell class="text-right font-bold text-indigo-600">
                                 ${{ number_format($venta->total, 2) }}
-                            </flux:table.cell>
+                            </x-table.cell>
 
                             {{-- Celda 5: Acciones --}}
-                            <flux:table.cell align="end">
-                                <div class="flex gap-2">
+                            <x-table.cell class="text-right">
+                                <div class="flex gap-2 justify-end">
                                     {{-- Botón de Detalle --}}
                                     <flux:button 
                                         icon="information-circle" 
@@ -321,7 +323,7 @@
                                         tooltip="Ver detalle"
                                     />
 
-                                    {{-- BOTÓN DE DESCARGA (RF-19) [cite: 127] --}}
+                                    {{-- BOTÓN DE DESCARGA (RF-19) --}}
                                     <flux:button 
                                         icon="document-arrow-down" 
                                         size="xs" 
@@ -331,18 +333,18 @@
                                         tooltip="Descargar PDF"
                                     />
                                 </div>
-                            </flux:table.cell>
-                        </flux:table.row>
+                            </x-table.cell>
+                        </x-table.row>
                     @empty
                         {{-- Ajustamos el colspan a 5 porque ahora hay 5 columnas --}}
-                        <flux:table.row>
-                            <flux:table.cell colspan="5" class="text-center py-10 italic text-zinc-400">
+                        <x-table.row>
+                            <x-table.cell colspan="5" class="text-center py-10 italic text-zinc-400">
                                 No hay ventas registradas en este período.
-                            </flux:table.cell>
-                        </flux:table.row>
+                            </x-table.cell>
+                        </x-table.row>
                     @endforelse
-                </flux:table.rows>
-            </flux:table>
+                </x-table.body>
+            </x-table>
         </div>
         {{ $this->historialVentas->links() }}
     </div>

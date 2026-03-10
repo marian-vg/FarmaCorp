@@ -150,10 +150,13 @@ class VentaManager extends Component
         return Caja::where('user_id', Auth::id())->whereNull('fecha_cierre')->first();
     }
 
-    public function agregarAlCarrito(Product $product)
+    public function agregarAlCarrito(\App\Models\Medicine $medicine)
     {
-
         $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+
+        // Ya que el precio está en la presentación en el nuevo Vademécum
+        // Por seguridad fall-back a price_expires_at del product (como estaba antes), o se podría migrar tmb
+        $product = $medicine->product;
 
         if ($product->price_expires_at && $product->price_expires_at->isPast()) {
             $this->notify("BLOQUEO: El precio de {$product->name} caducó el " . $product->price_expires_at->format('d/m/Y') . ". Actualícelo en el catálogo.", 'error');
@@ -173,30 +176,31 @@ class VentaManager extends Component
             return;
         }
 
-        $stockDisponible = $product->stock?->cantidad_actual ?? 0;
-        $cantidadEnCarrito = isset($this->carrito[$product->id]) ? $this->carrito[$product->id]['cantidad'] : 0;
+        $stockDisponible = $medicine->stock?->cantidad_actual ?? 0;
+        $cantidadEnCarrito = isset($this->carrito[$medicine->id]) ? $this->carrito[$medicine->id]['cantidad'] : 0;
 
         if ($stockDisponible <= $cantidadEnCarrito) {
             $this->notify('No hay más stock disponible.', 'error');
             return;
         }
 
-        if (isset($this->carrito[$product->id])) {
-            $this->carrito[$product->id]['cantidad']++;
+        if (isset($this->carrito[$medicine->id])) {
+            $this->carrito[$medicine->id]['cantidad']++;
         } else {
-            $this->carrito[$product->id] = [
-                'id' => $product->id,
-                'name' => $product->medicine->presentation_name ?: $product->name,
-                'price' => $product->medicine->price,
+            $this->carrito[$medicine->id] = [
+                'id' => $medicine->id, // Este id es el medicine_id a partir de ahora, para aislar
+                'product_id' => $product->id, 
+                'name' => $medicine->presentation_name ?: $product->name,
+                'price' => $medicine->price,
                 'cantidad' => 1,
             ];
         }
-        $this->notify('Añadido: ' . $product->name, 'success');
+        $this->notify('Añadido: ' . ($medicine->presentation_name ?: $product->name), 'success');
     }
 
-    public function quitarDelCarrito($productId)
+    public function quitarDelCarrito($medicineId)
     {
-        unset($this->carrito[$productId]);
+        unset($this->carrito[$medicineId]);
     }
 
     #[Computed]
@@ -260,10 +264,10 @@ class VentaManager extends Component
                     'precio_unitario' => $item['price'],
                     'descuento'       => 0,
                     'factura_id'      => $factura->id,
-                    'product_id'      => $item['id'],
+                    'product_id'      => $item['product_id'], // Factura detalle todavía hace fk a product_id (históricamente)
                 ]);
 
-                $stockGlobal = \App\Models\Stock::where('product_id', $item['id'])->first();
+                $stockGlobal = \App\Models\Stock::where('medicine_id', $item['id'])->first();
                 if ($stockGlobal) {
                     $stockGlobal->cantidad_actual -= $item['cantidad'];
                     $stockGlobal->save();
@@ -377,18 +381,22 @@ class VentaManager extends Component
         // Obtenemos la configuración una sola vez para la vista (RF-21)
         $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
 
-        $products = Product::query()
-            ->leftJoin('stocks', 'products.id', '=', 'stocks.product_id')
+        $medicines = \App\Models\Medicine::query()
+            ->with(['product', 'stock'])
+            ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
+            ->join('products', 'medicines.product_id', '=', 'products.id')
             ->where('products.status', true)
-            ->where('products.name', 'like', "%{$this->search}%")
+            ->where(function($q) {
+                $q->where('products.name', 'like', "%{$this->search}%")
+                  ->orWhere('medicines.presentation_name', 'like', "%{$this->search}%");
+            })
             ->orderByRaw('CASE WHEN stocks.cantidad_actual > 0 THEN 0 ELSE 1 END ASC')
             ->orderBy('products.name', 'asc')
-            ->select('products.*')
-            ->with(['stock', 'medicine']) 
+            ->select('medicines.*')
             ->get();
 
         return view('livewire.user.venta-manager', [
-            'products' => $products,
+            'medicines' => $medicines,
             'mediosPago' => MedioPago::all(),
             'maxDays' => $maxDays // Enviamos el límite a la vista
         ])->layout('components.layouts.app');

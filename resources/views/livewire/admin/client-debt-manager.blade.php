@@ -1,8 +1,7 @@
 <div class="space-y-6">
-    {{-- ENCABEZADO Y RESUMEN --}}
     <div class="flex justify-between items-center">
         <div>
-            <flux:heading size="xl">Saldos de Cuentas Corrientes (RF-16)</flux:heading>
+            <flux:heading size="xl">Saldos de Cuentas Corrientes</flux:heading>
             <flux:subheading>Monitoreo de deudas y saldos pendientes por cliente.</flux:subheading>
         </div>
         
@@ -12,33 +11,31 @@
         </div>
     </div>
 
-    {{-- BUSCADOR --}}
     <div class="flex gap-4">
         <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar cliente por nombre o teléfono..." class="flex-1" />
     </div>
 
-    {{-- TABLA DE CLIENTES --}}
     <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-        <flux:table>
-            <flux:table.columns>
-                <flux:table.column>Cliente</flux:table.column>
-                <flux:table.column>Contacto</flux:table.column>
-                <flux:table.column align="end">Saldo Pendiente (RF-12)</flux:table.column>
-                <flux:table.column align="end">Acciones</flux:table.column>
-            </flux:table.columns>
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Cliente</x-table.heading>
+                <x-table.heading>Contacto</x-table.heading>
+                <x-table.heading class="text-right">Saldo Pendiente</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
 
-            <flux:table.rows>
+            <x-table.body>
                 @forelse($clientes as $cliente)
-                    <flux:table.row :key="'cliente-'.$cliente->id">
-                        <flux:table.cell class="font-medium">
+                    <x-table.row :key="'cliente-'.$cliente->id">
+                        <x-table.cell class="font-medium">
                             {{ $cliente->first_name }} {{ $cliente->last_name }}
-                        </flux:table.cell>
+                        </x-table.cell>
                         
-                        <flux:table.cell class="text-zinc-500">
+                        <x-table.cell class="text-zinc-500">
                             {{ $cliente->phone ?: 'Sin teléfono' }}
-                        </flux:table.cell>
+                        </x-table.cell>
 
-                        <flux:table.cell align="end">
+                        <x-table.cell class="text-right">
                             @if($cliente->saldo_real_pendiente > 0)
                                 <flux:badge color="red" variant="solid" size="sm">
                                     ${{ number_format($cliente->saldo_real_pendiente, 2) }}
@@ -46,9 +43,9 @@
                             @else
                                 <flux:badge color="green" variant="subtle" size="sm">Al día</flux:badge>
                             @endif
-                        </flux:table.cell>
+                        </x-table.cell>
 
-                        <flux:table.cell align="end">
+                        <x-table.cell class="text-right">
                             <flux:button 
                                 icon="eye" 
                                 size="xs" 
@@ -56,24 +53,23 @@
                                 wire:click="verDetalleDeuda({{ $cliente->id }})" 
                                 tooltip="Ver deudas y cobrar" 
                             />
-                        </flux:table.cell>
-                    </flux:table.row>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <flux:table.row>
-                        <flux:table.cell colspan="4" class="text-center py-12 text-zinc-500 italic">
+                    <x-table.row>
+                        <x-table.cell colspan="4" class="text-center py-12 text-zinc-500 italic">
                             No se encontraron clientes con los filtros aplicados.
-                        </flux:table.cell>
-                    </flux:table.row>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </flux:table.rows>
-        </flux:table>
+            </x-table.body>
+        </x-table>
     </div>
 
     <div class="mt-4">
         {{ $clientes->links() }}
     </div>
 
-    {{-- EL MODAL AHORA ESTÁ FUERA DE LA TABLA (Solución al error del ojo) --}}
     <flux:modal name="cobro-modal" class="md:w-6/12">
         <div class="space-y-6">
             <div>
@@ -245,22 +241,26 @@
 
             <flux:separator />
             
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Producto</flux:table.column>
-                    <flux:table.column>Cant.</flux:table.column>
-                    <flux:table.column align="end">Subtotal</flux:table.column>
-                </flux:table.columns>
-                <flux:table.rows>
-                    @foreach($facturaSeleccionada->details as $item)
-                        <flux:table.row>
-                            <flux:table.cell>{{ $item->product->name }}</flux:table.cell>
-                            <flux:table.cell>{{ $item->cantidad }}</flux:table.cell>
-                            <flux:table.cell align="end" class="font-medium">${{ number_format($item->cantidad * $item->precio_unitario, 2) }}</flux:table.cell>
-                        </flux:table.row>
-                    @endforeach
-                </flux:table.rows>
-            </flux:table>
+            <div class="mt-4 border rounded-xl overflow-hidden border-zinc-200 dark:border-zinc-700">
+                <x-table>
+                    <x-slot:head>
+                        <x-table.row>
+                            <x-table.heading>Producto</x-table.heading>
+                            <x-table.heading>Cant.</x-table.heading>
+                            <x-table.heading class="text-right">Subtotal</x-table.heading>
+                        </x-table.row>
+                    </x-slot:head>
+                    <x-table.body>
+                        @foreach($facturaSeleccionada->details as $item)
+                            <x-table.row>
+                                <x-table.cell>{{ $item->product->name }}</x-table.cell>
+                                <x-table.cell>{{ $item->cantidad }}</x-table.cell>
+                                <x-table.cell class="text-right font-medium">${{ number_format($item->cantidad * $item->precio_unitario, 2) }}</x-table.cell>
+                            </x-table.row>
+                        @endforeach
+                    </x-table.body>
+                </x-table>
+            </div>
 
             @if($facturaSeleccionada->pagos->isNotEmpty())
                 <div class="space-y-2">

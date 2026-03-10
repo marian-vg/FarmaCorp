@@ -204,10 +204,8 @@ class CajaManager extends Component
 
     public function verDetalle($id)
     {
-        // Buscamos la caja con sus movimientos y el medio de pago de cada uno
         $this->cajaSeleccionada = Caja::with('movimientos.medioPago')->find($id);
 
-        // Disparamos el panel lateral de Flux
         Flux::modal('detalle-caja-panel')->show();
     }
 

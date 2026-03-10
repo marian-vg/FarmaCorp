@@ -34,59 +34,59 @@
     </div>
 
     <div class="w-full overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-        <flux:table>
-            <flux:table.columns>
-                <flux:table.column>Fecha</flux:table.column>
-                <flux:table.column>Responsable</flux:table.column>
-                <flux:table.column>Cliente</flux:table.column>
-                <flux:table.column>Estado</flux:table.column>
-                <flux:table.column align="end">Monto Total</flux:table.column>
-                <flux:table.column align="end">Acciones</flux:table.column>
-            </flux:table.columns>
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Fecha</x-table.heading>
+                <x-table.heading>Responsable</x-table.heading>
+                <x-table.heading>Cliente</x-table.heading>
+                <x-table.heading>Estado</x-table.heading>
+                <x-table.heading class="text-right">Monto Total</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
 
-            <flux:table.rows>
+            <x-table.body>
                 @forelse($this->ventas as $venta)
-                    <flux:table.row :key="$venta->id">
-                        <flux:table.cell class="text-xs font-mono">{{ $venta->fecha_emision->format('d/m/Y H:i') }}</flux:table.cell>
-                        <flux:table.cell>
+                    <x-table.row :key="$venta->id">
+                        <x-table.cell class="text-xs font-mono">{{ $venta->fecha_emision->format('d/m/Y H:i') }}</x-table.cell>
+                        <x-table.cell>
                             <div class="flex flex-col">
                                 <span class="font-medium">{{ $venta->user->name }}</span>
                                 <span class="text-[10px] text-zinc-500 uppercase">Vendedor</span>
                             </div>
-                        </flux:table.cell>
+                        </x-table.cell>
                         
                         {{-- CLIENTE (RF-22) --}}
-                        <flux:table.cell>
+                        <x-table.cell>
                             <span class="text-sm {{ $venta->cliente ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 italic' }}">
                                 {{ $venta->cliente ? ($venta->cliente->first_name . ' ' . $venta->cliente->last_name) : 'Consumidor Final' }}
                             </span>
-                        </flux:table.cell>
+                        </x-table.cell>
 
                         {{-- ESTADO CON COLORES (AMARILLO PARA PENDIENTE) --}}
-                        <flux:table.cell>
+                        <x-table.cell>
                             <flux:badge :color="$venta->estado === 'PENDIENTE' ? 'yellow' : 'green'" size="sm" inset="top bottom">
                                 {{ $venta->estado }}
                             </flux:badge>
-                        </flux:table.cell>
+                        </x-table.cell>
 
-                        <flux:table.cell align="end" class="font-bold text-indigo-600">${{ number_format($venta->total, 2) }}</flux:table.cell>
+                        <x-table.cell class="text-right font-bold text-indigo-600">${{ number_format($venta->total, 2) }}</x-table.cell>
                         
-                        <flux:table.cell align="end">
+                        <x-table.cell class="text-right">
                             <div class="flex gap-2 justify-end">
                                 <flux:button size="xs" icon="eye" variant="ghost" wire:click="verDetalle({{ $venta->id }})" tooltip="Auditar" />
                                 <flux:button size="xs" icon="document-arrow-down" variant="ghost" class="text-indigo-600" wire:click="descargarFactura({{ $venta->id }})" tooltip="Descargar PDF" />
                             </div>
-                        </flux:table.cell>
-                    </flux:table.row>
+                        </x-table.cell>
+                    </x-table.row>
                 @empty
-                    <flux:table.row>
-                        <flux:table.cell colspan="6" class="text-center py-10 italic text-zinc-400">
+                    <x-table.row>
+                        <x-table.cell colspan="6" class="text-center py-10 italic text-zinc-400">
                             No hay comprobantes de venta registrados con los filtros aplicados.
-                        </flux:table.cell>
-                    </flux:table.row>
+                        </x-table.cell>
+                    </x-table.row>
                 @endforelse
-            </flux:table.rows>
-        </flux:table>
+            </x-table.body>
+        </x-table>
     </div>
     {{ $this->ventas->links() }}
 

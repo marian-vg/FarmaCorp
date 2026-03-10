@@ -71,18 +71,17 @@ class StockEgresoManager extends Component
                 case 'destruccion_vencimiento': $mappedReason = 'vencimiento'; break;
             }
 
-            // Paso B: Descontar cantidad en el Stock Global del producto
-            $medicine = $batch->medicine;
-            if ($medicine) {
-                $stock = Stock::where('product_id', $medicine->product_id)->first();
-                if ($stock) {
-                    $stock->cantidad_actual -= $this->quantity_to_remove;
-                    // Prevenir stock negativo global
-                    if ($stock->cantidad_actual < 0) {
-                        $stock->cantidad_actual = 0;
-                    }
-                    $stock->save();
+            // Paso B: Descontar cantidad en el Stock Global de la Presentación Mëdica
+            $stockGlobal = Stock::where('medicine_id', $batch->medicine_id)->first();
+            
+            if ($stockGlobal) {
+                $stockGlobal->cantidad_actual -= $this->quantity_to_remove;
+                // Prevenir stock negativo global
+                if ($stockGlobal->cantidad_actual < 0) {
+                    $stockGlobal->cantidad_actual = 0;
                 }
+                $stockGlobal->fecha_actualizacion = now(); // Corrección tipográfica DB 
+                $stockGlobal->save();
             }
 
             // Paso C: Crear Movimiento de Stock
@@ -93,16 +92,6 @@ class StockEgresoManager extends Component
                 'reason' => $mappedReason,
                 'quantity' => $this->quantity_to_remove,
             ]);
-
-            // NUEVO PASO C: Actualizar el Stock Global (Totalizador) [cite: 555-573]
-            // Usamos el medicine_id del lote, que es el product_id
-            $stockGlobal = \App\Models\Stock::where('product_id', $batch->medicine_id)->first();
-            
-            if ($stockGlobal) {
-                $stockGlobal->cantidad_actual -= $this->quantity_to_remove;
-                $stockGlobal->fecha_actualización = now(); // [cite: 572]
-                $stockGlobal->save();
-            }
         });
 
         Flux::modal('egreso-modal')->close();

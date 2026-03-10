@@ -91,7 +91,7 @@ class MedicineManager extends Component
     {
         $medicines = Medicine::search($this->search)
             ->query(function ($query) {
-                $query->with(['product.stock', 'group']);
+                $query->with(['product', 'stock', 'group']);
                 
                 if ($this->filterPsychotropic) {
                     $query->where('is_psychotropic', true);

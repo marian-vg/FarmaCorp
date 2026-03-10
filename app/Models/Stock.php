@@ -11,7 +11,7 @@ class Stock extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'product_id',
+        'medicine_id',
         'cantidad_actual',
         'stock_minimo',
         'fecha_actualizacion'
@@ -26,8 +26,8 @@ class Stock extends Model
         ];
     }
 
-    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function medicine(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Medicine::class);
     }
 }
