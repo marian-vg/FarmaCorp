@@ -24,7 +24,7 @@ it('can create a medicine using the factory', function () {
 });
 
 it('can run the medicine seeder successfully', function () {
-    $this->seed(\Database\Seeders\MedicineSeeder::class);
+    $this->seed(\Database\Seeders\VademecumSeeder::class);
     
-    expect(Medicine::count())->toBe(5);
+    expect(Medicine::count())->toBe(15);
 });

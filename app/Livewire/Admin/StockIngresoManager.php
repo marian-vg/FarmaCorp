@@ -26,7 +26,7 @@ class StockIngresoManager extends Component
     public $batch_number;
     public $expiration_date;
     public $quantity_received;
-    public $minimum_stock = 0;
+    public $minimum_stock;
 
     protected $rules = [
         'medicine_id' => 'required|exists:medicines,product_id',
@@ -43,7 +43,7 @@ class StockIngresoManager extends Component
         $this->batch_number = '';
         $this->expiration_date = '';
         $this->quantity_received = '';
-        $this->minimum_stock = 0;
+        $this->minimum_stock;
 
         Flux::modal('ingreso-modal')->show();
     }

@@ -1,5 +1,4 @@
 <div class="flex flex-col gap-6">
-    {{-- 1. Navegación por Tabs --}}
     <div class="flex gap-4 border-b border-zinc-200 dark:border-zinc-700">
         <button wire:click="$set('tabActiva', 'vender')" 
             class="px-4 py-2 font-medium text-sm {{ $tabActiva === 'vender' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-zinc-500 hover:text-zinc-700' }}">
@@ -11,21 +10,19 @@
         </button>
     </div>
 
-    {{-- 2. CONTENIDO: PESTAÑA NUEVA VENTA --}}
     @if($tabActiva === 'vender')
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Lado Izquierdo: Catálogo de Productos --}}
+
             <div class="lg:col-span-2 space-y-4">
                 <div class="{{ !$tipo_comprobante ? 'opacity-40 pointer-events-none' : '' }} transition-all duration-300">
                     <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." />
                     
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        @foreach($products as $product)
+                        @forelse($products as $product)
                             @php
                                 $stockActual = $product->stock?->cantidad_actual ?? 0;
                                 $fueraDeStock = $stockActual <= 0;
 
-                                // --- Lógica de Alerta de Precios (RF-17 y RF-18) ---
                                 $precioVencido = $product->price_expires_at && $product->price_expires_at->isPast();
                                 
                                 $ultimoCambio = $product->price_updated_at ?: $product->created_at;
@@ -40,7 +37,6 @@
                                 wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$product->id.')' }}"
                             >
                                 <div>
-                                    {{-- CABECERA: Solo etiquetas de tipo y alertas de seguridad --}}
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="flex flex-col gap-1">
                                             <flux:text size="xs" class="uppercase text-zinc-400 font-semibold tracking-wider">Medicamento</flux:text>
@@ -52,7 +48,6 @@
                                             @endif
                                         </div>
                                         
-                                        {{-- Botón de prospecto movido a la esquina para que no moleste --}}
                                         @if($product->medicine)
                                             <button 
                                                 wire:click.stop="viewLeaflet({{ $product->id }})" 
@@ -64,11 +59,9 @@
                                         @endif
                                     </div>
 
-                                    {{-- CUERPO: Nombre y Stock (Tu mejora visual) --}}
                                     <div class="space-y-1">
                                         <flux:heading size="sm" class="leading-tight">{{ $product->name }}</flux:heading>
                                         
-                                        {{-- La cantidad ahora vive acá abajo, con más aire --}}
                                         <div class="flex items-center gap-1.5">
                                             @if($fueraDeStock)
                                                 <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
@@ -81,7 +74,6 @@
                                     </div>
                                 </div>
 
-                                {{-- PIE: Precio y Acción --}}
                                 <div class="mt-4 flex justify-between items-center pt-2 border-t border-zinc-50 dark:border-zinc-800/50">
                                     <div class="flex flex-col">
                                         <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
@@ -97,14 +89,19 @@
                                     @endif
                                 </div>
                             </flux:card>
-                        @endforeach
+                        @empty
+                            <div class="col-span-full flex flex-col items-center justify-center py-16 text-zinc-400 dark:text-zinc-500">
+                                <flux:icon.magnifying-glass class="w-12 h-12 mb-3 opacity-20" />
+                                <flux:text size="sm">No se encontraron productos coincidentes o no existen registros.</flux:text>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
 
-            {{-- Lado Derecho: Carrito / Resumen (BLOQUEO POR CAJA RF-01) --}}
+            {{-- Lado Derecho: Carrito --}}
             <div wire:key="resumen-venta-{{ count($carrito) }}-{{ count($pagos_realizados) }}"
-                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit sticky top-4 space-y-6">
+                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto sticky top-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-700">
                 
                 @if(!$this->cajaActiva)
                     <div class="flex flex-col items-center justify-center py-10 text-center space-y-4">
@@ -362,20 +359,31 @@
 
                 <div class="space-y-4">
                     <div class="border rounded-lg overflow-hidden border-zinc-200 dark:border-zinc-700">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase text-xs">
-                                <tr><th class="px-4 py-2">Producto</th><th class="px-4 py-2 text-center">Cant.</th><th class="px-4 py-2 text-right">Subtotal</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-zinc-100">
-                                @foreach($facturaSeleccionada->details as $detalle)
-                                    <tr>
-                                        <td class="px-4 py-3 font-medium">{{ $detalle->product->name }}</td>
-                                        <td class="px-4 py-3 text-center">{{ $detalle->cantidad }}</td>
-                                        <td class="px-4 py-3 text-right">${{ number_format($detalle->cantidad * $detalle->precio_unitario, 2) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                        <x-table>
+                            <x-slot:head>
+                                <x-table.row>
+                                    <x-table.heading>Producto</x-table.heading>
+                                    <x-table.heading class="text-center">Cant.</x-table.heading>
+                                    <x-table.heading class="text-right">Subtotal</x-table.heading>
+                                </x-table.row>
+                            </x-slot:head>
+                            <x-table.body>
+                                @forelse($facturaSeleccionada->details as $detalle)
+                                    <x-table.row>
+                                        <x-table.cell class="font-medium">{{ $detalle->product->name }}</x-table.cell>
+                                        <x-table.cell class="text-center">{{ $detalle->cantidad }}</x-table.cell>
+                                        <x-table.cell class="text-right">${{ number_format($detalle->cantidad * $detalle->precio_unitario, 2) }}</x-table.cell>
+                                    </x-table.row>
+                                @empty
+                                    <x-table.row>
+                                        <x-table.cell colspan="3" class="text-center text-zinc-500 italic py-6">
+                                            <flux:icon.inbox class="w-8 h-8 opacity-20 mx-auto mb-2" />
+                                            No hay detalles registrados en el comprobante.
+                                        </x-table.cell>
+                                    </x-table.row>
+                                @endforelse
+                            </x-table.body>
+                        </x-table>
                     </div>
 
                     {{-- Desglose MP --}}

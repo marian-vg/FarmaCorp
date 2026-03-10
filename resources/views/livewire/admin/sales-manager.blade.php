@@ -45,7 +45,7 @@
             </flux:table.columns>
 
             <flux:table.rows>
-                @foreach($this->ventas as $venta)
+                @forelse($this->ventas as $venta)
                     <flux:table.row :key="$venta->id">
                         <flux:table.cell class="text-xs font-mono">{{ $venta->fecha_emision->format('d/m/Y H:i') }}</flux:table.cell>
                         <flux:table.cell>
@@ -78,7 +78,13 @@
                             </div>
                         </flux:table.cell>
                     </flux:table.row>
-                @endforeach
+                @empty
+                    <flux:table.row>
+                        <flux:table.cell colspan="6" class="text-center py-10 italic text-zinc-400">
+                            No hay comprobantes de venta registrados con los filtros aplicados.
+                        </flux:table.cell>
+                    </flux:table.row>
+                @endforelse
             </flux:table.rows>
         </flux:table>
     </div>
@@ -108,14 +114,21 @@
                         <x-table.heading class="text-right">Subtotal</x-table.heading>
                     </x-table.head>
                     <x-table.body>
-                            @foreach($ventaSeleccionada->details as $item)
+                            @forelse($ventaSeleccionada->details as $item)
                                 <x-table.row>
                                     <x-table.cell>{{ $item->product->name }}</x-table.cell>
                                     <x-table.cell>{{ $item->cantidad }}</x-table.cell>
                                     <x-table.cell class="text-right">${{ number_format($item->precio_unitario, 2) }}</x-table.cell>
                                     <x-table.cell class="text-right font-medium">${{ number_format($item->cantidad * $item->precio_unitario, 2) }}</x-table.cell>
                                 </x-table.row>
-                            @endforeach
+                            @empty
+                                <x-table.row>
+                                    <x-table.cell colspan="4" class="text-center text-zinc-500 italic py-6">
+                                        <flux:icon.inbox class="w-8 h-8 opacity-20 mx-auto mb-2" />
+                                        No hay detalles registrados en este comprobante.
+                                    </x-table.cell>
+                                </x-table.row>
+                            @endforelse
                     </x-table.body>
                 </x-table>
 
