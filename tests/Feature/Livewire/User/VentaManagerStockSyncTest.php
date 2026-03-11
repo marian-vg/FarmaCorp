@@ -110,6 +110,12 @@ it('StockActualizado event uses correct broadcast name', function () {
     expect($event->broadcastAs())->toBe('stock.actualizado');
 });
 
+it('StockActualizado implements ShouldDispatchAfterCommit to enforce concurrency integrity', function () {
+    $interfaces = class_implements(StockActualizado::class);
+
+    expect($interfaces)->toContain('Illuminate\Contracts\Events\ShouldDispatchAfterCommit');
+});
+
 it('refreshes medicine stock display when Echo event is received', function () {
     $component = Livewire::actingAs($this->employee)
         ->test(VentaManager::class)

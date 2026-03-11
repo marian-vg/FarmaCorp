@@ -20,6 +20,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Flux\Flux;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -36,7 +37,7 @@ class VentaManager extends Component
     #[On('refrescarMedicamentosListener')]
     public function refrescarMedicamentos(): void
     {
-        $this->renderToken++;
+        Log::info('[VentaManager] Websocket trigger recibido (stock.actualizado). Forzando refresco de catálogo...');
         unset($this->medicines);
         $this->dispatch('$refresh');
     }
@@ -49,8 +50,6 @@ class VentaManager extends Component
     {
         return \DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
-
-    public $renderToken = 0;
 
     public $carrito = [];
 
@@ -528,7 +527,7 @@ class VentaManager extends Component
     {
         $lk = $this->likeOperator();
 
-        return Medicine::query()
+        $collection = Medicine::query()
             ->with(['product', 'stock'])
             ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
             ->join('products', 'medicines.product_id', '=', 'products.id')
@@ -544,6 +543,16 @@ class VentaManager extends Component
             ->orderBy('products.name', 'asc')
             ->select('medicines.*')
             ->get();
+
+        Log::info('[VentaManager.medicines()] Base de Datos Consultada: hidratando '.$collection->count().' items.');
+
+        // Log individual solo del primer item o de uno en específico para diagnosticar velozmente
+        if ($collection->count() > 0) {
+            $first = $collection->first();
+            Log::info("[VentaManager.medicines()] Muestra Audit: Medicina #{$first->id} ('{$first->product->name}'), Stock Leído: ".($first->stock?->cantidad_actual ?? '0'));
+        }
+
+        return $collection;
     }
 
     public function render()
