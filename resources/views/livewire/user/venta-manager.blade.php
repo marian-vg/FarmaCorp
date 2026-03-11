@@ -179,33 +179,82 @@
 
                     {{-- Totales y Ajustes --}}
                     <div class="pt-4 border-t space-y-4">
-                        <flux:select wire:model.live="promotion_id" label="Promoción / Recargo (%)" placeholder="Ninguno (Precio Lista)">
-        <option value="">Precio de Lista (Sin ajuste)</option>
-        @foreach(\App\Models\Promotion::where('status', true)->get() as $promo)
-            <option value="{{ $promo->id }}">
-                [{{ $promo->type === 'discount' ? '-' : '+' }}] {{ $promo->name }} ({{ number_format($promo->value, 0) }}%)
-            </option>
-        @endforeach
-    </flux:select>
+                        <div class="space-y-2">
+    <flux:label>Promoción / Recargo (%)</flux:label>
+    
+    <flux:dropdown>
+        <flux:button variant="subtle" class="w-full justify-between" icon="receipt-percent">
+            @if($promotion_id)
+                @php $currentPromo = \App\Models\Promotion::find($promotion_id); @endphp
+                {{ $currentPromo->name }} ({{ number_format($currentPromo->value, 0) }}%)
+            @else
+                Precio de Lista (Sin ajuste)
+            @endif
+        </flux:button>
 
-    <div class="space-y-2">
-        <div class="flex justify-between text-xs text-zinc-500 px-1">
-            <span>Subtotal:</span>
+        <flux:menu class="min-w-[220px]">
+            <flux:menu.item wire:click="$set('promotion_id', null)" icon="x-mark">Sin ajuste</flux:menu.item>
+            
+            <flux:menu.separator />
+            
+            @foreach(\App\Models\Promotion::where('status', true)->get() as $promo)
+                <flux:menu.item wire:click="$set('promotion_id', {{ $promo->id }})">
+                    <div class="flex items-center gap-2 w-full">
+                        @if($promo->type === 'discount')
+                            <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                            <span class="flex-1 font-medium text-green-600 dark:text-green-400">-{{ number_format($promo->value, 0) }}%</span>
+                        @else
+                            <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                            <span class="flex-1 font-medium text-red-600 dark:text-red-400">+{{ number_format($promo->value, 0) }}%</span>
+                        @endif
+                        <span class="text-zinc-500 text-xs">{{ $promo->name }}</span>
+                    </div>
+                </flux:menu.item>
+            @endforeach
+        </flux:menu>
+    </flux:dropdown>
+</div>
+
+    <div class="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+    <div class="space-y-2 px-1">
+        <div class="flex justify-between text-xs text-zinc-500 uppercase tracking-widest font-semibold">
+            <span>Subtotal</span>
             <span>${{ number_format($this->subtotal, 2) }}</span>
         </div>
         
         @if($global_adjustment != 0)
-            <div class="flex justify-between text-xs px-1 {{ $global_adjustment < 0 ? 'text-green-600' : 'text-orange-600' }}">
-                <span>Ajuste aplicado:</span>
-                <span class="font-bold">{{ $global_adjustment < 0 ? '-' : '+' }} ${{ number_format(abs($global_adjustment), 2) }}</span>
+            <div class="flex justify-between items-center p-2 rounded-xl {{ $global_adjustment < 0 ? 'bg-green-50 dark:bg-green-900/10 text-green-700' : 'bg-red-50 dark:bg-red-900/10 text-red-700' }}">
+                <div class="flex items-center gap-2">
+                    <flux:icon :variant="$global_adjustment < 0 ? 'check-badge' : 'plus-circle'" size="sm" />
+                    <span class="text-xs font-bold uppercase">Ajuste Aplicado</span>
+                </div>
+                <span class="font-mono font-bold text-sm">
+                    {{ $global_adjustment < 0 ? '-' : '+' }} ${{ number_format(abs($global_adjustment), 2) }}
+                </span>
             </div>
         @endif
 
-        <div class="bg-indigo-50 dark:bg-indigo-900/30 p-4 rounded-2xl flex justify-between items-center border border-indigo-100 dark:border-indigo-800">
-            <flux:text size="sm" class="uppercase font-black text-indigo-700 dark:text-indigo-300">Total Final</flux:text>
-            <flux:heading size="xl" class="text-indigo-600 font-black">${{ number_format($this->totalFinal, 2) }}</flux:heading>
+        {{-- Gran Total Estilizado --}}
+        <div class="relative overflow-hidden bg-indigo-600 dark:bg-indigo-500 p-5 rounded-3xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02]">
+            {{-- Decoración sutil de fondo --}}
+            <div class="absolute -right-4 -top-4 opacity-10">
+                <flux:icon.banknotes size="xl" variant="solid" class="w-24 h-24 text-white" />
+            </div>
+            
+            <div class="relative z-10 flex justify-between items-center">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black uppercase text-indigo-200 tracking-[0.2em]">Total a Cobrar</span>
+                    <flux:heading size="xl" class="text-white !text-3xl font-black tracking-tight">
+                        ${{ number_format($this->totalFinal, 2) }}
+                    </flux:heading>
+                </div>
+                <div class="bg-white/20 p-2 rounded-2xl backdrop-blur-md">
+                    <flux:icon.check variant="mini" class="text-white" />
+                </div>
+            </div>
         </div>
     </div>
+</div>
 
                         {{-- Medios de Pago --}}
                         <div class="space-y-4">
