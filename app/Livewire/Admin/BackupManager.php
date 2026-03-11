@@ -3,37 +3,56 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Component;
-use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\DB;
 use App\Traits\Notifies;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 
 class BackupManager extends Component
 {
-    use WithFileUploads, Notifies;
+    use Notifies;
 
-    public $backupFile;
+    public $backups = [];
 
-    public function downloadBackup()
+    public function mount()
+    {
+        $this->cargarListaBackups();
+    }
+
+    public function cargarListaBackups()
+    {
+        // Aseguramos que la carpeta exista
+        if (!Storage::exists('backups')) {
+            Storage::makeDirectory('backups');
+        }
+
+        // Leemos los archivos y los ordenamos por fecha (el más nuevo primero)
+        $files = Storage::files('backups');
+        
+        $this->backups = collect($files)->map(function($path) {
+            return [
+                'name' => basename($path),
+                'size' => round(Storage::size($path) / 1024, 2) . ' KB',
+                'date' => date('d/m/Y H:i:s', Storage::lastModified($path)),
+                'raw_path' => $path
+            ];
+        })->sortByDesc('date')->values()->all();
+    }
+
+    public function createInternalBackup()
     {
         try {
-            set_time_limit(0); // Evita que PHP corte el proceso si hay muchos datos
+            set_time_limit(0);
             
+            // Reutilizamos tu lógica de generación de SQL puro PHP
             $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'");
-            $sqlDump = "-- FarmaCorp Professional Backup\n";
-            $sqlDump .= "-- Generado el: " . now()->format('d/m/Y H:i:s') . "\n\n";
-            $sqlDump .= "SET session_replication_role = 'replica';\n\n";
+            $sqlDump = "SET session_replication_role = 'replica';\n\n";
 
             foreach ($tables as $table) {
                 $tableName = $table->table_name;
-                
-                // Evitamos respaldar la tabla de migraciones para no romper Laravel al restaurar
                 if ($tableName == 'migrations') continue;
 
-                $sqlDump .= "-- Estructura y Datos de la tabla: $tableName\n";
                 $sqlDump .= "TRUNCATE TABLE \"$tableName\" RESTART IDENTITY CASCADE;\n";
-
-                // Obtenemos los registros
                 $rows = DB::table($tableName)->get();
 
                 foreach ($rows as $row) {
@@ -47,43 +66,43 @@ class BackupManager extends Component
 
                     $sqlDump .= "INSERT INTO \"$tableName\" (\"" . implode('", "', $columns) . "\") VALUES (" . implode(', ', $values) . ");\n";
                 }
-                $sqlDump .= "\n";
             }
-
             $sqlDump .= "\nSET session_replication_role = 'origin';";
 
-            $fileName = 'FarmaCorp-Backup-' . now()->format('Y-m-d_H-i'). '.sql';
-            
-            return response()->streamDownload(function () use ($sqlDump) {
-                echo $sqlDump;
-            }, $fileName);
+            // GUARDAR EN DISCO EN VEZ DE DESCARGAR
+            $fileName = 'Backup_' . now()->format('Y-m-d_H-i-s') . '.sql';
+            Storage::put('backups/' . $fileName, $sqlDump);
+
+            $this->cargarListaBackups();
+            $this->notify('Punto de restauración creado con éxito.', 'success');
 
         } catch (\Exception $e) {
-            $this->notify('Error generando backup: ' . $e->getMessage(), 'danger');
+            $this->notify('Error: ' . $e->getMessage(), 'danger');
         }
     }
 
-    public function restore()
+    public function restoreFromDisk($fileName)
     {
-        $this->validate(['backupFile' => 'required|file']);
-
         try {
-            $sql = file_get_contents($this->backupFile->getRealPath());
+            $sql = Storage::get('backups/' . $fileName);
 
             DB::transaction(function () use ($sql) {
-                // Desactivamos restricciones para que el orden de los INSERT no importe
                 DB::statement("SET session_replication_role = 'replica';");
-                
                 DB::unprepared($sql);
-                
                 DB::statement("SET session_replication_role = 'origin';");
             });
 
-            $this->notify('¡Punto de restauración aplicado con éxito!', 'success');
-            $this->reset('backupFile');
+            $this->notify('Sistema restaurado al estado de ' . $fileName, 'success');
         } catch (\Exception $e) {
-            $this->notify('Fallo crítico en restauración: ' . $e->getMessage(), 'danger');
+            $this->notify('Error al restaurar: ' . $e->getMessage(), 'danger');
         }
+    }
+
+    public function deleteBackup($fileName)
+    {
+        Storage::delete('backups/' . $fileName);
+        $this->cargarListaBackups();
+        $this->notify('Archivo de respaldo eliminado.', 'warning');
     }
 
     public function render()
