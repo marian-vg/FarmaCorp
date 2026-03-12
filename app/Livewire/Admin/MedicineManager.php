@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\On;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component
@@ -42,6 +43,12 @@ class MedicineManager extends Component
         'expiration_date' => null,
         'is_psychotropic' => false,
     ];
+
+    #[On('echo:stock-channel,.stock.actualizado')]
+    public function refrescarCatalogo(): void
+    {
+        $this->resetPage();
+    }
 
     public function updatedSearch()
     {
