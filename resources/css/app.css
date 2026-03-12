@@ -64,7 +64,7 @@
 }
 
 [data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+    @apply !mb-0 !leading-tight;
 }
 
 input:focus[data-flux-control],
@@ -85,3 +85,50 @@ select:focus[data-flux-control] {
     color: #FFFFFF !important;
 }
 
+/* --- ESTILO DE SCROLLBAR PROFESIONAL --- */
+
+/* 1. Soporte para Chrome, Edge y Safari */
+::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent !important;
+    /* Esto lo hace invisible */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: transparent !important;
+    /* Invisible por defecto */
+    border-radius: 20px !important;
+    /* Añadimos un borde transparente para que el scroll se vea más fino y centrado al aparecer */
+    border: 3px solid transparent !important;
+    background-clip: content-box !important;
+}
+
+/* 2. Aparece suavemente al pasar el mouse por cualquier zona con scroll */
+*:hover::-webkit-scrollbar-thumb {
+    background-color: #d4d4d8 !important;
+    /* zinc-300 */
+}
+
+.dark *:hover::-webkit-scrollbar-thumb {
+    background-color: #3f3f46 !important;
+    /* zinc-700 */
+}
+
+/* 3. Soporte para Firefox (Moderno) */
+* {
+    scrollbar-width: thin !important;
+    scrollbar-color: transparent transparent !important;
+    transition: scrollbar-color 0.3s ease !important;
+}
+
+*:hover {
+    scrollbar-color: #d4d4d8 transparent !important;
+}
+
+.dark *:hover {
+    scrollbar-color: #3f3f46 transparent !important;
+}
