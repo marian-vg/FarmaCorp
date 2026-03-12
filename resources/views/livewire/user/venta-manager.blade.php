@@ -533,15 +533,5 @@
     window.addEventListener('abrir-impresion', event => {
         window.open(event.detail.url, '_blank');
     });
-
-    document.addEventListener('livewire:initialized', () => {
-        if (window.Echo) {
-            window.Echo.channel('stock-channel')
-                .listen('.stock.actualizado', (e) => {
-                    console.log('Stock actualizado recibido por Echo JS nativo, refrescando Livewire componente VentaManager');
-                    Livewire.dispatch('refrescarMedicamentosListener');
-                 });
-        }
-    });
 </script>
 </div>

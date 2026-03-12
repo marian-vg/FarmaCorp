@@ -9,11 +9,8 @@ window.Echo = new Echo({
     wsHost: import.meta.env.VITE_REVERB_HOST,
     wsPort: import.meta.env.VITE_REVERB_PORT ?? 80,
     wssPort: import.meta.env.VITE_REVERB_PORT ?? 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-});
-
-// DIAGNÓSTICO TEMPORAL — eliminar tras confirmar funcionamiento
-window.Echo.channel('stock-channel').listen('.stock.actualizado', (e) => {
-    console.log('%c¡EVENTO RECIBIDO EN JS! (independiente de Livewire)', 'color: lime; font-weight: bold', e);
+    forceTLS: false, 
+    encrypted: false, 
+    disableStats: true,
+    enabledTransports: ['ws'], 
 });

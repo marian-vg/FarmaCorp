@@ -14,6 +14,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 
+
 #[Layout('components.layouts.app', ['title' => 'Ingreso de Stock'])]
 class StockIngresoManager extends Component
 {
@@ -115,9 +116,10 @@ class StockIngresoManager extends Component
         });
 
         Flux::modal('ingreso-modal')->close();
-        StockActualizado::dispatch();
         $this->notify('Ingreso registrado con éxito.', 'success');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
+
+        StockActualizado::dispatch();
     }
 
     public function render()

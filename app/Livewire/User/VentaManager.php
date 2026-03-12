@@ -23,9 +23,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Events\StockActualizado;
 
+#[Layout('components.layouts.app', ['title' => 'Venta'])]
 class VentaManager extends Component
 {
     use Notifies, WithPagination;
@@ -34,12 +37,11 @@ class VentaManager extends Component
      * Refreshes medicine availability when stock changes are recorded by admins.
      */
     #[On('echo:stock-channel,.stock.actualizado')]
-    #[On('refrescarMedicamentosListener')]
     public function refrescarMedicamentos(): void
     {
         Log::info('[VentaManager] Websocket trigger recibido (stock.actualizado). Forzando refresco de catálogo...');
+
         unset($this->medicines);
-        $this->dispatch('$refresh');
     }
 
     /**
@@ -454,8 +456,9 @@ class VentaManager extends Component
 
         $this->ultimaFacturaId = $facturaID;
 
-        // 3. Lógica del RF-20: Comportamiento de Cierre
         $action = Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+
+        StockActualizado::dispatch();
 
         if ($action === 'auto_imprimir') {
             $this->limpiarVenta();
