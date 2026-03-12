@@ -50,7 +50,7 @@ class StockEgresoTest extends TestCase
             ->assertHasErrors(['quantity_to_remove']); // Rule validation error max:10
 
         // Manually override validation just to test the backend hard block (optional, but UI stops it first)
-        
+
         // Step 2: Extract 3 units successfully
         Livewire::actingAs($admin)->test(StockEgresoManager::class)
             ->call('selectBatch', $batch->id, $batch->current_quantity)
@@ -58,7 +58,7 @@ class StockEgresoTest extends TestCase
             ->set('reason', 'merma_rotura')
             ->call('save')
             ->assertHasNoErrors();
-            
+
         // Assert Batch subtraction
         $this->assertDatabaseHas('batches', [
             'id' => $batch->id,

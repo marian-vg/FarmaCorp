@@ -4,8 +4,16 @@
             <flux:heading size="xl" level="1">Kardex de Movimientos</flux:heading>
             <flux:subheading>Registro histórico y auditable de todos los ingresos, egresos y ajustes del inventario.</flux:subheading>
         </div>
-        <div class="w-full sm:w-72">
-            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar por medicamento, lote o usuario..." />
+        <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+            <flux:input type="date" wire:model.live="fecha_desde" aria-label="Desde fecha" />
+            <flux:input type="date" wire:model.live="fecha_hasta" aria-label="Hasta fecha" />
+            <flux:select wire:model.live="filterType" class="w-40 min-w-40">
+                <flux:select.option value="">Tipo (Todos)</flux:select.option>
+                <flux:select.option value="ingreso">Ingresos</flux:select.option>
+                <flux:select.option value="egreso">Egresos</flux:select.option>
+            </flux:select>
+            
+            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar movimientos..." class="flex-1 min-w-[250px]" />
         </div>
     </div>
 
@@ -31,7 +39,7 @@
                                 {{ $movement->user?->name ?? 'Sistema' }}
                             </x-table.cell>
                             <x-table.cell class="text-sm text-zinc-900 dark:text-zinc-100">
-                                <span class="font-semibold">{{ $movement->batch?->medicine?->product?->name ?? 'N/D' }}</span>
+                                <span class="font-semibold">{{ $movement->batch?->medicine?->presentation_name ?? 'N/D' }}</span>
                                 <span class="text-zinc-500 dark:text-zinc-400 ml-1">({{ $movement->batch?->batch_number ?? 'N/D' }})</span>
                             </x-table.cell>
                             <x-table.cell class="text-sm">

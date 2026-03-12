@@ -7,6 +7,7 @@ use App\Models\Profile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -126,7 +127,7 @@ class ProfileManagerTest extends TestCase
     {
         $permission = Permission::create([
             'name' => 'old-permission',
-            'display_name' => 'Old Permission'
+            'display_name' => 'Old Permission',
         ]);
 
         Livewire::test(ProfileManager::class)
@@ -161,15 +162,15 @@ class ProfileManagerTest extends TestCase
     public function test_permission_update_clears_cache_and_keeps_slug_intact()
     {
         $user = User::factory()->create();
-        
+
         $permission = Permission::create([
             'name' => 'crear-usuario',
             'display_name' => 'Crear Usuario',
-            'description' => 'Permite crear'
+            'description' => 'Permite crear',
         ]);
 
         $user->givePermissionTo($permission);
-        
+
         $this->assertTrue($user->hasPermissionTo('crear-usuario'));
 
         Livewire::actingAs($user)
@@ -183,17 +184,17 @@ class ProfileManagerTest extends TestCase
         $permission->refresh();
         $this->assertEquals('crear-usuario', $permission->name); // slug unchanged
         $this->assertEquals('Crear Nuevo Usuario', $permission->display_name);
-        
+
         // El cache ha sido invalidado automáticamente en Livewire. Resfresh del usuario para comprobar.
         $user->refresh();
         $this->assertTrue($user->hasPermissionTo('crear-usuario'));
-        
+
         // Assert we don't have a newly named permission giving access falsely
         // Spatie throws an exception if the permission doesn't exist in the DB at all
         try {
             $user->hasPermissionTo('crear-nuevo-usuario');
             $this->fail('Expected PermissionDoesNotExist exception was not thrown.');
-        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist $e) {
+        } catch (PermissionDoesNotExist $e) {
             $this->assertTrue(true);
         }
     }

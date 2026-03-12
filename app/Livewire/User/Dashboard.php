@@ -5,6 +5,7 @@ namespace App\Livewire\User;
 use App\Models\Caja;
 use App\Models\MedioPago;
 use App\Models\MovimientoCaja;
+use App\Traits\Notifies;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -12,12 +13,11 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'User Dashboard'])]
 class Dashboard extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $monto_inicial = '';
 

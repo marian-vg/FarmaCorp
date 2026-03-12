@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\MedioPago;
 use Illuminate\Database\Seeder;
 
 class MedioPagoSeeder extends Seeder
@@ -20,7 +20,7 @@ class MedioPagoSeeder extends Seeder
         ];
 
         foreach ($medios as $medio) {
-            \App\Models\MedioPago::updateOrCreate(['nombre' => $medio['nombre']], $medio);
+            MedioPago::updateOrCreate(['nombre' => $medio['nombre']], $medio);
         }
     }
 }

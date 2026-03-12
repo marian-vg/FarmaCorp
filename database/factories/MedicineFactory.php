@@ -2,10 +2,13 @@
 
 namespace Database\Factories;
 
+use App\Models\Group;
+use App\Models\Medicine;
+use App\Models\Product;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Medicine>
+ * @extends Factory<Medicine>
  */
 class MedicineFactory extends Factory
 {
@@ -17,14 +20,14 @@ class MedicineFactory extends Factory
     public function definition(): array
     {
         return [
-            'product_id' => \App\Models\Product::factory(),
+            'product_id' => Product::factory(),
             'presentation_name' => $this->faker->words(3, true),
             'price' => $this->faker->randomFloat(2, 5, 5000),
             'level' => $this->faker->randomElement(['Baja', 'Media', 'Alta']),
             'leaflet' => $this->faker->paragraph(),
             'expiration_date' => $this->faker->dateTimeBetween('now', '+2 years')->format('Y-m-d'),
-            'is_psychotropic' => $this->faker->boolean(15), 
-            'group_id' => \App\Models\Group::factory(),
+            'is_psychotropic' => $this->faker->boolean(15),
+            'group_id' => Group::factory(),
         ];
     }
 }

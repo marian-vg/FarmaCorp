@@ -3,23 +3,28 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Group;
-use App\Models\Medicine;
 use App\Models\Product;
+use App\Traits\Notifies;
+use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
-use Illuminate\Support\Facades\Cache;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Productos y Medicamentos'])]
 class ProductManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public string $search = '';
+
+    public string $statusFilter = '';
+
+    public string $filterGroup = '';
+
     public ?Product $editingProduct = null;
+
     public bool $isMedicine = false;
 
     public array $productContext = [
@@ -39,6 +44,16 @@ class ProductManager extends Component
     ];
 
     public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStatusFilter()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterGroup()
     {
         $this->resetPage();
     }
@@ -83,8 +98,8 @@ class ProductManager extends Component
         $rules = [
             'productContext.name' => [
                 'required', 'string', 'max:255',
-                $this->editingProduct 
-                    ? Rule::unique('products', 'name')->ignore($this->editingProduct->id) 
+                $this->editingProduct
+                    ? Rule::unique('products', 'name')->ignore($this->editingProduct->id)
                     : Rule::unique('products', 'name'),
             ],
             'productContext.description' => 'nullable|string',
@@ -117,11 +132,11 @@ class ProductManager extends Component
         }
 
         if (array_key_exists('price', $this->productContext)) {
-             $productData['price'] = $this->productContext['price'];
+            $productData['price'] = $this->productContext['price'];
         }
 
         if ($this->editingProduct) {
-            if (isset($this->productContext['price']) && (float)$this->editingProduct->price !== (float)$this->productContext['price']) {
+            if (isset($this->productContext['price']) && (float) $this->editingProduct->price !== (float) $this->productContext['price']) {
                 $productData['price_updated_at'] = now();
             }
             $this->editingProduct->update($productData);
@@ -140,7 +155,7 @@ class ProductManager extends Component
             }
         } elseif ($this->editingProduct && $this->editingProduct->medicine) {
             $this->editingProduct->medicine()->delete();
-            }
+        }
 
         Flux::modal('product-form')->close();
         $this->reset(['productContext', 'medicineContext', 'editingProduct', 'isMedicine']);
@@ -166,7 +181,19 @@ class ProductManager extends Component
     public function render()
     {
         $products = Product::search($this->search)
-            ->query(fn ($query) => $query->with('medicine.group'))
+            ->query(function ($query) {
+                $query->with('medicine.group');
+
+                if ($this->statusFilter !== '') {
+                    $query->where('status', $this->statusFilter === '1');
+                }
+
+                if ($this->filterGroup !== '') {
+                    $query->whereHas('medicine', function ($q) {
+                        $q->where('group_id', $this->filterGroup);
+                    });
+                }
+            })
             ->paginate(12);
 
         $groups = Cache::remember('groups_all', 86400, fn () => Group::orderBy('name')->get());

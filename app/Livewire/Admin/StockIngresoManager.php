@@ -2,34 +2,46 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\StockActualizado;
 use App\Models\Batch;
+use App\Models\Group;
 use App\Models\Medicine;
-use App\Models\StockMovement;
 use App\Models\Stock;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Models\StockMovement;
+use App\Traits\Notifies;
 use Flux\Flux;
 use Livewire\Attributes\Layout;
-use App\Traits\Notifies;
+use Livewire\Component;
+use Livewire\WithPagination;
+
 
 #[Layout('components.layouts.app', ['title' => 'Ingreso de Stock'])]
 class StockIngresoManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $search = '';
 
+    public $filterGroup = '';
+
+    public function updatedFilterGroup()
+    {
+        $this->resetPage();
+    }
+
     // Form properties
     public $medicine_id;
+
     public $batch_number;
+
     public $expiration_date;
+
     public $quantity_received;
-    public $minimum_stock = 0;
+
+    public $minimum_stock;
 
     protected $rules = [
-        'medicine_id' => 'required|exists:medicines,product_id',
+        'medicine_id' => 'required|exists:medicines,id',
         'batch_number' => 'required|string|max:255',
         'expiration_date' => 'required|date|after:today',
         'quantity_received' => 'required|integer|min:1',
@@ -43,7 +55,7 @@ class StockIngresoManager extends Component
         $this->batch_number = '';
         $this->expiration_date = '';
         $this->quantity_received = '';
-        $this->minimum_stock = 0;
+        $this->minimum_stock;
 
         Flux::modal('ingreso-modal')->show();
     }
@@ -53,23 +65,39 @@ class StockIngresoManager extends Component
         $this->validate();
 
         \DB::transaction(function () {
-            // Paso A: Crear Lote
-            $batch = Batch::create([
-                'medicine_id' => $this->medicine_id,
-                'batch_number' => $this->batch_number,
-                'expiration_date' => $this->expiration_date,
-                'initial_quantity' => $this->quantity_received,
-                'current_quantity' => $this->quantity_received,
-                'minimum_stock' => $this->minimum_stock,
-            ]);
+            // Paso A: Buscar Lote o Crearlo (Upserting para evitar Lotes Duplicados)
+            $batch = Batch::where('medicine_id', $this->medicine_id)
+                ->where('batch_number', $this->batch_number)
+                ->first();
 
-            // Paso B: Update global Stock for the Product
-            $medicine = Medicine::find($this->medicine_id);
+            if ($batch) {
+                // Si el lote existe, sumamos cantidades y actualizamos vencimiento y stock mínimo
+                $batch->initial_quantity += $this->quantity_received;
+                $batch->current_quantity += $this->quantity_received;
+                // Asumimos la fecha de vencimiento más reciente del remito
+                $batch->expiration_date = $this->expiration_date;
+                if ($this->minimum_stock > $batch->minimum_stock) {
+                    $batch->minimum_stock = $this->minimum_stock;
+                }
+                $batch->save();
+            } else {
+                // Si no existe, lo creamos convencionalmente
+                $batch = Batch::create([
+                    'medicine_id' => $this->medicine_id,
+                    'batch_number' => $this->batch_number,
+                    'expiration_date' => $this->expiration_date,
+                    'initial_quantity' => $this->quantity_received,
+                    'current_quantity' => $this->quantity_received,
+                    'minimum_stock' => $this->minimum_stock,
+                ]);
+            }
+
+            // Paso B: Update global Stock for the Medicine
             $stock = Stock::firstOrCreate(
-                ['product_id' => $medicine->product_id],
+                ['medicine_id' => $this->medicine_id],
                 ['cantidad_actual' => 0, 'stock_minimo' => 0]
             );
-            
+
             $stock->cantidad_actual += $this->quantity_received;
             // Update the global minimum stock if the new batch has a higher strict limit
             if ($this->minimum_stock > $stock->stock_minimo) {
@@ -85,37 +113,34 @@ class StockIngresoManager extends Component
                 'reason' => 'compra',
                 'quantity' => $this->quantity_received,
             ]);
-
-            // PASO C: Actualizar el Stock Global (Totalizador) [cite: 18]
-            $stock = \App\Models\Stock::firstOrNew(['product_id' => $this->medicine_id]);
-
-            // Si el registro es nuevo, 'cantidad_actual' será 0 o null automáticamente
-            $stock->stock_minimo = $this->minimum_stock;
-            $stock->cantidad_actual += $this->quantity_received;
-            // $stock->fecha_actualización = now(); // Columna inexistente en la base de datos
-
-            $stock->save();
         });
 
         Flux::modal('ingreso-modal')->close();
         $this->notify('Ingreso registrado con éxito.', 'success');
         $this->reset(['medicine_id', 'batch_number', 'expiration_date', 'quantity_received', 'minimum_stock']);
+
+        StockActualizado::dispatch();
     }
 
     public function render()
     {
         // Usa Scout o fallbacks a ilike para buscar medicamentos reales
         $medicines = Medicine::search($this->search)
-            ->query(function($builder){
+            ->query(function ($builder) {
                 $builder->with(['product', 'group'])
                     ->join('products', 'medicines.product_id', '=', 'products.id')
                     ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
                     ->select('medicines.*');
-            })    
+
+                if ($this->filterGroup !== '') {
+                    $builder->where('medicines.group_id', $this->filterGroup);
+                }
+            })
             ->paginate(12);
 
         return view('livewire.admin.stock-ingreso-manager', [
-            'medicines' => $medicines
+            'medicines' => $medicines,
+            'groups' => Group::orderBy('name')->get(),
         ]);
     }
 }

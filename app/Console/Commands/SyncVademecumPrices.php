@@ -2,11 +2,10 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\File;
 use App\Models\Medicine;
-use App\Models\Product;
+use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class SyncVademecumPrices extends Command
 {
@@ -32,19 +31,21 @@ class SyncVademecumPrices extends Command
         $this->info('Iniciando sincronización simulada de precios desde Vademécum...');
 
         $jsonPath = database_path('data/vademecum_mock.json');
-        if (!File::exists($jsonPath)) {
+        if (! File::exists($jsonPath)) {
             $this->error("No se encuentra el archivo JSON base: {$jsonPath}");
+
             return Command::FAILURE;
         }
 
         $medicines = Medicine::with('product')->get();
         if ($medicines->isEmpty()) {
             $this->warn('No hay medicamentos en la base de datos para actualizar.');
+
             return Command::SUCCESS;
         }
 
         $count = 0;
-        
+
         DB::beginTransaction();
         try {
             foreach ($medicines as $medicine) {
@@ -58,17 +59,19 @@ class SyncVademecumPrices extends Command
                 if ($medicine->product) {
                     $medicine->product->update(['price_updated_at' => now()]);
                 }
-                
+
                 $count++;
             }
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Error durante la actualización: " . $e->getMessage());
+            $this->error('Error durante la actualización: '.$e->getMessage());
+
             return Command::FAILURE;
         }
 
         $this->info("¡Sincronización completada! Se han actualizado los precios de {$count} medicamento(s).");
+
         return Command::SUCCESS;
     }
 }

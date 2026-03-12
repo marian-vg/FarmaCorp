@@ -1,21 +1,22 @@
 <?php
 
+use App\Livewire\Actions\SettingsManager;
+use App\Livewire\Admin\CajaManager;
 use App\Livewire\Admin\ClientDebtManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\User\Dashboard as UserDashboard;
 use App\Livewire\Admin\ProfileManager;
+use App\Livewire\Admin\PromotionManager;
 use App\Livewire\Admin\GroupManager;
-use App\Livewire\Admin\ProductManager;
 use App\Livewire\Admin\MedicineManager;
-use App\Livewire\Clients\ClientManager;
-use App\Livewire\Admin\CajaManager;
+use App\Livewire\Admin\ProductManager;
 use App\Livewire\Admin\SalesManager;
-use App\Livewire\User\VentaManager;
-use App\Livewire\Actions\SettingsManager;
-use Illuminate\Support\Facades\Route;
-use App\Livewire\Admin\StockIngresoManager;
 use App\Livewire\Admin\StockEgresoManager;
 use App\Livewire\Admin\StockHistorialManager;
+use App\Livewire\Admin\StockIngresoManager;
+use App\Livewire\Clients\ClientManager;
+use App\Livewire\User\VentaManager;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('livewire.auth.login');
@@ -35,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         if (auth()->user()->hasRole('admin')) {
             return redirect()->route('admin.dashboard');
         }
+
         return redirect()->route('user.dashboard');
     })->name('dashboard');
 
@@ -51,15 +53,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
         Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
+        Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions');
+        Route::get('/admin/mantenimiento', \App\Livewire\Admin\BackupManager::class)->name('admin.backup');
     });
-    
+
     Route::middleware(['role:admin|empleado'])->group(function () {
         Route::get('clients', ClientManager::class)->name('clients.index');
 
         Route::get('/factura/imprimir/{id}', [VentaManager::class, 'generarPdfStream'])->name('factura.imprimir');
     });
-    
+
     Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
     Route::get('configuracion', SettingsManager::class)->name('settings.index');
+    Route::get('manual', function () {
+        return view('manual');
+    })->name('manual');
 });

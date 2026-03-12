@@ -3,19 +3,21 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Profile;
+use App\Traits\Notifies;
 use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Spatie\Permission\Models\Permission;
-use Illuminate\Support\Facades\Cache;
-use App\Traits\Notifies;
+use Spatie\Permission\PermissionRegistrar;
 
 #[Layout('components.layouts.app', ['title' => 'Profile Manager'])]
 class ProfileManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public string $search = '';
 
@@ -148,11 +150,12 @@ class ProfileManager extends Component
             ]);
         } else {
             // Generar el slug para el nombre interno
-            $slugName = \Illuminate\Support\Str::slug($this->permissionContext['display_name']);
-            
+            $slugName = Str::slug($this->permissionContext['display_name']);
+
             // Si el slug ya existe, lanzar error de validación manual
             if (Permission::where('name', $slugName)->exists()) {
                 $this->addError('permissionContext.display_name', 'Ya existe un permiso con este nombre base.');
+
                 return;
             }
 
@@ -164,7 +167,7 @@ class ProfileManager extends Component
         }
 
         // Limpiar la caché de Spatie según la documentación oficial
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
         Cache::forget('permissions_all');
 
         Flux::modal('permission-form')->close();
@@ -182,7 +185,7 @@ class ProfileManager extends Component
     {
         if ($this->editingPermission) {
             $this->editingPermission->delete();
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
             Cache::forget('permissions_all');
             Flux::modal('confirm-delete-permission')->close();
             $this->reset(['editingPermission']);

@@ -1,5 +1,4 @@
 <div class="flex flex-col gap-6">
-    {{-- 1. Navegación por Tabs --}}
     <div class="flex gap-4 border-b border-zinc-200 dark:border-zinc-700">
         <button wire:click="$set('tabActiva', 'vender')" 
             class="px-4 py-2 font-medium text-sm {{ $tabActiva === 'vender' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-zinc-500 hover:text-zinc-700' }}">
@@ -11,21 +10,32 @@
         </button>
     </div>
 
-    {{-- 2. CONTENIDO: PESTAÑA NUEVA VENTA --}}
     @if($tabActiva === 'vender')
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Lado Izquierdo: Catálogo de Productos --}}
+
             <div class="lg:col-span-2 space-y-4">
                 <div class="{{ !$tipo_comprobante ? 'opacity-40 pointer-events-none' : '' }} transition-all duration-300">
-                    <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." />
+                    <div class="flex gap-2">
+                        <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." class="flex-1" />
+                        <flux:select wire:model.live="filterGroup" placeholder="Categoría" class="w-48 min-w-48">
+                            <flux:select.option value="">Todas las categorías</flux:select.option>
+                            @foreach($groups as $g)
+                                <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                            @endforeach
+                        </flux:select>
+                    </div>
                     
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        @foreach($products as $product)
+                        @forelse($this->medicines as $medicine)
                             @php
-                                $stockActual = $product->stock?->cantidad_actual ?? 0;
+                                // Resta dinámica "En Vivo" Fase 10
+                                $cantidadEnCarrito = isset($carrito[$medicine->id]) ? $carrito[$medicine->id]['cantidad'] : 0;
+                                $stockRealDB = $medicine->stock?->cantidad_actual ?? 0;
+                                $stockActual = max(0, $stockRealDB - $cantidadEnCarrito);
+                                
                                 $fueraDeStock = $stockActual <= 0;
+                                $product = $medicine->product;
 
-                                // --- Lógica de Alerta de Precios (RF-17 y RF-18) ---
                                 $precioVencido = $product->price_expires_at && $product->price_expires_at->isPast();
                                 
                                 $ultimoCambio = $product->price_updated_at ?: $product->created_at;
@@ -36,11 +46,11 @@
                             @endphp
 
                             <flux:card 
+                                wire:key="med-{{ $medicine->id }}-stock-{{ $stockActual }}-price-{{ $medicine->price }}"
                                 class="flex flex-col justify-between transition-all {{ $bloqueadoParaVenta ? 'opacity-60 grayscale' : 'hover:shadow-md cursor-pointer group' }}" 
-                                wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$product->id.')' }}"
+                                wire:click="{{ $bloqueadoParaVenta ? '' : 'agregarAlCarrito('.$medicine->id.')' }}"
                             >
                                 <div>
-                                    {{-- CABECERA: Solo etiquetas de tipo y alertas de seguridad --}}
                                     <div class="flex justify-between items-start mb-2">
                                         <div class="flex flex-col gap-1">
                                             <flux:text size="xs" class="uppercase text-zinc-400 font-semibold tracking-wider">Medicamento</flux:text>
@@ -52,8 +62,7 @@
                                             @endif
                                         </div>
                                         
-                                        {{-- Botón de prospecto movido a la esquina para que no moleste --}}
-                                        @if($product->medicine)
+                                        @if($medicine->leaflet)
                                             <button 
                                                 wire:click.stop="viewLeaflet({{ $product->id }})" 
                                                 class="p-1 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 hover:text-indigo-600 transition-colors"
@@ -64,16 +73,16 @@
                                         @endif
                                     </div>
 
-                                    {{-- CUERPO: Nombre y Stock (Tu mejora visual) --}}
                                     <div class="space-y-1">
-                                        <flux:heading size="sm" class="leading-tight">{{ $product->name }}</flux:heading>
+                                        <flux:heading size="sm" class="leading-tight">{{ $medicine->presentation_name ?: $product->name }}</flux:heading>
                                         
-                                        {{-- La cantidad ahora vive acá abajo, con más aire --}}
                                         <div class="flex items-center gap-1.5">
-                                            @if($fueraDeStock)
+                                            @if($fueraDeStock && $stockRealDB > 0)
+                                                <flux:badge size="xs" color="orange" variant="solid">Lim. Carrito</flux:badge>
+                                            @elseif($fueraDeStock)
                                                 <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
                                             @else
-                                                <flux:badge size="xs" :color="$stockActual <= ($product->stock->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
+                                                <flux:badge size="xs" :color="$stockActual <= ($medicine->stock?->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
                                                     {{ $stockActual }} disponibles
                                                 </flux:badge>
                                             @endif
@@ -81,30 +90,37 @@
                                     </div>
                                 </div>
 
-                                {{-- PIE: Precio y Acción --}}
                                 <div class="mt-4 flex justify-between items-center pt-2 border-t border-zinc-50 dark:border-zinc-800/50">
                                     <div class="flex flex-col">
-                                        <flux:text class="font-bold text-indigo-600">${{ number_format($product->price, 2) }}</flux:text>
+                                        <flux:text class="font-bold text-indigo-600">${{ number_format($medicine->price, 2) }}</flux:text>
                                         @if($precioAntiguo)
                                             <span class="text-[9px] text-zinc-400">Act. hace {{ $diasAntiguedad }} d</span>
                                         @endif
                                     </div>
                                     
                                     @if(!$bloqueadoParaVenta)
-                                        <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" />
+                                        <div class="flex gap-1">
+                                            <flux:button size="xs" icon="plus" variant="subtle" class="group-hover:bg-indigo-50" wire:click.stop="agregarAlCarrito({{ $medicine->id }})" tooltip="Agregar 1 unidad" />
+                                            <flux:button size="xs" icon="squares-plus" variant="ghost" class="group-hover:text-indigo-600" wire:click.stop="openCustomModal({{ $medicine->id }}, 'agregar')" tooltip="Agregar cantidad personalizada" />
+                                        </div>
                                     @else
                                         <flux:icon.x-mark class="text-red-400 w-4 h-4" />
                                     @endif
                                 </div>
                             </flux:card>
-                        @endforeach
+                        @empty
+                            <div class="col-span-full flex flex-col items-center justify-center py-16 text-zinc-400 dark:text-zinc-500">
+                                <flux:icon.magnifying-glass class="w-12 h-12 mb-3 opacity-20" />
+                                <flux:text size="sm">No se encontraron productos coincidentes o no existen registros.</flux:text>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
 
-            {{-- Lado Derecho: Carrito / Resumen (BLOQUEO POR CAJA RF-01) --}}
+            {{-- Lado Derecho: Carrito --}}
             <div wire:key="resumen-venta-{{ count($carrito) }}-{{ count($pagos_realizados) }}"
-                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit sticky top-4 space-y-6">
+                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto flex flex-col sticky top-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-700">
                 
                 @if(!$this->cajaActiva)
                     <div class="flex flex-col items-center justify-center py-10 text-center space-y-4">
@@ -124,7 +140,7 @@
                         </flux:select>
 
                         <div class="relative">
-                            <flux:input wire:model.live.debounce.300ms="search_cliente" label="Cliente (RF-22)" icon="user" placeholder="Buscar..." />
+                            <flux:input wire:model.live.debounce.300ms="search_cliente" label="Cliente" icon="user" placeholder="Buscar..." />
                             @if($search_cliente && $this->clientes->isNotEmpty() && !$cliente_id)
                                 <div class="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg overflow-hidden">
                                     @foreach($this->clientes as $cli)
@@ -151,12 +167,16 @@
                     {{-- Lista Carrito --}}
                     <div class="space-y-3 max-h-64 overflow-y-auto">
                         @forelse($carrito as $item)
-                            <div class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                                <div class="flex-1">
-                                    <flux:text class="font-medium">{{ $item['name'] }}</flux:text>
+                            <div wire:key="cart-item-{{ $item['id'] }}-{{ $item['cantidad'] }}" class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                                <div class="flex-1 pr-2">
+                                    <flux:text class="font-medium truncate">{{ $item['name'] }}</flux:text>
                                     <flux:text size="xs" class="text-zinc-500">{{ $item['cantidad'] }} x ${{ number_format($item['price'], 2) }}</flux:text>
                                 </div>
-                                <flux:button variant="ghost" icon="trash" size="xs" class="text-red-500" wire:click="quitarDelCarrito({{ $item['id'] }})" />
+                                <div class="flex items-center gap-1">
+                                    <flux:button variant="ghost" icon="minus" size="xs" class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200" wire:click="quitarUnoDelCarrito({{ $item['id'] }})" tooltip="Quitar 1" />
+                                    <flux:button variant="ghost" icon="pencil-square" size="xs" class="text-zinc-400 hover:text-indigo-600" wire:click="openCustomModal({{ $item['id'] }}, 'quitar')" tooltip="Quitar personalizado" />
+                                    <flux:button variant="ghost" icon="trash" size="xs" class="text-red-500 hover:text-red-700" wire:click="quitarDelCarrito({{ $item['id'] }})" tooltip="Eliminar ítem" />
+                                </div>
                             </div>
                         @empty
                             <div class="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500 italic">
@@ -168,12 +188,82 @@
 
                     {{-- Totales y Ajustes --}}
                     <div class="pt-4 border-t space-y-4">
-                        <flux:input wire:model.live="global_adjustment" type="number" label="Ajuste (+/-)" size="sm" />
-                        
-                        <div class="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg flex justify-between items-center">
-                            <flux:text size="xs" class="uppercase font-bold">Total Final</flux:text>
-                            <flux:heading size="xl" class="text-indigo-600">${{ number_format($this->totalFinal, 2) }}</flux:heading>
-                        </div>
+                        <div class="space-y-2">
+    <flux:label>Promoción / Recargo (%)</flux:label>
+    
+    <flux:dropdown>
+        <flux:button variant="subtle" class="w-full justify-between" icon="receipt-percent">
+            @if($promotion_id)
+                @php $currentPromo = \App\Models\Promotion::find($promotion_id); @endphp
+                {{ $currentPromo->name }} ({{ number_format($currentPromo->value, 0) }}%)
+            @else
+                Precio de Lista (Sin ajuste)
+            @endif
+        </flux:button>
+
+        <flux:menu class="min-w-[220px]">
+            <flux:menu.item wire:click="$set('promotion_id', null)" icon="x-mark">Sin ajuste</flux:menu.item>
+            
+            <flux:menu.separator />
+            
+            @foreach(\App\Models\Promotion::where('status', true)->get() as $promo)
+                <flux:menu.item wire:click="$set('promotion_id', {{ $promo->id }})">
+                    <div class="flex items-center gap-2 w-full">
+                        @if($promo->type === 'discount')
+                            <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                            <span class="flex-1 font-medium text-green-600 dark:text-green-400">-{{ number_format($promo->value, 0) }}%</span>
+                        @else
+                            <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                            <span class="flex-1 font-medium text-red-600 dark:text-red-400">+{{ number_format($promo->value, 0) }}%</span>
+                        @endif
+                        <span class="text-zinc-500 text-xs">{{ $promo->name }}</span>
+                    </div>
+                </flux:menu.item>
+            @endforeach
+        </flux:menu>
+    </flux:dropdown>
+</div>
+
+    <div class="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+    <div class="space-y-2 px-1">
+        <div class="flex justify-between text-xs text-zinc-500 uppercase tracking-widest font-semibold">
+            <span>Subtotal</span>
+            <span>${{ number_format($this->subtotal, 2) }}</span>
+        </div>
+        
+        @if($global_adjustment != 0)
+            <div class="flex justify-between items-center p-2 rounded-xl {{ $global_adjustment < 0 ? 'bg-green-50 dark:bg-green-900/10 text-green-700' : 'bg-red-50 dark:bg-red-900/10 text-red-700' }}">
+                <div class="flex items-center gap-2">
+                    <flux:icon :variant="$global_adjustment < 0 ? 'check-badge' : 'plus-circle'" size="sm" />
+                    <span class="text-xs font-bold uppercase">Ajuste Aplicado</span>
+                </div>
+                <span class="font-mono font-bold text-sm">
+                    {{ $global_adjustment < 0 ? '-' : '+' }} ${{ number_format(abs($global_adjustment), 2) }}
+                </span>
+            </div>
+        @endif
+
+        {{-- Gran Total Estilizado --}}
+        <div class="relative overflow-hidden bg-indigo-600 dark:bg-indigo-500 p-5 rounded-3xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02]">
+            {{-- Decoración sutil de fondo --}}
+            <div class="absolute -right-4 -top-4 opacity-10">
+                <flux:icon.banknotes size="xl" variant="solid" class="w-24 h-24 text-white" />
+            </div>
+            
+            <div class="relative z-10 flex justify-between items-center">
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black uppercase text-indigo-200 tracking-[0.2em]">Total a Cobrar</span>
+                    <flux:heading size="xl" class="text-white !text-3xl font-black tracking-tight">
+                        ${{ number_format($this->totalFinal, 2) }}
+                    </flux:heading>
+                </div>
+                <div class="bg-white/20 p-2 rounded-2xl backdrop-blur-md">
+                    <flux:icon.check variant="mini" class="text-white" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
                         {{-- Medios de Pago --}}
                         <div class="space-y-4">
@@ -235,7 +325,6 @@
                             class="w-full" 
                             wire:click="procesarVenta" 
                             icon="banknotes" 
-                            {{-- BLOQUEO: Agregamos la condición de que el total pagado no sea superior al total final --}}
                             :disabled="!$tipo_comprobante || empty($carrito) || ($this->montoRestante > 0.01 && !$cliente_id) || (collect($pagos_realizados)->sum('monto') > $this->totalFinal)"
                         >
                             {{ (collect($pagos_realizados)->sum('monto') > $this->totalFinal) ? 'Monto Excedido' : (($this->montoRestante > 0.01 && $cliente_id) ? 'Vender con Saldo Deudor' : 'Confirmar y Facturar') }}
@@ -246,38 +335,38 @@
         </div>
     @endif
 
-    {{-- 3. CONTENIDO: PESTAÑA HISTORIAL --}}
     @if($tabActiva === 'historial')
     <div class="space-y-4">
         <div class="flex justify-between items-center">
             <flux:heading size="lg">Registro de Ventas</flux:heading>
-            <flux:select wire:model.live="filtroEstado" size="sm" class="w-48">
-                <option value="">Todos los estados</option>
-                <option value="PAGADO">Solo Pagados</option>
-                <option value="PENDIENTE">Solo Cta. Corriente</option>
-            </flux:select>
+            <div class="flex gap-2">
+                <flux:input type="date" wire:model.live="fecha_desde" size="sm" aria-label="Desde fecha" />
+                <flux:input type="date" wire:model.live="fecha_hasta" size="sm" aria-label="Hasta fecha" />
+                <flux:select wire:model.live="filtroEstado" size="sm" class="w-48">
+                    <option value="">Todos los estados</option>
+                    <option value="PAGADO">Solo Pagados</option>
+                    <option value="PENDIENTE">Solo Cta. Corriente</option>
+                </flux:select>
+            </div>
         </div>
         
-        <div class="w-full overflow-hidden rounded-lg border border-zinc-200">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Fecha</flux:table.column>
-                    <flux:table.column>Cliente</flux:table.column> {{-- Columna 2 --}}
-                    <flux:table.column>Medio / Estado</flux:table.column> {{-- Columna 3 --}}
-                    <flux:table.column align="end">Monto Total</flux:table.column> {{-- Columna 4 --}}
-                    <flux:table.column align="end">Acciones</flux:table.column> {{-- Columna 5 --}}
-                </flux:table.columns>
+        <x-table>
+            <x-table.head>
+                <x-table.heading>Fecha</x-table.heading>
+                <x-table.heading>Cliente</x-table.heading>
+                <x-table.heading>Medio / Estado</x-table.heading>
+                <x-table.heading class="text-right">Monto Total</x-table.heading>
+                <x-table.heading class="text-right">Acciones</x-table.heading>
+            </x-table.head>
 
-                <flux:table.rows>
+                <x-table.body>
                     @forelse($this->historialVentas as $venta)
-                        <flux:table.row :key="'venta-'.$venta->id">
-                            {{-- Celda 1: Fecha --}}
-                            <flux:table.cell class="text-xs font-mono">
+                        <x-table.row :key="'venta-'.$venta->id">
+                            <x-table.cell class="text-xs font-mono">
                                 {{ $venta->fecha_emision->format('d/m/Y H:i') }}
-                            </flux:table.cell>
+                            </x-table.cell>
 
-                            {{-- Celda 2: CLIENTE (RF-22) --}}
-                            <flux:table.cell>
+                            <x-table.cell>
                                 @if($venta->cliente)
                                     <div class="flex flex-col">
                                         <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -288,10 +377,9 @@
                                 @else
                                     <span class="text-xs text-zinc-400 italic">Consumidor Final</span>
                                 @endif
-                            </flux:table.cell>
+                            </x-table.cell>
 
-                            {{-- Celda 3: Medio / Estado --}}
-                            <flux:table.cell>
+                            <x-table.cell>
                                 @if($venta->estado === 'PENDIENTE')
                                     <flux:badge size="sm" color="red" variant="solid" icon="clock">Cuenta Corriente</flux:badge>
                                     @if($venta->pagos->isNotEmpty())
@@ -305,17 +393,14 @@
                                         {{ $mediosUnicos > 1 ? 'Combinado' : ($venta->pagos->first()?->medioPago?->nombre ?? 'N/D') }}
                                     </flux:badge>
                                 @endif
-                            </flux:table.cell>
+                            </x-table.cell>
 
-                            {{-- Celda 4: Monto Total --}}
-                            <flux:table.cell align="end" class="font-bold text-indigo-600">
+                            <x-table.cell class="text-right font-bold text-indigo-600">
                                 ${{ number_format($venta->total, 2) }}
-                            </flux:table.cell>
+                            </x-table.cell>
 
-                            {{-- Celda 5: Acciones --}}
-                            <flux:table.cell align="end">
-                                <div class="flex gap-2">
-                                    {{-- Botón de Detalle --}}
+                            <x-table.cell class="text-right">
+                                <div class="flex gap-2 justify-end">
                                     <flux:button 
                                         icon="information-circle" 
                                         size="xs" 
@@ -324,7 +409,6 @@
                                         tooltip="Ver detalle"
                                     />
 
-                                    {{-- BOTÓN DE DESCARGA (RF-19) [cite: 127] --}}
                                     <flux:button 
                                         icon="document-arrow-down" 
                                         size="xs" 
@@ -334,24 +418,21 @@
                                         tooltip="Descargar PDF"
                                     />
                                 </div>
-                            </flux:table.cell>
-                        </flux:table.row>
+                            </x-table.cell>
+                        </x-table.row>
                     @empty
-                        {{-- Ajustamos el colspan a 5 porque ahora hay 5 columnas --}}
-                        <flux:table.row>
-                            <flux:table.cell colspan="5" class="text-center py-10 italic text-zinc-400">
+                        <x-table.row>
+                            <x-table.cell colspan="5" class="text-center py-10 italic text-zinc-400">
                                 No hay ventas registradas en este período.
-                            </flux:table.cell>
-                        </flux:table.row>
+                            </x-table.cell>
+                        </x-table.row>
                     @endforelse
-                </flux:table.rows>
-            </flux:table>
-        </div>
+                </x-table.body>
+            </x-table>
         {{ $this->historialVentas->links() }}
     </div>
 @endif
 
-    {{-- 4. MODAL DETALLE DE VENTA --}}
     <flux:modal name="detalle-venta-modal" class="md:w-5/12">
         <div class="space-y-6">
             @if($facturaSeleccionada)
@@ -362,20 +443,31 @@
 
                 <div class="space-y-4">
                     <div class="border rounded-lg overflow-hidden border-zinc-200 dark:border-zinc-700">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 uppercase text-xs">
-                                <tr><th class="px-4 py-2">Producto</th><th class="px-4 py-2 text-center">Cant.</th><th class="px-4 py-2 text-right">Subtotal</th></tr>
-                            </thead>
-                            <tbody class="divide-y divide-zinc-100">
-                                @foreach($facturaSeleccionada->details as $detalle)
-                                    <tr>
-                                        <td class="px-4 py-3 font-medium">{{ $detalle->product->name }}</td>
-                                        <td class="px-4 py-3 text-center">{{ $detalle->cantidad }}</td>
-                                        <td class="px-4 py-3 text-right">${{ number_format($detalle->cantidad * $detalle->precio_unitario, 2) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                        <x-table>
+                            <x-slot:head>
+                                <x-table.row>
+                                    <x-table.heading>Producto</x-table.heading>
+                                    <x-table.heading class="text-center">Cant.</x-table.heading>
+                                    <x-table.heading class="text-right">Subtotal</x-table.heading>
+                                </x-table.row>
+                            </x-slot:head>
+                            <x-table.body>
+                                @forelse($facturaSeleccionada->details as $detalle)
+                                    <x-table.row>
+                                        <x-table.cell class="font-medium">{{ $detalle->product->name }}</x-table.cell>
+                                        <x-table.cell class="text-center">{{ $detalle->cantidad }}</x-table.cell>
+                                        <x-table.cell class="text-right">${{ number_format($detalle->cantidad * $detalle->precio_unitario, 2) }}</x-table.cell>
+                                    </x-table.row>
+                                @empty
+                                    <x-table.row>
+                                        <x-table.cell colspan="3" class="text-center text-zinc-500 italic py-6">
+                                            <flux:icon.inbox class="w-8 h-8 opacity-20 mx-auto mb-2" />
+                                            No hay detalles registrados en el comprobante.
+                                        </x-table.cell>
+                                    </x-table.row>
+                                @endforelse
+                            </x-table.body>
+                        </x-table>
                     </div>
 
                     {{-- Desglose MP --}}
@@ -396,7 +488,6 @@
                         </div>
                     @endif
 
-                    {{-- Resumen Consolidado --}}
                     <div class="space-y-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border">
                         <div class="flex justify-between text-sm text-zinc-500 italic">
                             <span>Subtotal Medicamentos:</span>
@@ -473,7 +564,6 @@
         </div>
 
         <div class="grid grid-cols-1 gap-2">
-            {{-- Opción de IMPRIMIR/GUARDAR (PDF) --}}
             <flux:button 
                 variant="primary" 
                 icon="document-arrow-down" 
@@ -488,9 +578,29 @@
         </div>
     </div>
 </flux:modal>
+
+<flux:modal name="custom-quantity-modal" class="md:w-96">
+    <form wire:submit="processCustomQuantity" class="space-y-6">
+        <div>
+            <flux:heading size="lg">
+                {{ $customOperation === 'agregar' ? 'Múltiples Unidades' : 'Quitar Múltiples' }}
+            </flux:heading>
+            <flux:subheading>Ingresa el monto a {{ $customOperation === 'agregar' ? 'añadir' : 'retirar' }} del Carrito</flux:subheading>
+        </div>
+
+        <flux:input wire:model="customQuantity" type="number" label="Cantidad" placeholder="1" min="1" required autofocus />
+
+        <div class="flex justify-between gap-2">
+            <flux:modal.close>
+                <flux:button variant="ghost" wire:click="$reset(['customQuantity', 'customMedicineId', 'customOperation'])">Cancelar</flux:button>
+            </flux:modal.close>
+            <flux:button variant="primary" type="submit">Confirmar</flux:button>
+        </div>
+    </form>
+</flux:modal>
+
 <script>
     window.addEventListener('abrir-impresion', event => {
-        // Abrimos la URL de la factura en una pestaña nueva/ventana popup
         window.open(event.detail.url, '_blank');
     });
 </script>

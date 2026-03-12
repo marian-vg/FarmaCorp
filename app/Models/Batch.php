@@ -2,17 +2,18 @@
 
 namespace App\Models;
 
+use Database\Factories\BatchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Scout\Searchable;
 
 class Batch extends Model
 {
-    /** @use HasFactory<\Database\Factories\BatchFactory> */
-    use HasFactory, SoftDeletes, Searchable;
+    /** @use HasFactory<BatchFactory> */
+    use HasFactory, Searchable, SoftDeletes;
 
     protected $fillable = [
         'medicine_id',
@@ -20,7 +21,7 @@ class Batch extends Model
         'expiration_date',
         'initial_quantity',
         'current_quantity',
-        'minimum_stock'
+        'minimum_stock',
     ];
 
     protected function casts(): array
@@ -29,7 +30,7 @@ class Batch extends Model
             'expiration_date' => 'date',
             'initial_quantity' => 'integer',
             'current_quantity' => 'integer',
-            'minimum_stock' => 'integer'
+            'minimum_stock' => 'integer',
         ];
     }
 
@@ -40,12 +41,12 @@ class Batch extends Model
     public function scopeVendibles($query)
     {
         return $query->where('current_quantity', '>', 0)
-                     ->where('expiration_date', '>=', now()->toDateString());
+            ->where('expiration_date', '>=', now()->toDateString());
     }
 
     public function medicine(): BelongsTo
     {
-        return $this->belongsTo(Medicine::class, 'medicine_id', 'product_id');
+        return $this->belongsTo(Medicine::class, 'medicine_id', 'id');
     }
 
     public function movements(): HasMany

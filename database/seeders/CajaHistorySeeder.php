@@ -4,8 +4,8 @@ namespace Database\Seeders;
 
 use App\Models\Caja;
 use App\Models\User;
-use Illuminate\Database\Seeder;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class CajaHistorySeeder extends Seeder
 {
@@ -14,8 +14,9 @@ class CajaHistorySeeder extends Seeder
         // Obtenemos un usuario para asignar las cajas (el primero que encuentre)
         $user = User::first();
 
-        if (!$user) {
+        if (! $user) {
             $this->command->error('No hay usuarios en la base de datos para asignar las cajas.');
+
             return;
         }
 
@@ -24,7 +25,7 @@ class CajaHistorySeeder extends Seeder
         // Generamos datos para los últimos 7 días
         for ($i = 6; $i >= 0; $i--) {
             $fecha = Carbon::now()->subDays($i);
-            
+
             // Creamos 2 cajas por día para que el gráfico sume valores interesantes
             for ($j = 1; $j <= 2; $j++) {
                 $montoInicial = rand(1000, 5000);

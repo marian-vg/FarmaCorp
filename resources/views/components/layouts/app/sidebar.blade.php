@@ -22,6 +22,8 @@
                 <flux:sidebar.item icon="credit-card" href="{{ route('admin.debts') }}" :current="request()->routeIs('admin.debts')">Cuentas Corrientes</flux:sidebar.item>
                 <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
                 <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Caja</flux:sidebar.item>
+                <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
+                <flux:sidebar.item icon="wrench-screwdriver" href="{{ route('admin.backup') }}" :current="request()->routeIs('admin.backup')">Base de Datos</flux:sidebar.item>
             @endhasrole
 
             {{-- VISTA EMPLEADO --}}
@@ -33,6 +35,7 @@
             <flux:spacer/>
 
             <flux:sidebar.item icon="cog-6-tooth" href="{{ route('settings.index') }}" :current="request()->routeIs('settings.index')">Configuración</flux:sidebar.item>
+            <flux:sidebar.item icon="book-open" href="{{ route('manual') }}" :current="request()->routeIs('manual')">Documentación</flux:sidebar.item>
 
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf

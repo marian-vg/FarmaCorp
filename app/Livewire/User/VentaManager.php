@@ -2,42 +2,104 @@
 
 namespace App\Livewire\User;
 
-use App\Models\Product;
+use App\Models\Batch;
 use App\Models\Caja;
-use App\Models\MovimientoCaja;
-use App\Models\MedioPago;
-use App\Models\Factura;
 use App\Models\Client;
+use App\Models\Factura;
+use App\Models\FacturaDetalle;
+use App\Models\Group;
+use App\Models\Medicine;
+use App\Models\MedioPago;
+use App\Models\MovimientoCaja;
+use App\Models\Product;
+use App\Models\Setting;
+use App\Models\Stock;
+use App\Models\StockMovement;
+use App\Traits\Notifies;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Flux\Flux;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
-use Livewire\Attributes\Computed;
-use Flux\Flux;
-use App\Traits\Notifies;
+use App\Events\StockActualizado;
 
+#[Layout('components.layouts.app', ['title' => 'Venta'])]
 class VentaManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
+
+    /**
+     * Refreshes medicine availability when stock changes are recorded by admins.
+     */
+    #[On('echo:stock-channel,.stock.actualizado')]
+    public function refrescarMedicamentos(): void
+    {
+        Log::info('[VentaManager] Websocket trigger recibido (stock.actualizado). Forzando refresco de catálogo...');
+
+        unset($this->medicines);
+    }
+
+    /**
+     * Returns the correct SQL LIKE operator for the current database driver.
+     * PostgreSQL uses ILIKE for case-insensitive matching; SQLite uses LIKE.
+     */
+    private function likeOperator(): string
+    {
+        return \DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+    }
 
     public $carrito = [];
+
     public $search = '';
+
     public $search_cliente = '';
+
     public $medio_pago_id = '';
+
     public $tipo_comprobante = '';
+
     public $cliente_id = null;
+
     public $tabActiva = 'vender';
+
     public $es_cuenta_corriente = false;
+
     public $filtroEstado = '';
+
     public $facturaSeleccionada = null;
+
     public $global_adjustment = 0;
+
     public $pagos_realizados = [];
+
     public $monto_pago_actual = 0;
-    public ?\App\Models\Medicine $viewingMedicine = null;
+
+    public ?Medicine $viewingMedicine = null;
+
     public $ultimaFacturaId = null;
+    public $promotion_id = null;
+
+    public $filterGroup = '';
+
+    public $fecha_desde = '';
+
+    public $fecha_hasta = '';
+
+    // Fase 11: Cantidades Personalizadas de Carrito
+    public $customQuantity = 1;
+
+    public $customMedicineId = null;
+
+    public $customOperation = 'agregar'; // 'agregar' o 'quitar'
 
     public function viewLeaflet($productId)
     {
-        $this->viewingMedicine = \App\Models\Medicine::with('product')->where('product_id', $productId)->first();
+        $this->viewingMedicine = Medicine::with('product')->where('product_id', $productId)->first();
 
         if ($this->viewingMedicine) {
             Flux::modal('leaflet-modal')->show();
@@ -51,17 +113,18 @@ class VentaManager extends Component
         // Cargamos la factura con todas sus relaciones para el reporte
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
 
-        if (!Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
+        if (! Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
             $this->notify('No tiene permisos para descargar este comprobante.', 'danger');
+
             return;
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+        $pdf = Pdf::loadView('pdf.factura', [
             'factura' => $factura,
         ]);
 
         return response()->streamDownload(
-            fn () => print($pdf->output()),
+            fn () => print ($pdf->output()),
             "Comprobante-{$factura->tipo_comprobante}-#{$factura->id}.pdf"
         );
     }
@@ -69,7 +132,7 @@ class VentaManager extends Component
     public function updatedGlobalAdjustment()
     {
         $totalPagado = collect($this->pagos_realizados)->sum('monto');
-        
+
         if ($totalPagado > $this->totalFinal) {
             $this->pagos_realizados = []; // Limpiamos los pagos por seguridad
             $this->notify('El total ha cambiado y supera los pagos registrados. Por favor, cargue los medios de pago nuevamente.', 'warning');
@@ -85,8 +148,8 @@ class VentaManager extends Component
     public function montoRestante()
     {
         $totalVenta = (float) $this->totalFinal;
-        $totalPagado = collect($this->pagos_realizados)->sum(fn($p) => (float) $p['monto']);
-        
+        $totalPagado = collect($this->pagos_realizados)->sum(fn ($p) => (float) $p['monto']);
+
         $resultado = $totalVenta - $totalPagado;
 
         return round($resultado, 2) > 0 ? round($resultado, 2) : 0;
@@ -99,8 +162,9 @@ class VentaManager extends Component
             'monto_pago_actual' => 'required|numeric|min:0.01',
         ]);
 
-        if ((float)$this->monto_pago_actual > ($this->montoRestante + 0.01)) {
+        if ((float) $this->monto_pago_actual > ($this->montoRestante + 0.01)) {
             $this->notify('El monto supera el saldo restante.', 'warning');
+
             return;
         }
 
@@ -113,7 +177,7 @@ class VentaManager extends Component
         ];
 
         $this->reset(['medio_pago_id', 'monto_pago_actual']);
-        unset($this->montoRestante); 
+        unset($this->montoRestante);
     }
 
     public function quitarPago($index)
@@ -132,7 +196,7 @@ class VentaManager extends Component
 
     public function verDetalle($facturaId)
     {
-        $this->facturaSeleccionada = null; 
+        $this->facturaSeleccionada = null;
         $this->facturaSeleccionada = Factura::with(['details.product', 'pagos.medioPago'])->findOrFail($facturaId);
         Flux::modal('detalle-venta-modal')->show();
     }
@@ -140,8 +204,7 @@ class VentaManager extends Component
     #[Computed]
     public function totalFinal()
     {
-        $sumaProductos = collect($this->carrito)->sum(fn($item) => $item['price'] * $item['cantidad']);
-        return floatval($sumaProductos) + floatval($this->global_adjustment);
+        return round($this->subtotal + $this->global_adjustment, 2);
     }
 
     #[Computed]
@@ -150,13 +213,17 @@ class VentaManager extends Component
         return Caja::where('user_id', Auth::id())->whereNull('fecha_cierre')->first();
     }
 
-    public function agregarAlCarrito(Product $product)
+    public function agregarAlCarrito(Medicine $medicine)
     {
+        $maxDays = (int) (Setting::where('key', 'price_max_days')->first()?->value ?? 30);
 
-        $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+        // Ya que el precio está en la presentación en el nuevo Vademécum
+        // Por seguridad fall-back a price_expires_at del product (como estaba antes), o se podría migrar tmb
+        $product = $medicine->product;
 
         if ($product->price_expires_at && $product->price_expires_at->isPast()) {
-            $this->notify("BLOQUEO: El precio de {$product->name} caducó el " . $product->price_expires_at->format('d/m/Y') . ". Actualícelo en el catálogo.", 'error');
+            $this->notify("BLOQUEO: El precio de {$product->name} caducó el ".$product->price_expires_at->format('d/m/Y').'. Actualícelo en el catálogo.', 'error');
+
             return;
         }
 
@@ -165,75 +232,179 @@ class VentaManager extends Component
 
         if ($diasAntiguedad > $maxDays) {
             $this->notify("ALERTA: El precio de {$product->name} tiene {$diasAntiguedad} días de antigüedad (Límite: {$maxDays}). Debe ser actualizado para poder facturarse.", 'error');
+
             return;
         }
 
-        if (!$this->tipo_comprobante) {
+        if (! $this->tipo_comprobante) {
             $this->notify('Primero selecciona un tipo de comprobante.', 'error');
+
             return;
         }
 
-        $stockDisponible = $product->stock?->cantidad_actual ?? 0;
-        $cantidadEnCarrito = isset($this->carrito[$product->id]) ? $this->carrito[$product->id]['cantidad'] : 0;
+        $stockDisponible = $medicine->stock?->cantidad_actual ?? 0;
+        $cantidadEnCarrito = isset($this->carrito[$medicine->id]) ? $this->carrito[$medicine->id]['cantidad'] : 0;
 
         if ($stockDisponible <= $cantidadEnCarrito) {
             $this->notify('No hay más stock disponible.', 'error');
+
             return;
         }
 
-        if (isset($this->carrito[$product->id])) {
-            $this->carrito[$product->id]['cantidad']++;
+        if (isset($this->carrito[$medicine->id])) {
+            $this->carrito[$medicine->id]['cantidad']++;
         } else {
-            $this->carrito[$product->id] = [
-                'id' => $product->id,
-                'name' => $product->medicine->presentation_name ?: $product->name,
-                'price' => $product->medicine->price,
+            $this->carrito[$medicine->id] = [
+                'id' => $medicine->id, // Este id es el medicine_id a partir de ahora, para aislar
+                'product_id' => $product->id,
+                'name' => $medicine->presentation_name ?: $product->name,
+                'price' => $medicine->price,
                 'cantidad' => 1,
             ];
         }
-        $this->notify('Añadido: ' . $product->name, 'success');
+        $this->notify('Añadido: '.($medicine->presentation_name ?: $product->name), 'success');
     }
 
-    public function quitarDelCarrito($productId)
+    public function quitarUnoDelCarrito($medicineId)
     {
-        unset($this->carrito[$productId]);
+        if (isset($this->carrito[$medicineId])) {
+            $this->carrito[$medicineId]['cantidad']--;
+            if ($this->carrito[$medicineId]['cantidad'] <= 0) {
+                unset($this->carrito[$medicineId]);
+            }
+        }
+    }
+
+    public function openCustomModal($medicineId, $operation = 'agregar')
+    {
+        $this->customMedicineId = $medicineId;
+        $this->customOperation = $operation;
+        $this->customQuantity = 1;
+        Flux::modal('custom-quantity-modal')->show();
+    }
+
+    public function processCustomQuantity()
+    {
+        $this->validate([
+            'customQuantity' => 'required|integer|min:1',
+        ]);
+
+        $medicine = Medicine::with('product', 'stock')->find($this->customMedicineId);
+
+        if (! $medicine) {
+            return;
+        } // Salvaguardia
+
+        $cantidadActual = isset($this->carrito[$medicine->id]) ? $this->carrito[$medicine->id]['cantidad'] : 0;
+        $stockDisponible = $medicine->stock?->cantidad_actual ?? 0;
+
+        if ($this->customOperation === 'agregar') {
+            if (($cantidadActual + $this->customQuantity) > $stockDisponible) {
+                $this->notify('Error: Deseas añadir '.$this->customQuantity.', pero el inventario solo admite '.($stockDisponible - $cantidadActual).' unidades más de este lote físico.', 'error');
+                Flux::modal('custom-quantity-modal')->close();
+
+                return;
+            }
+
+            if (isset($this->carrito[$medicine->id])) {
+                $this->carrito[$medicine->id]['cantidad'] += $this->customQuantity;
+            } else {
+                $this->carrito[$medicine->id] = [
+                    'id' => $medicine->id,
+                    'product_id' => $medicine->product->id,
+                    'name' => $medicine->presentation_name ?: $medicine->product->name,
+                    'price' => $medicine->price,
+                    'cantidad' => $this->customQuantity,
+                ];
+            }
+            $this->notify('Se añadieron '.$this->customQuantity.' unidades correctamente.', 'success');
+
+        } elseif ($this->customOperation === 'quitar') {
+            if ($this->customQuantity >= $cantidadActual) {
+                unset($this->carrito[$medicine->id]);
+            } else {
+                $this->carrito[$medicine->id]['cantidad'] -= $this->customQuantity;
+            }
+            $this->notify('Se quitaron unidades correctamente.', 'success');
+        }
+
+        Flux::modal('custom-quantity-modal')->close();
+        $this->reset(['customQuantity', 'customMedicineId', 'customOperation']);
+    }
+
+    public function quitarDelCarrito($medicineId)
+    {
+        unset($this->carrito[$medicineId]);
     }
 
     #[Computed]
     public function subtotal()
     {
-        return collect($this->carrito)->sum(fn($item) => $item['price'] * $item['cantidad']);
+        return collect($this->carrito)->sum(fn ($item) => $item['price'] * $item['cantidad']);
     }
+
+    public function updatedPromotionId($id)
+    {
+        if (!$id) {
+            $this->global_adjustment = 0;
+            return;
+        }
+
+        $promo = \App\Models\Promotion::find($id);
+        $sub = $this->subtotal;
+
+        if ($promo->type === 'discount') {
+            // Descuento: Guardamos como NEGATIVO
+            $this->global_adjustment = -($sub * ($promo->value / 100));
+        } else {
+            // Recargo: Guardamos como POSITIVO
+            $this->global_adjustment = ($sub * ($promo->value / 100));
+        }
+    }
+
+    public function updatedCarrito()
+    {
+        if ($this->promotion_id) {
+            $this->updatedPromotionId($this->promotion_id);
+        }
+    }
+
+    
 
     public function procesarVenta()
     {
         // 1. Validaciones Iniciales (Caja, Carrito, Totales)
-        if (!$this->cajaActiva) {
+        if (! $this->cajaActiva) {
             $this->notify('Error: Debes abrir caja antes de vender.', 'error');
+
             return;
         }
 
         if (empty($this->carrito)) {
             $this->notify('El carrito está vacío.', 'error');
+
             return;
         }
 
         $totalPagado = collect($this->pagos_realizados)->sum('monto');
-        $montoVenta = round((float)$this->totalFinal, 2);
-        $pagadoReal = round((float)$totalPagado, 2);
+        $montoVenta = round((float) $this->totalFinal, 2);
+        $pagadoReal = round((float) $totalPagado, 2);
 
         if ($pagadoReal > $montoVenta) {
-            $this->notify('Error: El monto pagado ($' . number_format($pagadoReal, 2) . ') supera el total. Ajuste los pagos.', 'error');
+            $this->notify('Error: El monto pagado ($'.number_format($pagadoReal, 2).') supera el total. Ajuste los pagos.', 'error');
+
             return;
         }
 
-        if ($pagadoReal < $montoVenta && !$this->cliente_id) {
-            $this->notify('Falta cubrir $' . number_format($montoVenta - $pagadoReal, 2) . '. Selecciona un cliente para dejar saldo pendiente.', 'warning');
+        if ($pagadoReal < $montoVenta && ! $this->cliente_id) {
+            $this->notify('Falta cubrir $'.number_format($montoVenta - $pagadoReal, 2).'. Selecciona un cliente para dejar saldo pendiente.', 'warning');
+
             return;
         }
 
         if ($montoVenta < 0) {
             $this->notify('El descuento no puede superar el monto total.', 'danger');
+
             return;
         }
 
@@ -245,48 +416,50 @@ class VentaManager extends Component
 
             $factura = Factura::create([
                 'tipo_comprobante' => $this->tipo_comprobante,
-                'fecha_emision'    => now(),
-                'total'            => $this->totalFinal,
-                'ajuste_global'    => $this->global_adjustment,
-                'estado'           => $estadoFactura, 
-                'user_id'          => Auth::id(),
-                'cliente_id'       => $this->cliente_id,
-                'medio_pago_id'    => null, 
+                'fecha_emision' => now(),
+                'total' => $this->totalFinal,
+                'ajuste_global' => $this->global_adjustment,
+                'estado' => $estadoFactura,
+                'user_id' => Auth::id(),
+                'cliente_id' => $this->cliente_id,
+                'medio_pago_id' => null,
             ]);
 
             foreach ($this->carrito as $item) {
-                \App\Models\FacturaDetalle::create([
-                    'cantidad'        => $item['cantidad'],
+                FacturaDetalle::create([
+                    'cantidad' => $item['cantidad'],
                     'precio_unitario' => $item['price'],
-                    'descuento'       => 0,
-                    'factura_id'      => $factura->id,
-                    'product_id'      => $item['id'],
+                    'descuento' => 0,
+                    'factura_id' => $factura->id,
+                    'product_id' => $item['product_id'], // Factura detalle todavía hace fk a product_id (históricamente)
                 ]);
 
-                $stockGlobal = \App\Models\Stock::where('product_id', $item['id'])->first();
+                $stockGlobal = Stock::where('medicine_id', $item['id'])->first();
                 if ($stockGlobal) {
                     $stockGlobal->cantidad_actual -= $item['cantidad'];
                     $stockGlobal->save();
                 }
 
                 $cantidadRestante = $item['cantidad'];
-                $lotes = \App\Models\Batch::where('medicine_id', $item['id'])
+                $lotes = Batch::where('medicine_id', $item['id'])
                     ->where('current_quantity', '>', 0)
                     ->orderBy('expiration_date', 'asc')
                     ->get();
 
                 foreach ($lotes as $lote) {
-                    if ($cantidadRestante <= 0) break;
+                    if ($cantidadRestante <= 0) {
+                        break;
+                    }
                     $aQuitar = min($lote->current_quantity, $cantidadRestante);
                     $lote->current_quantity -= $aQuitar;
                     $lote->save();
 
-                    \App\Models\StockMovement::create([
+                    StockMovement::create([
                         'batch_id' => $lote->id,
-                        'user_id'  => Auth::id(),
-                        'type'     => 'egreso',
-                        'reason'   => 'venta',
-                        'quantity' => $aQuitar
+                        'user_id' => Auth::id(),
+                        'type' => 'egreso',
+                        'reason' => 'venta',
+                        'quantity' => $aQuitar,
                     ]);
                     $cantidadRestante -= $aQuitar;
                 }
@@ -294,14 +467,14 @@ class VentaManager extends Component
 
             foreach ($this->pagos_realizados as $pago) {
                 MovimientoCaja::create([
-                    'tipo_movimiento'  => 'INGRESO',
-                    'monto'            => $pago['monto'],
-                    'motivo'           => "Venta #{$factura->id} - Pago parcial: {$pago['nombre']}",
+                    'tipo_movimiento' => 'INGRESO',
+                    'monto' => $pago['monto'],
+                    'motivo' => "Venta #{$factura->id} - Pago parcial: {$pago['nombre']}",
                     'fecha_movimiento' => now(),
-                    'id_medio_pago'    => $pago['medio_id'],
-                    'id_caja'          => $this->cajaActiva->id,
-                    'user_id'          => Auth::id(),
-                    'factura_id'       => $factura->id,
+                    'id_medio_pago' => $pago['medio_id'],
+                    'id_caja' => $this->cajaActiva->id,
+                    'user_id' => Auth::id(),
+                    'factura_id' => $factura->id,
                 ]);
             }
 
@@ -310,17 +483,18 @@ class VentaManager extends Component
 
         $this->ultimaFacturaId = $facturaID;
 
-        // 3. Lógica del RF-20: Comportamiento de Cierre
-        $action = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+        $action = Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+
+        StockActualizado::dispatch();
 
         if ($action === 'auto_imprimir') {
             $this->limpiarVenta();
-            // En lugar de return, disparamos un evento de JavaScript para abrir en pestaña nueva
             $url = route('factura.imprimir', ['id' => $facturaID]);
             $this->dispatch('abrir-impresion', url: $url);
+
             return;
         }
-        
+
         if ($action === 'preguntar') {
             // Mostramos el modal para que el usuario elija
             $this->limpiarVenta();
@@ -335,8 +509,8 @@ class VentaManager extends Component
     public function generarPdfStream($id)
     {
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
-        
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.factura', [
+
+        $pdf = Pdf::loadView('pdf.factura', [
             'factura' => $factura,
         ]);
 
@@ -349,9 +523,9 @@ class VentaManager extends Component
     private function limpiarVenta()
     {
         $this->reset([
-            'carrito', 'pagos_realizados', 'tipo_comprobante', 
-            'cliente_id', 'search_cliente', 'global_adjustment', 
-            'monto_pago_actual', 'medio_pago_id'
+            'carrito', 'pagos_realizados', 'tipo_comprobante',
+            'cliente_id', 'search_cliente', 'global_adjustment',
+            'monto_pago_actual', 'medio_pago_id',
         ]);
 
         unset($this->totalFinal, $this->montoRestante, $this->subtotal);
@@ -361,36 +535,64 @@ class VentaManager extends Component
     public function historialVentas()
     {
         return Factura::query()
-            ->with(['user', 'pagos.medioPago', 'cliente']) 
-            ->when(!Auth::user()->hasRole('admin'), function($q) {
+            ->with(['user', 'pagos.medioPago', 'cliente'])
+            ->when(! Auth::user()->hasRole('admin'), function ($q) {
                 $q->where('user_id', Auth::id());
             })
-            ->when($this->filtroEstado, function($q) {
+            ->when($this->filtroEstado, function ($q) {
                 $q->where('estado', $this->filtroEstado);
+            })
+            ->when($this->fecha_desde, function ($q) {
+                $q->whereDate('fecha_emision', '>=', $this->fecha_desde);
+            })
+            ->when($this->fecha_hasta, function ($q) {
+                $q->whereDate('fecha_emision', '<=', $this->fecha_hasta);
             })
             ->orderBy('fecha_emision', 'desc')
             ->paginate(10);
     }
 
-    public function render()
+    #[Computed]
+    public function medicines(): Collection
     {
-        // Obtenemos la configuración una sola vez para la vista (RF-21)
-        $maxDays = (int) (\App\Models\Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+        $lk = $this->likeOperator();
 
-        $products = Product::query()
-            ->leftJoin('stocks', 'products.id', '=', 'stocks.product_id')
+        $collection = Medicine::query()
+            ->with(['product', 'stock'])
+            ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
+            ->join('products', 'medicines.product_id', '=', 'products.id')
             ->where('products.status', true)
-            ->where('products.name', 'like', "%{$this->search}%")
+            ->where(function ($q) use ($lk) {
+                $q->where('products.name', $lk, "%{$this->search}%")
+                    ->orWhere('medicines.presentation_name', $lk, "%{$this->search}%");
+            })
+            ->when($this->filterGroup, function ($q) {
+                $q->where('medicines.group_id', $this->filterGroup);
+            })
             ->orderByRaw('CASE WHEN stocks.cantidad_actual > 0 THEN 0 ELSE 1 END ASC')
             ->orderBy('products.name', 'asc')
-            ->select('products.*')
-            ->with(['stock', 'medicine']) 
+            ->select('medicines.*')
             ->get();
 
+        Log::info('[VentaManager.medicines()] Base de Datos Consultada: hidratando '.$collection->count().' items.');
+
+        // Log individual solo del primer item o de uno en específico para diagnosticar velozmente
+        if ($collection->count() > 0) {
+            $first = $collection->first();
+            Log::info("[VentaManager.medicines()] Muestra Audit: Medicina #{$first->id} ('{$first->product->name}'), Stock Leído: ".($first->stock?->cantidad_actual ?? '0'));
+        }
+
+        return $collection;
+    }
+
+    public function render()
+    {
+        $maxDays = (int) (Setting::where('key', 'price_max_days')->first()?->value ?? 30);
+
         return view('livewire.user.venta-manager', [
-            'products' => $products,
             'mediosPago' => MedioPago::all(),
-            'maxDays' => $maxDays // Enviamos el límite a la vista
+            'maxDays' => $maxDays,
+            'groups' => Group::orderBy('name')->get(),
         ])->layout('components.layouts.app');
     }
 }

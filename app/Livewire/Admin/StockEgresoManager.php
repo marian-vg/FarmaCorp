@@ -2,35 +2,47 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\StockActualizado;
 use App\Models\Batch;
-use App\Models\StockMovement;
+use App\Models\Group;
 use App\Models\Stock;
-use Illuminate\Support\Facades\DB;
+use App\Models\StockMovement;
+use App\Traits\Notifies;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
-use Livewire\Attributes\Layout;
-use App\Traits\Notifies;
 
 #[Layout('components.layouts.app', ['title' => 'Egreso de Stock'])]
 class StockEgresoManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $search = '';
 
+    public $filterGroup = '';
+
+    public function updatedFilterGroup()
+    {
+        $this->resetPage();
+    }
+
     // Form properties
     public $batch_id;
+
     public $quantity_to_remove;
+
     public $reason;
+
     public $current_stock_display = 0;
 
     protected function rules()
     {
         return [
             'batch_id' => 'required|exists:batches,id',
-            'quantity_to_remove' => 'required|integer|min:1|max:' . $this->current_stock_display,
+            'quantity_to_remove' => 'required|integer|min:1|max:'.$this->current_stock_display,
             'reason' => 'required|string|in:devolucion_proveedor,merma_rotura,robo,destruccion_vencimiento',
         ];
     }
@@ -53,7 +65,8 @@ class StockEgresoManager extends Component
         $batch = Batch::findOrFail($this->batch_id);
 
         if ($this->quantity_to_remove > $batch->current_quantity) {
-            $this->addError('quantity_to_remove', 'La cantidad a retirar no puede superar el stock actual del lote (' . $batch->current_quantity . ').');
+            $this->addError('quantity_to_remove', 'La cantidad a retirar no puede superar el stock actual del lote ('.$batch->current_quantity.').');
+
             return;
         }
 
@@ -65,24 +78,27 @@ class StockEgresoManager extends Component
             // Determinar motivo (Lógica de tu compañero)
             $mappedReason = 'ajuste';
             switch ($this->reason) {
-                case 'devolucion_proveedor': $mappedReason = 'devolucion'; break;
-                case 'merma_rotura': $mappedReason = 'merma'; break;
-                case 'robo': $mappedReason = 'robo'; break;
-                case 'destruccion_vencimiento': $mappedReason = 'vencimiento'; break;
+                case 'devolucion_proveedor': $mappedReason = 'devolucion';
+                    break;
+                case 'merma_rotura': $mappedReason = 'merma';
+                    break;
+                case 'robo': $mappedReason = 'robo';
+                    break;
+                case 'destruccion_vencimiento': $mappedReason = 'vencimiento';
+                    break;
             }
 
-            // Paso B: Descontar cantidad en el Stock Global del producto
-            $medicine = $batch->medicine;
-            if ($medicine) {
-                $stock = Stock::where('product_id', $medicine->product_id)->first();
-                if ($stock) {
-                    $stock->cantidad_actual -= $this->quantity_to_remove;
-                    // Prevenir stock negativo global
-                    if ($stock->cantidad_actual < 0) {
-                        $stock->cantidad_actual = 0;
-                    }
-                    $stock->save();
+            // Paso B: Descontar cantidad en el Stock Global de la Presentación Mëdica
+            $stockGlobal = Stock::where('medicine_id', $batch->medicine_id)->first();
+
+            if ($stockGlobal) {
+                $stockGlobal->cantidad_actual -= $this->quantity_to_remove;
+                // Prevenir stock negativo global
+                if ($stockGlobal->cantidad_actual < 0) {
+                    $stockGlobal->cantidad_actual = 0;
                 }
+                $stockGlobal->fecha_actualizacion = now(); // Corrección tipográfica DB
+                $stockGlobal->save();
             }
 
             // Paso C: Crear Movimiento de Stock
@@ -93,19 +109,10 @@ class StockEgresoManager extends Component
                 'reason' => $mappedReason,
                 'quantity' => $this->quantity_to_remove,
             ]);
-
-            // NUEVO PASO C: Actualizar el Stock Global (Totalizador) [cite: 555-573]
-            // Usamos el medicine_id del lote, que es el product_id
-            $stockGlobal = \App\Models\Stock::where('product_id', $batch->medicine_id)->first();
-            
-            if ($stockGlobal) {
-                $stockGlobal->cantidad_actual -= $this->quantity_to_remove;
-                $stockGlobal->fecha_actualización = now(); // [cite: 572]
-                $stockGlobal->save();
-            }
         });
 
         Flux::modal('egreso-modal')->close();
+        StockActualizado::dispatch();
         $this->notify('Egreso registrado con éxito.', 'success');
         $this->reset(['batch_id', 'quantity_to_remove', 'reason', 'current_stock_display']);
     }
@@ -115,15 +122,20 @@ class StockEgresoManager extends Component
         $batches = Batch::search($this->search)
             ->query(function ($builder) {
                 $builder->where('current_quantity', '>', 0)
-                        ->join('medicines', 'batches.medicine_id', '=', 'medicines.product_id')
-                        ->join('products', 'medicines.product_id', '=', 'products.id')
-                        ->select('batches.*') // Strict select to avoid ID collisions
-                        ->with(['medicine.product', 'medicine.group']);
+                    ->join('medicines', 'batches.medicine_id', '=', 'medicines.id')
+                    ->join('products', 'medicines.product_id', '=', 'products.id')
+                    ->select('batches.*') // Strict select to avoid ID collisions
+                    ->with(['medicine.product', 'medicine.group']);
+
+                if ($this->filterGroup !== '') {
+                    $builder->where('medicines.group_id', $this->filterGroup);
+                }
             })
             ->paginate(12);
 
         return view('livewire.admin.stock-egreso-manager', [
-            'batches' => $batches
+            'batches' => $batches,
+            'groups' => Group::orderBy('name')->get(),
         ]);
     }
 }

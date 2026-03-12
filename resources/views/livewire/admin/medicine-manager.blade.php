@@ -9,6 +9,20 @@
             <flux:separator vertical/>
 
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar medicamento..." class="w-64" />
+            
+            <flux:select wire:model.live="filterGroup" placeholder="Grupo Farmacológico" class="w-48 min-w-48">
+                <flux:select.option value="">Todos los grupos</flux:select.option>
+                @foreach($groups as $g)
+                    <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+            
+            <flux:select wire:model.live="stockSort" placeholder="Orden de Stock" class="w-40 min-w-40">
+                <flux:select.option value="">Sin Filtro</flux:select.option>
+                <flux:select.option value="desc">Mayor a Menor</flux:select.option>
+                <flux:select.option value="asc">Menor a Mayor</flux:select.option>
+            </flux:select>
+
             <flux:button icon="plus" wire:click="createMedicine" variant="primary">Registrar Medicamento</flux:button>
         </div>
     </div>
@@ -38,10 +52,10 @@
                             <flux:text>{{ $medicine->level ?? 'N/A' }}</flux:text>
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:badge variant="solid" color="zinc">{{ $medicine->product->stock?->cantidad_actual ?? 0 }}</flux:badge>
+                            <flux:badge variant="solid" color="zinc">{{ $medicine->stock?->cantidad_actual ?? 0 }}</flux:badge>
                         </x-table.cell>
                         <x-table.cell>
-                            <flux:text class="text-gray-500">{{ $medicine->product->stock?->stock_minimo ?? 0 }}</flux:text>
+                            <flux:text class="text-gray-500">{{ $medicine->stock?->stock_minimo ?? 0 }}</flux:text>
                         </x-table.cell>
                         <x-table.cell>
                             @if($medicine->expiration_date)

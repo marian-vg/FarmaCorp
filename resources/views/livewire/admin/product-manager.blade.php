@@ -4,6 +4,20 @@
 
         <div class="flex items-center gap-4">
             <flux:input wire:model.live.debounce.300ms="search" icon="magnifying-glass" placeholder="Buscar producto..." class="w-64" />
+            
+            <flux:select wire:model.live="statusFilter" class="w-40 min-w-40">
+                <flux:select.option value="">Estado (Todos)</flux:select.option>
+                <flux:select.option value="1">Activos</flux:select.option>
+                <flux:select.option value="0">Inactivos</flux:select.option>
+            </flux:select>
+            
+            <flux:select wire:model.live="filterGroup" placeholder="Categoría Médica" class="w-48 min-w-48">
+                <flux:select.option value="">Todas las categorías</flux:select.option>
+                @foreach($groups as $g)
+                    <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+
             <flux:button icon="plus" wire:click="createProduct" variant="primary">Nuevo Producto</flux:button>
         </div>
     </div>

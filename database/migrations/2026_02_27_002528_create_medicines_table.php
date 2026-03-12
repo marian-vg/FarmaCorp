@@ -12,18 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('medicines', function (Blueprint $table) {
-            $table->id(); 
+            $table->id();
             $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
-            
+
             $table->string('presentation_name')->nullable();
             $table->decimal('price', 10, 2);
             $table->string('level', 50)->nullable();
             $table->text('leaflet')->nullable();
             $table->date('expiration_date')->nullable();
             $table->boolean('is_psychotropic')->default(false);
-            
+
             $table->foreignId('group_id')->constrained()->cascadeOnDelete();
-            
+
             $table->timestamps();
             $table->softDeletes();
         });

@@ -4,8 +4,14 @@
             <flux:heading size="xl" level="1">Egresos y Ajustes Operativos</flux:heading>
             <flux:subheading>Gestione el retiro físico de mercadería de los lotes activos (Ej: Mermas, Vencimientos, Roturas).</flux:subheading>
         </div>
-        <div class="w-full sm:w-72">
-            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar lote por medicamento o número..." />
+        <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2">
+            <flux:select wire:model.live="filterGroup" placeholder="Categoría" class="w-48 min-w-48">
+                <flux:select.option value="">Todas las categorías</flux:select.option>
+                @foreach($groups as $g)
+                    <flux:select.option value="{{ $g->id }}">{{ $g->name }}</flux:select.option>
+                @endforeach
+            </flux:select>
+            <flux:input icon="magnifying-glass" wire:model.live.debounce.300ms="search" placeholder="Buscar lote por medicamento o número..." class="flex-1 min-w-[250px]" />
         </div>
     </div>
 

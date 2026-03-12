@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('stocks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('medicine_id')->constrained()->cascadeOnDelete();
             $table->integer('cantidad_actual')->default(0);
             $table->integer('stock_minimo')->default(0);
             $table->timestamp('fecha_actualizacion')->nullable();

@@ -5,20 +5,32 @@ namespace App\Livewire\Admin;
 use App\Models\Group;
 use App\Models\Medicine;
 use App\Models\Product;
+use App\Traits\Notifies;
+use Flux\Flux;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Flux\Flux;
-use Illuminate\Support\Facades\Cache;
-use App\Traits\Notifies;
+use Livewire\Attributes\On;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
+
+    private function likeOperator(): string
+    {
+        return \DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+    }
 
     public string $search = '';
+
     public bool $filterPsychotropic = false;
+
+    public string $filterGroup = '';
+
+    public string $stockSort = '';
+
     public ?Medicine $viewingMedicine = null;
 
     public array $context = [
@@ -32,12 +44,28 @@ class MedicineManager extends Component
         'is_psychotropic' => false,
     ];
 
+    #[On('echo:stock-channel,.stock.actualizado')]
+    public function refrescarCatalogo(): void
+    {
+        $this->resetPage();
+    }
+
     public function updatedSearch()
     {
         $this->resetPage();
     }
 
     public function updatedFilterPsychotropic()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterGroup()
+    {
+        $this->resetPage();
+    }
+
+    public function updatedStockSort()
     {
         $this->resetPage();
     }
@@ -79,7 +107,7 @@ class MedicineManager extends Component
             'level' => $this->context['level'],
             'leaflet' => $this->context['leaflet'],
             'expiration_date' => $this->context['expiration_date'] ?: null,
-            'is_psychotropic' => (bool)$this->context['is_psychotropic'],
+            'is_psychotropic' => (bool) $this->context['is_psychotropic'],
         ]);
 
         Flux::modal('medicine-form')->close();
@@ -89,18 +117,39 @@ class MedicineManager extends Component
 
     public function render()
     {
-        $medicines = Medicine::search($this->search)
-            ->query(function ($query) {
-                $query->with(['product.stock', 'group']);
-                
-                if ($this->filterPsychotropic) {
-                    $query->where('is_psychotropic', true);
-                }
-                $query->join('products', 'medicines.product_id', '=', 'products.id')
-                    ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
-                    ->select('medicines.*');
-            })
-            ->paginate(12);
+        $query = Medicine::query()
+            ->with(['product', 'stock', 'group'])
+            ->join('products', 'medicines.product_id', '=', 'products.id')
+            ->leftJoin('groups', 'medicines.group_id', '=', 'groups.id')
+            ->leftJoin('stocks', 'medicines.id', '=', 'stocks.medicine_id')
+            ->select('medicines.*', 'stocks.cantidad_actual');
+
+        if ($this->search !== '') {
+            $lk = $this->likeOperator();
+            $query->where(function ($q) use ($lk) {
+                $q->where('products.name', $lk, '%'.$this->search.'%')
+                    ->orWhere('medicines.presentation_name', $lk, '%'.$this->search.'%')
+                    ->orWhere('medicines.level', $lk, '%'.$this->search.'%')
+                    ->orWhere('groups.name', $lk, '%'.$this->search.'%');
+            });
+        }
+
+        if ($this->filterPsychotropic) {
+            $query->where('medicines.is_psychotropic', true);
+        }
+        if ($this->filterGroup) {
+            $query->where('medicines.group_id', $this->filterGroup);
+        }
+
+        if ($this->stockSort === 'asc') {
+            $query->orderByRaw('COALESCE(stocks.cantidad_actual, 0) ASC');
+        } elseif ($this->stockSort === 'desc') {
+            $query->orderByRaw('COALESCE(stocks.cantidad_actual, 0) DESC');
+        } else {
+            $query->orderBy('medicines.id', 'desc');
+        }
+
+        $medicines = $query->paginate(12);
 
         $availableProducts = Product::where('status', true)
             ->doesntHave('medicine')

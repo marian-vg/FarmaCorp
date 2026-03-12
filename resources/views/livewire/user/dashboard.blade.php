@@ -14,6 +14,16 @@
         </div>
     </div>
 
+    {{-- CONTADOR DE TURNO ACTIVO (Visualizado permanentemente) --}}
+    <div class="flex justify-end mt-1" x-data="turnoTimer('{{ $this->cajaAbierta ? $this->cajaAbierta->fecha_apertura->toIso8601String() : '' }}')">
+        <div class="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 px-4 py-2 rounded-lg shadow-sm">
+            <flux:icon.clock class="w-5 h-5 text-indigo-500" />
+            <span class="font-medium text-sm text-zinc-700 dark:text-zinc-300">
+                Tiempo de Turno: <span x-text="timeString" class="font-bold text-indigo-600 dark:text-indigo-400">0h 0m</span>
+            </span>
+        </div>
+    </div>
+
     {{-- Tabs Manuales usando Livewire (Flux UI Free no provee Tabs) --}}
     <div class="flex gap-4 border-b border-zinc-200 dark:border-zinc-700 mb-6 mt-4">
         <button 
@@ -300,6 +310,7 @@
                 <x-table.head>
                     <x-table.heading>Apertura</x-table.heading>
                     <x-table.heading>Cierre</x-table.heading>
+                    <x-table.heading>Tiempo de Turno</x-table.heading>
                     <x-table.heading>Monto Declarado</x-table.heading>
                     <x-table.heading>Recaudación Final</x-table.heading>
                     <x-table.heading class="text-right">Acciones</x-table.heading>
@@ -310,6 +321,20 @@
                         <x-table.row>
                             <x-table.cell>{{ $caja->fecha_apertura->format('d/m/Y H:i') }}</x-table.cell>
                             <x-table.cell>{{ $caja->fecha_cierre ? $caja->fecha_cierre->format('d/m/Y H:i') : 'Activa' }}</x-table.cell>
+                            
+                            {{-- TIEMPO DE TURNO CALCULADO --}}
+                            <x-table.cell>
+                                @php
+                                    if ($caja->fecha_cierre) {
+                                        $minutos = $caja->fecha_apertura->diffInMinutes($caja->fecha_cierre);
+                                        $horasStr = floor($minutos / 60) . 'h ' . ($minutos % 60) . 'm';
+                                    } else {
+                                        $horasStr = 'En curso';
+                                    }
+                                @endphp
+                                <span class="text-zinc-600 dark:text-zinc-400 font-medium">{{ $horasStr }}</span>
+                            </x-table.cell>
+
                             <x-table.cell>${{ number_format($caja->monto_inicial, 2) }}</x-table.cell>
                             <x-table.cell class="font-bold text-indigo-600 dark:text-indigo-400">
                                 ${{ number_format($caja->monto_final, 2) }}
@@ -335,3 +360,43 @@
     </div>
     @endif
 </div>
+
+{{-- SCRIPT DEL TEMPORIZADOR ALPINE PARA EVITAR RENDERIZADOS MASIVOS --}}
+@script
+<script>
+    Alpine.data('turnoTimer', (aperturaIso) => ({
+        timeString: '0h 0m',
+        interval: null,
+        init() {
+            if (!aperturaIso) {
+                this.timeString = '0h 0m';
+                return;
+            }
+            
+            // Convertimos el string a milisegundos
+            const start = new Date(aperturaIso).getTime();
+            
+            const updateTime = () => {
+                const now = new Date().getTime();
+                const diff = Math.floor((now - start) / 1000); 
+                
+                if (diff < 0) return;
+                
+                const h = Math.floor(diff / 3600);
+                const m = Math.floor((diff % 3600) / 60);
+                const s = Math.floor(diff % 60);
+                
+                this.timeString = `${h}h ${m}m ${s}s`;
+            };
+            
+            // Calculamos inmediatamente antes de empezar a tickear
+            updateTime();
+            // Refrescamos cada 1000ms (1 segundo)
+            this.interval = setInterval(updateTime, 1000);
+        },
+        destroy() {
+            if (this.interval) clearInterval(this.interval);
+        }
+    }))
+</script>
+@endscript

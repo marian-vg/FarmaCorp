@@ -118,7 +118,7 @@
             {{-- Gráfico con Alpine.js (Solución al cuadro negro) --}}
             <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6">
                 <flux:heading size="md" class="mb-4">Tendencia de Recaudación Semanal</flux:heading>
-                <div 
+                <div wire:ignore
                     x-data="{
                         init() {
                             let chartData = @js($this->estadisticasSieteDias);
@@ -218,7 +218,7 @@
         </form>
     </flux:modal>
 
-    {{-- MODAL DETALLE LATERAL --}}
+
 <flux:modal name="detalle-caja-panel" variant="side" class="min-w-180">
     @if($cajaSeleccionada)
         <div class="space-y-6">
@@ -241,7 +241,6 @@
                 </flux:card>
             </div>
 
-            {{-- Desglose MP Mejorado --}}
             <div class="mt-4">
                 <flux:heading size="sm" class="mb-3 uppercase tracking-wider text-zinc-500">Desglose por Medios de Pago</flux:heading>
                 
@@ -265,8 +264,6 @@
 
             <flux:separator />
 
-            {{-- Tabla Movimientos con Botones de Registro --}}
-            {{-- Tabla Movimientos con Botones de Registro y Medio de Pago --}}
             <div>
                 <div class="flex justify-between items-center mb-3">
                     <flux:heading size="sm" class="uppercase tracking-wider text-zinc-500">Historial de Operaciones</flux:heading>

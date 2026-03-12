@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Database\Factories\StockMovementFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Laravel\Scout\Searchable;
 
 class StockMovement extends Model
 {
-    /** @use HasFactory<\Database\Factories\StockMovementFactory> */
+    /** @use HasFactory<StockMovementFactory> */
     use HasFactory, Searchable;
 
     protected $fillable = [
@@ -17,7 +18,7 @@ class StockMovement extends Model
         'user_id',
         'type',
         'reason',
-        'quantity'
+        'quantity',
     ];
 
     protected function casts(): array
