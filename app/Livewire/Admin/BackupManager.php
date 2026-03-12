@@ -81,6 +81,32 @@ class BackupManager extends Component
         }
     }
 
+    private function sincronizarSecuencias()
+    {
+        // Consultamos solo las tablas y columnas que tienen un valor por defecto autoincremental (nextval)
+        $sequences = DB::select("
+            SELECT table_name, column_name
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND column_default LIKE 'nextval%'
+        ");
+
+        foreach ($sequences as $seq) {
+            $tableName = $seq->table_name;
+            $columnName = $seq->column_name;
+
+            if ($tableName === 'migrations') continue;
+
+            // Sincronizamos la secuencia detectada con el valor máximo real de esa columna específica
+            DB::statement("
+                SELECT setval(
+                    pg_get_serial_sequence('\"$tableName\"', '$columnName'), 
+                    coalesce(max(\"$columnName\"), 1)
+                ) FROM \"$tableName\"
+            ");
+        }
+    }
+
     public function restoreFromDisk($fileName)
     {
         try {
@@ -90,6 +116,7 @@ class BackupManager extends Component
                 DB::statement("SET session_replication_role = 'replica';");
                 DB::unprepared($sql);
                 DB::statement("SET session_replication_role = 'origin';");
+                $this->sincronizarSecuencias();
             });
 
             $this->notify('Sistema restaurado al estado de ' . $fileName, 'success');
