@@ -12,5 +12,6 @@ abstract class TestCase extends BaseTestCase
         parent::setUp();
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
+        $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
     }
 }

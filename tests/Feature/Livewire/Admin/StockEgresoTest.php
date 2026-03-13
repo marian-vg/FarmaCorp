@@ -24,7 +24,7 @@ class StockEgresoTest extends TestCase
     public function test_admin_can_search_and_register_stock_egress()
     {
         $admin = User::factory()->create();
-        $admin->assignRole('admin');
+        $admin->givePermissionTo('stock.egreso');
 
         $group = Group::create(['name' => 'Painkillers']);
         $product = Product::factory()->create(['name' => 'Paracetamol']);

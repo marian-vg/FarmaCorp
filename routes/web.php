@@ -32,39 +32,68 @@ Route::middleware(['guest'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    
     Route::get('dashboard', function () {
-        if (auth()->user()->hasRole('admin')) {
+        if (auth()->user()->hasPermissionTo('admin-panel.acceder')) {
             return redirect()->route('admin.dashboard');
         }
 
-        return redirect()->route('user.dashboard');
-    })->name('dashboard');
+        if (auth()->user()->hasPermissionTo('caja.acceder')) {
+            return redirect()->route('user.dashboard');
+        }
 
-    Route::middleware(['role:admin'])->group(function () {
-        Route::get('admin/dashboard', AdminDashboard::class)->name('admin.dashboard');
+        abort(403, 'Tu cuenta no tiene permisos operativos asignados. Por favor, contacta a un administrador.');
+    })->name('dashboard');
+    
+    Route::middleware('permission:admin-panel.acceder')->group(function () {
+        Route::get('admin/dashboard', AdminDashboard::class)
+            ->name('admin.dashboard');
+    });
+
+    Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard')->middleware('permission:caja.acceder');
+
+
+    // Módulo de Administración Principal
+    Route::middleware(['permission:roles.acceder'])->group(function () {
         Route::get('admin/perfiles', ProfileManager::class)->name('admin.profiles');
-        Route::get('admin/grupos', GroupManager::class)->name('admin.groups');
-        Route::get('admin/productos', ProductManager::class)->name('admin.products');
-        Route::get('admin/medicamentos', MedicineManager::class)->name('admin.medicines');
-        Route::get('admin/stock/ingresos', StockIngresoManager::class)->name('admin.stock.ingresos');
-        Route::get('admin/stock/egresos', StockEgresoManager::class)->name('admin.stock.egresos');
-        Route::get('admin/stock/historial', StockHistorialManager::class)->name('admin.stock.historial');
-        Route::get('admin/clientes', ClientManager::class)->name('admin.clients');
-        Route::get('admin/cajas', CajaManager::class)->name('admin.cajas');
-        Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
-        Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
-        Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions');
         Route::get('/admin/mantenimiento', \App\Livewire\Admin\BackupManager::class)->name('admin.backup');
     });
 
-    Route::middleware(['role:admin|empleado'])->group(function () {
-        Route::get('clients', ClientManager::class)->name('clients.index');
-
-        Route::get('/factura/imprimir/{id}', [VentaManager::class, 'generarPdfStream'])->name('factura.imprimir');
+    // Módulos Compartidos / Específicos usando Middleware "permission"
+    Route::middleware(['permission:inventario.acceder'])->group(function () {
+         Route::get('admin/productos', ProductManager::class)->name('admin.products');
+         Route::get('admin/medicamentos', MedicineManager::class)->name('admin.medicines');
+         Route::get('admin/grupos', GroupManager::class)->name('admin.groups');
+    });
+    
+        
+    Route::get('admin/stock/ingresos', StockIngresoManager::class)->name('admin.stock.ingresos')->middleware('permission:stock.ingreso');
+    Route::get('admin/stock/egresos', StockEgresoManager::class)->name('admin.stock.egresos')->middleware('permission:stock.egreso');
+    Route::get('admin/stock/historial', StockHistorialManager::class)->name('admin.stock.historial')->middleware('permission:stock.acceder');
+    
+    // Clientes
+    Route::middleware(['permission:clientes.acceder'])->group(function () {
+        Route::get('admin/clientes', ClientManager::class)->name('admin.clients');
+        Route::get('clients', ClientManager::class)->name('clients.index'); // Antiguo alias
+        Route::get('/admin/cuentas-corrientes', ClientDebtManager::class)->name('admin.debts');
     });
 
-    Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard');
-    Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
+    // Caja y Ventas
+    Route::get('admin/cajas', CajaManager::class)->name('admin.cajas')->middleware('permission:caja.acceder');
+    
+
+    Route::middleware(['permission:facturacion.acceder'])->group(function () {
+        Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
+        Route::get('user/ventas', VentaManager::class)->name('ventas.pos');
+        Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions');
+    });
+
+    // Acciones específicas emitiendo factura
+    Route::get('/factura/imprimir/{id}', [VentaManager::class, 'generarPdfStream'])
+        ->name('factura.imprimir')
+        ->middleware('permission:facturacion.emitir');
+
+    // Rutas Generales
     Route::get('configuracion', SettingsManager::class)->name('settings.index');
     Route::get('manual', function () {
         return view('manual');

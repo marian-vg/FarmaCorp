@@ -176,15 +176,20 @@
                         <x-table.cell class="max-48">
                             <div class="flex gap-2">
                                 
-                                <flux:select class="w-40" aria-label="Perfiles del usuario" size="sm">
-                                    @forelse ($user->roles as $role)
-                                        <flux:select.option size="sm" value="{{ $role->name }}">
-                                            {{ str($role->name)->headline() }}
-                                        </flux:select.option>
-                                    @empty
-                                        <flux:select.option size="sm" value="" selected>Sin rol</flux:select.option>
-                                    @endforelse
-                                </flux:select>
+                                <flux:dropdown>
+                                    <flux:button size="sm" class="w-40 justify-between items-center text-left" icon-trailing="chevron-down">
+                                        {{ $user->roles->count() }} Perfil(es)
+                                    </flux:button>
+                                    <flux:menu class="max-h-48 overflow-y-auto">
+                                        @forelse ($user->roles as $role)
+                                            <flux:menu.item>
+                                                {{ str($role->name)->headline() }}
+                                            </flux:menu.item>
+                                        @empty
+                                            <flux:menu.item disabled>Sin roles</flux:menu.item>
+                                        @endforelse
+                                    </flux:menu>
+                                </flux:dropdown>
 
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editRoles({{ $user->id }})" />
                             </div>
@@ -192,15 +197,23 @@
 
                         <x-table.cell>
                             <div class="flex gap-2">
-                                <flux:select class="w-40" aria-label="Permisos del usuario" size="sm">
-                                    @forelse($user->getDirectPermissions() as $permission)
-                                        <flux:select.option size="sm" value="{{ $permission->name }}">
-                                            {{ str($permission->display_name ?? $permission->name)->headline() }}
-                                        </flux:select.option>
-                                    @empty
-                                        <flux:select.option size="sm" value="" selected>Ningun Permiso</flux:select.option>
-                                    @endforelse
-                                </flux:select>
+                                @php
+                                    $allUserPermissions = $user->getAllPermissions();
+                                @endphp
+                                <flux:dropdown>
+                                    <flux:button size="sm" class="w-40 justify-between items-center text-left" icon-trailing="chevron-down">
+                                        {{ $allUserPermissions->count() }} Permiso(s)
+                                    </flux:button>
+                                    <flux:menu class="max-h-48 overflow-y-auto">
+                                        @forelse($allUserPermissions as $permission)
+                                            <flux:menu.item>
+                                                {{ str($permission->display_name ?? $permission->name)->headline() }}
+                                            </flux:menu.item>
+                                        @empty
+                                            <flux:menu.item disabled>Ningún Permiso</flux:menu.item>
+                                        @endforelse
+                                    </flux:menu>
+                                </flux:dropdown>
 
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editPermissions({{ $user->id }})" />
                             </div>
@@ -208,15 +221,20 @@
 
                         <x-table.cell>
                             <div class="flex gap-2">
-                                <flux:select class="w-40" aria-label="Perfiles Personalizados" size="sm">
-                                    @forelse($user->profiles as $profile)
-                                        <flux:select.option size="sm" value="{{ $profile->id }}">
-                                            {{ str($profile->name)->headline() }}
-                                        </flux:select.option>
-                                    @empty
-                                        <flux:select.option size="sm" value="" selected>Ningun Perfil</flux:select.option>
-                                    @endforelse
-                                </flux:select>
+                                <flux:dropdown>
+                                    <flux:button size="sm" class="w-40 justify-between items-center text-left" icon-trailing="chevron-down">
+                                        {{ $user->profiles->count() }} Extra(s)
+                                    </flux:button>
+                                    <flux:menu class="max-h-48 overflow-y-auto w-40">
+                                        @forelse($user->profiles as $profile)
+                                            <flux:menu.item>
+                                                {{ str($profile->name)->headline() }}
+                                            </flux:menu.item>
+                                        @empty
+                                            <flux:menu.item disabled>Sin extras</flux:menu.item>
+                                        @endforelse
+                                    </flux:menu>
+                                </flux:dropdown>
 
                                 <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProfiles({{ $user->id }})" />
                             </div>
@@ -312,18 +330,37 @@
             <div class="grid grid-cols-2 gap-6">
                 <div class="space-y-3">
                     <flux:heading size="sm">Perfiles</flux:heading>
-                    <div class="space-y-2 max-h-60 overflow-y-auto">
-                        @foreach($this->roles as $role)
-                            <flux:checkbox wire:model="selectedRoles" value="{{ $role->name }}" label="{{ str($role->name)->headline() }}" />
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        @foreach($this->allProfiles as $profile)
+                            <flux:checkbox wire:model.live="selectedProfiles" value="{{ $profile->name }}" label="{{ str($profile->name)->headline() }}" />
                         @endforeach
                     </div>
                 </div>
 
                 <div class="space-y-3">
-                    <flux:heading size="sm">Permisos Directos</flux:heading>
-                    <div class="space-y-2 max-h-60 overflow-y-auto">
-                        @foreach($this->permissions as $permission)
-                            <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->name)->headline() }}" />
+                    <flux:heading size="sm">Permisos (Directos y Heredados)</flux:heading>
+                    <div class="space-y-6 max-h-96 overflow-y-auto pr-2 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
+                        @foreach($this->permissions->groupBy('group_name') as $group => $groupPermissions)
+                            <div class="space-y-3">
+                                <flux:heading size="sm">{{ $group ?: 'Generales' }}</flux:heading>
+                                <flux:separator variant="subtle" />
+                                <div class="grid grid-cols-1 gap-3">
+                                    @foreach($groupPermissions as $permission)
+                                        @php
+                                            $isInherited = in_array($permission->name, $this->inheritedPermissions);
+                                        @endphp
+                                        <flux:checkbox 
+                                            wire:key="edituser-perm-{{ $permission->id }}"
+                                            id="edituser-perm-{{ $permission->id }}"
+                                            wire:model="selectedPermissions" 
+                                            value="{{ $permission->name }}" 
+                                            label="{{ $permission->display_name ?? str($permission->name)->headline() }}" 
+                                            :disabled="$isInherited"
+                                            :checked="$isInherited || in_array($permission->name, $this->selectedPermissions)"
+                                        />
+                                    @endforeach
+                                </div>
+                            </div>
                         @endforeach
                     </div>
                 </div>

@@ -20,6 +20,11 @@ class StockEgresoManager extends Component
 {
     use Notifies, WithPagination;
 
+    public function mount()
+    {
+        $this->authorize('stock.egreso');
+    }
+
     public $search = '';
 
     public $filterGroup = '';

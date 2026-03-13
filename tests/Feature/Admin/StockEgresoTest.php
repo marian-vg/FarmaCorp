@@ -15,9 +15,8 @@ use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
-    Role::create(['name' => 'admin']);
     $this->admin = User::factory()->create();
-    $this->admin->assignRole('admin');
+    $this->admin->givePermissionTo('stock.egreso');
 
     $this->group = Group::factory()->create();
 

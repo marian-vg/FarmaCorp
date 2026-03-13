@@ -72,11 +72,19 @@
                 <flux:textarea wire:model="profileContext.description" label="Descripción (Opcional)" placeholder="Define el propósito del perfil..." />
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-4">
                 <flux:text class="font-medium mb-2 block">Permisos del Sistema</flux:text>
-                <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-2 border border-solid border-gray-200 dark:border-zinc-700 rounded-md">
-                    @foreach($this->permissions as $permission)
-                        <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ str($permission->display_name ?? $permission->name)->headline() }}" />
+                <div class="max-h-96 overflow-y-auto pr-2 space-y-6 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
+                    @foreach($this->permissions->groupBy('group_name') as $group => $groupPermissions)
+                        <div class="space-y-3">
+                            <flux:heading size="sm">{{ $group ?: 'Generales' }}</flux:heading>
+                            <flux:separator variant="subtle" />
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                @foreach($groupPermissions as $permission)
+                                    <flux:checkbox wire:model="selectedPermissions" value="{{ $permission->name }}" label="{{ $permission->display_name ?? str($permission->name)->headline() }}" />
+                                @endforeach
+                            </div>
+                        </div>
                     @endforeach
                 </div>
             </div>

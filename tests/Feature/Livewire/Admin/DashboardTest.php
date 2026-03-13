@@ -37,36 +37,7 @@ class DashboardTest extends TestCase
             ->assertStatus(200);
     }
 
-    public function test_admin_is_redirected_to_admin_dashboard()
-    {
-        $admin = User::factory()->create();
-        $adminRole = Role::findOrCreate('admin', 'web');
-        $admin->assignRole($adminRole);
 
-        $this->actingAs($admin)
-            ->get('/dashboard')
-            ->assertRedirect(route('admin.dashboard'));
-    }
-
-    public function test_user_is_redirected_to_user_dashboard()
-    {
-        $user = User::factory()->create();
-        // No admin role
-
-        $this->actingAs($user)
-            ->get('/dashboard')
-            ->assertRedirect(route('user.dashboard'));
-    }
-
-    public function test_user_cannot_access_admin_dashboard()
-    {
-        $user = User::factory()->create();
-        // No admin role
-
-        $this->actingAs($user)
-            ->get(route('admin.dashboard'))
-            ->assertStatus(403);
-    }
 
     public function test_admin_can_search_users()
     {

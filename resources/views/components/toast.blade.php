@@ -5,14 +5,21 @@
         type: 'success',
         timeout: null,
         showToast(event) {
-            this.message = event.detail.message || event.detail[0];
-            this.type = event.detail.type || 'success';
+            this.message = event.detail?.message || event.detail?.[0] || 'Notification';
+            this.type = event.detail?.type || 'success';
             this.show = true;
             
             clearTimeout(this.timeout);
             this.timeout = setTimeout(() => { this.show = false }, 3500);
         }
     }"
+    x-init="
+        @if(session()->has('notify'))
+            setTimeout(() => {
+                showToast({ detail: { message: '{{ session('notify')['message'] ?? 'Notification' }}', type: '{{ session('notify')['type'] ?? 'success' }}' } })
+            }, 100);
+        @endif
+    "
     @notify.window="showToast($event)"
     x-show="show"
     x-transition:enter="transition ease-out duration-300"

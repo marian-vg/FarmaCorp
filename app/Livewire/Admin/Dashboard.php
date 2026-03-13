@@ -63,6 +63,19 @@ class Dashboard extends Component
 
     public array $selectedPermissions = [];
 
+    #[Computed]
+    public function inheritedPermissions()
+    {
+        return Role::whereIn('name', $this->selectedRoles)
+            ->with('permissions')
+            ->get()
+            ->pluck('permissions')
+            ->flatten()
+            ->pluck('name')
+            ->unique()
+            ->toArray();
+    }
+
     public array $selectedProfiles = [];
 
     public function updatedSearch()
@@ -138,7 +151,7 @@ class Dashboard extends Component
         if ($this->editingUser && $this->editingUser->hasRole('empleado')) {
             return $allPermissions->filter(function ($permission) {
                 return ! str($permission->name)->contains(['user', 'role', 'permission', 'profile']);
-            });
+            })->values();
         }
 
         return $allPermissions;
@@ -169,6 +182,7 @@ class Dashboard extends Component
     public function editPermissions(User $user)
     {
         $this->editingUser = $user;
+        $this->selectedRoles = $user->roles->pluck('name')->toArray();
         $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
         Flux::modal('edit-permissions')->show();
     }
@@ -187,8 +201,9 @@ class Dashboard extends Component
                     ]);
                 }
             }
-
-            $this->editingUser->syncPermissions($this->selectedPermissions);
+    
+            $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
+            $this->editingUser->syncPermissions($directPermissionsToSave);
             Flux::modal('edit-permissions')->close();
             $this->dispatch('Permisos guardados correctamente.', 'success');
         }
@@ -282,7 +297,10 @@ class Dashboard extends Component
         ]);
 
         $this->editingUser->syncRoles($this->selectedRoles);
-        $this->editingUser->syncPermissions($this->selectedPermissions);
+
+        // Filter out any permission that is already inherited via the chosen roles
+        $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
+        $this->editingUser->syncPermissions($directPermissionsToSave);
 
         Flux::modal('edit-user')->close();
         $this->reset(['editUserContext', 'selectedRoles', 'selectedPermissions', 'editingUser']);

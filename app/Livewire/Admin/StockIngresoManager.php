@@ -14,11 +14,15 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-
 #[Layout('components.layouts.app', ['title' => 'Ingreso de Stock'])]
 class StockIngresoManager extends Component
 {
     use Notifies, WithPagination;
+
+    public function mount()
+    {
+        $this->authorize('stock.ingreso');
+    }
 
     public $search = '';
 
