@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\UserPermissionsUpdated;
 use App\Models\Batch;
 use App\Models\Profile;
 use App\Models\Setting;
@@ -205,6 +206,7 @@ class Dashboard extends Component
         if ($this->editingUser) {
             $this->editingUser->syncRoles($this->selectedRoles);
             Flux::modal('edit-roles')->close();
+            broadcast(new UserPermissionsUpdated($this->editingUser->id));
         }
         $this->dispatch('Roles guardados exitosamente.', 'success');
     }
@@ -247,6 +249,7 @@ class Dashboard extends Component
             $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
             $this->editingUser->syncPermissions($directPermissionsToSave);
             Flux::modal('edit-permissions')->close();
+            broadcast(new UserPermissionsUpdated($this->editingUser->id));
             $this->dispatch('Permisos guardados correctamente.', 'success');
         }
     }
@@ -387,6 +390,8 @@ class Dashboard extends Component
         // Filter out any permission that is already inherited via the chosen roles
         $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
         $this->editingUser->syncPermissions($directPermissionsToSave);
+
+        broadcast(new UserPermissionsUpdated($this->editingUser->id));
 
         Flux::modal('edit-user')->close();
         $this->reset(['editUserContext', 'selectedRoles', 'selectedPermissions', 'editingUser']);

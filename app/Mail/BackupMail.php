@@ -5,8 +5,8 @@ namespace App\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class BackupMail extends Mailable
@@ -15,8 +15,8 @@ class BackupMail extends Mailable
 
     // Añadimos $userName
     public function __construct(
-        public $path, 
-        public $name, 
+        public $path,
+        public $name,
         public $userName
     ) {}
 

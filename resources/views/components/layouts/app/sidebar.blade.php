@@ -58,9 +58,6 @@
                 <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Administración de Cajas</flux:sidebar.item>
             @endcan
 
-            @role('super-admin')
-                <flux:sidebar.item icon="wrench-screwdriver" href="{{ route('admin.backup') }}" :current="request()->routeIs('admin.backup')">Base de Datos</flux:sidebar.item>
-            @endrole
 
             <flux:spacer/>
             <flux:separator/>
@@ -82,5 +79,23 @@
 
         <x-toast/>
         @fluxScripts
+        
+        @auth
+        <script type="module">
+            if (window.Echo) {
+                window.Echo.private(`user.{{ auth()->id() }}`)
+                    .listen('UserPermissionsUpdated', (e) => {
+                        Flux.toast({
+                            heading: 'Seguridad',
+                            text: 'El administrador ha modificado tus permisos. El sistema se recargará en 3 segundos para aplicar los cambios.',
+                            variant: 'danger',
+                        });
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    });
+            }
+        </script>
+        @endauth
     </body>
 </html>

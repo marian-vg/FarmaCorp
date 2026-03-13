@@ -1,60 +1,73 @@
-# Plan de Implementación: Separación de Permisos de Caja (Admin vs Empleado)
+# Plan de Implementación: Refactorización de Backups y Eventos de Permisos
 
 ## Objetivo Principal
-Diferenciar el acceso a la "Caja Operativa" (terminal del empleado) del acceso a la "Administración de Cajas" (vista del administrador). Actualmente, ambas vistas dependen del mismo permiso (`caja.acceder`), lo que permite que usuarios comunes vean apartados administrativos. Se separarán los permisos y se agruparán estratégicamente para cumplir con los requerimientos de seguridad.
+Mejorar la estabilidad, seguridad y dinamismo del sistema abordando tres aspectos clave:
+1. Análisis y mejora del sistema de backups, incluyendo el bug de la pérdida de visualización tras una restauración (posible fallo de caché de permisos).
+2. Seguridad granular para el gestor de copias de seguridad.
+3. Actualización de permisos y roles en tiempo real utilizando Laravel Reverb (WebSockets).
 
 ---
 
-### Fase A: Modificación de Permisos (Seeder)
-**Acción:** 
-Actualizar el archivo `database/seeders/RoleAndPermissionSeeder.php` para desvincular la administración de cajas del permiso general de caja.
+### Fase A: Análisis y Mejora del Sistema de Backups
 
-1. **Mantener** el permiso `caja.acceder` (y derivados como abrir, cerrar, ingresos_egresos) dentro del grupo **"Caja"**. Este será exclusivo para la operación diaria (Mi Caja Operativa) de los empleados.
-2. **Crear** un nuevo permiso llamado `admin-cajas.acceder` (display name: "Administrar Cajas e Historial") y colocarlo dentro del grupo **"Sistema"**. De esta forma, este permiso quedará agrupado junto con `admin-panel.acceder` para facilitar su asignación a perfiles gerenciales (Administradores o Low-Admins).
+**Análisis del Problema (`flux:separator` oculto tras restaurar):**
+El problema de que componentes condicionados por permisos dejen de visualizarse correctamente tras restaurar un backup radica en la **caché**. Spatie Permission almacena los permisos y roles cacheados. Al sobreescribir la base de datos con un backup antiguo, los IDs o las asignaciones de base de datos cambian, pero la caché de Spatie se mantiene intacta, causando que las directivas `@can` o `hasPermissionTo` fallen silenciosamente o devuelvan falso de forma inesperada.
+**Solución:** Se añadirá una limpieza de la caché de permisos (`app()[PermissionRegistrar::class]->forgetCachedPermissions();`) y opcionalmente de otras cachés del sistema luego de restaurar el dump.
 
----
-
-### Fase B: Actualización de Rutas (`routes/web.php`)
-**Acción:** 
-Cambiar el middleware de protección para la ruta administrativa de cajas.
-
-- **Antes:**
-  ```php
-  Route::get('admin/cajas', CajaManager::class)->name('admin.cajas')->middleware('permission:caja.acceder');
-  ```
-- **Después:**
-  ```php
-  Route::get('admin/cajas', CajaManager::class)->name('admin.cajas')->middleware('permission:admin-cajas.acceder');
-  ```
-- La ruta `user/dashboard` (Mi Caja Operativa) conservará su middleware `permission:caja.acceder`.
+**Mejora del Motor de Backups:**
+Actualmente, `BackupManager` genera el volcado SQL iterando sobre las tablas a mano con `DB::select` e iteraciones de PHP. Esto es ineficiente y problemático para bases de datos medianas/grandes.
+Dado que la base de datos es **PostgreSQL** y que recientemente se instaló el paquete `spatie/db-dumper`, se refactorizará el método de creación de backup para que utilice la robustez y velocidad nativa de `pg_dump` proporcionada por el paquete de Spatie.
 
 ---
 
-### Fase C: Modificación de la Interfaz (Sidebar)
+### Fase B: Permisos Granulares para el Gestor de Backups
+
 **Acción:** 
-Actualizar el componente de navegación `resources/views/components/layouts/app/sidebar.blade.php` para que renderice los enlaces dependiendo de su respectivo permiso, respetando la estructura visual de Flux UI.
+Desglosar el permiso general de copias de seguridad para aplicar el principio de menor privilegio en el componente `BackupManager.php`.
 
-- **Implementación en Blade:**
-  ```blade
-  @can('caja.acceder')
-      <flux:sidebar.item icon="wallet" href="{{ route('user.dashboard') }}" :current="request()->routeIs('user.dashboard')">Mi Caja Operativa</flux:sidebar.item>
-  @endcan
+1. **Modificar Seeder:** 
+   Se agregarán los siguientes permisos al grupo **"Sistema"** en `RoleAndPermissionSeeder`:
+   - `admin-backup.acceder` (Para entrar al módulo, ya existente conceptualmente)
+   - `admin-backup.crear` (Para generar nuevas copias locales y a la nube/correo)
+   - `admin-backup.restaurar` (Permiso crítico para sobreescribir la BD)
+   - `admin-backup.eliminar` (Para borrar copias antiguas)
 
-  @can('admin-cajas.acceder')
-      <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Administración de Cajas</flux:sidebar.item>
-  @endcan
-  ```
+2. **Proteger el Componente `BackupManager.php`:**
+   Al igual que en tareas previas, se aplicará el patrón de intercepción:
+   ```php
+   public function createInternalBackup() {
+       if (!auth()->user()->can('admin-backup.crear')) {
+           $this->notify('No tienes permisos para crear copias.', 'danger'); return;
+       }
+       // ...
+   }
+   ```
+   Lo mismo aplicará para `restoreFromDisk` y `deleteBackup`.
+3. En la interfaz (`backup-manager.blade.php`), se ocultarán o deshabilitarán los botones según el permiso.
 
 ---
 
-### Fase D: Actualización de Tests y Componentes Relacionados
-**Acción:** 
-Garantizar que el sistema de testing automático siga funcionando.
+### Fase C: Actualización de Interfaz en Tiempo Real (Reverb)
 
-1. Revisar `tests/Feature/Livewire/Admin/CajaManagerTest.php` (y cualquier otro relacionado a `admin/cajas`) para asegurar que al usuario de prueba (Admin) se le asigne explícitamente el nuevo permiso `admin-cajas.acceder` antes de montar el componente.
-2. Ejecutar Laravel Pint para mantener la convención de estilo.
-3. Correr la suite de Pest/PHPUnit completa para validar la ausencia de regresiones (`php artisan test`).
+**Acción:** 
+Crear un evento de broadcast en Laravel (ej. `UserPermissionsUpdated`) que se conecte con el frontend para reaccionar a los cambios de roles/permisos.
+
+1. **Creación del Evento:** 
+   Se generará un evento (ej. `app/Events/UserPermissionsUpdated.php`) que implemente `ShouldBroadcast` apuntando a un canal privado o público de usuario (ej. `channel('user.' . $userId)` o similar si el sidebar reacciona). Como los permisos afectan globalmente, podemos notificar al usuario específico cuyo permiso cambió.
+2. **Despacho (Dispatch):** 
+   En el método `savePermissions`, `saveRoles` y `updateUser` de `Admin\Dashboard`, cuando se sincronicen los permisos, se despachará el evento pasando el ID del usuario modificado.
+3. **Escucha en Livewire (Frontend):** 
+   El componente del sidebar (`layouts/app/sidebar.blade.php` si es livewire, o envolver el sidebar en un componente de Livewire si no lo está) escuchará este evento mediante los atributos `#[On('echo:user.{id},UserPermissionsUpdated')]`. 
+   Dado que modificar permisos de acceso requiere recargar la UI fuertemente (para aplicar los nuevos directivos `@can`), cuando el frontend reciba el evento, puede emitir una notificación toast al usuario modificado y forzar un refresco de página `window.location.reload()`, o redirigirlo al dashboard si ha perdido permisos de la ruta actual.
+
+---
+
+### Fase D: Testing
+
+1. Ejecutar y actualizar los tests correspondientes (`php artisan test`).
+2. Comprobar que los rechazos del componente de Backup generen el aviso `danger` simulando a un usuario no autorizado.
+3. Formatear los archivos modificados con Laravel Pint.
 
 ---
 **Esperando confirmación...**
-Escriba "Aprobado" o "Procede" para que ejecute este plan paso a paso y registre los resultados en `walkthrough.md`.
+Escriba "Aprobado" o "Procede" para comenzar el desarrollo por fases e ir informando los resultados en `walkthrough.md`.

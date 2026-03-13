@@ -59,3 +59,32 @@ Este archivo contiene el historial de resultados, detalles técnicos y resúmene
    - Se ejecutó `vendor/bin/pint` para ajustar la sintaxis y formatear las rutas modificadas y otros archivos de Livewire para seguir las convenciones de estilo de Laravel 12.
 
 ---
+
+## [13 de marzo de 2026] - Refactorización de Backups y Eventos de Permisos (Reverb)
+
+**Estado:** Completado ✅
+
+### Resumen de Cambios:
+
+1. **Análisis y Mejora del Sistema de Backups:** 
+   - Se solucionó el bug de invisibilidad en componentes visuales (como el `flux:separator`) originado tras restaurar un backup. La causa era la caché de Spatie Permission desincronizada con la nueva base de datos. Se solucionó inyectando `app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions()` luego de correr el comando SQL de restauración.
+   - Se refactorizó el generador de la copia de seguridad utilizando el paquete existente `spatie/db-dumper`. Ahora utiliza `pg_dump` de forma nativa, reduciendo radicalmente el consumo de RAM de PHP y previniendo cortes por `set_time_limit(0)` en bases de datos medianas/grandes. Todo ello sin afectar a la lógica ya existente de distribución por correo y/o almacenamiento en la nube en Supabase.
+
+2. **Seguridad Granular para el Gestor de Backups:**
+   - Se modificó `database/seeders/RoleAndPermissionSeeder.php` creando los nuevos permisos granulares (`admin-backup.acceder`, `admin-backup.crear`, `admin-backup.restaurar`, `admin-backup.eliminar`) en el grupo "Sistema".
+   - Se interceptaron de forma segura los métodos en `app/Livewire/Admin/BackupManager.php` y se ocultaron los triggers en `resources/views/livewire/admin/backup-manager.blade.php` a los usuarios que carezcan de los correspondientes accesos de nivel de acción.
+   - Se actualizó el componente del Sidebar de Flux (`sidebar.blade.php`) para apuntar al permiso `admin-backup.acceder` e impedir su acceso no deseado.
+
+3. **Actualización de Permisos en Tiempo Real:**
+   - Se creó un evento emitible (`App\Events\UserPermissionsUpdated`) que despacha notificaciones específicas a canales privados de cada usuario (`user.{id}`) de Laravel Reverb.
+   - En el `app/Livewire/Admin/Dashboard.php`, los métodos de guardar (roles, permisos, usuario completo) ahora despachan este evento al ID del usuario editado.
+   - El sistema principal (`resources/views/components/layouts/app/sidebar.blade.php`) se suscribió a este canal mediante `window.Echo`. Si un administrador cambia los permisos de un empleado en la aplicación, el navegador de ese empleado le notifica del cambio de seguridad y recarga la interfaz a los 3 segundos para aplicar la alteración en el árbol del DOM (eliminando/creando enlaces según sus nuevos privilegios).
+
+4. **Testing y Calidad de Código:**
+   - Se arregló una prueba unitaria rota (`DashboardAlertTest`) que sufría de falsos negativos debido a que el rol de prueba carecía de los nuevos permisos creados en sesiones anteriores.
+   - Se ejecutó `vendor/bin/pint` en todos los archivos del repositorio para aplicar los fixes de los Code Styles de Laravel. La test-suite de PEST y PHPUnit fue aprobada en su totalidad con luz verde.
+
+5. **Ajuste de Interfaz de Tablas:**
+   - Se refactorizó la vista `resources/views/livewire/admin/backup-manager.blade.php` reemplazando el componente de tabla por defecto `<flux:table>` y todos sus subcomponentes (`flux:table.columns`, `flux:table.rows`, etc.) por los componentes Blade definidos a medida en el proyecto (`<x-table>`, `<x-table.head>`, `<x-table.heading>`, `<x-table.body>`, `<x-table.row>`, `<x-table.cell>`), manteniendo así la consistencia visual y de arquitectura con el resto de las vistas administrativas (como ventas, clientes y caja).
+
+---

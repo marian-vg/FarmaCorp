@@ -18,7 +18,9 @@ class DashboardAlertTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        Role::firstOrCreate(['name' => 'admin']);
+        $this->seed(\Database\Seeders\RoleAndPermissionSeeder::class);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole->syncPermissions(\Spatie\Permission\Models\Permission::all());
     }
 
     public function test_dashboard_renders_only_batches_expiring_within_alert_days_with_positive_stock()

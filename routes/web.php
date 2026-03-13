@@ -56,8 +56,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Módulo de Administración Principal
     Route::middleware(['permission:roles.acceder'])->group(function () {
         Route::get('admin/perfiles', ProfileManager::class)->name('admin.profiles');
-        Route::get('/admin/mantenimiento', BackupManager::class)->name('admin.backup');
     });
+
+    Route::get('/admin/mantenimiento', BackupManager::class)->name('admin.backup')->middleware('permission:admin-backup.acceder');
 
     // Módulos Compartidos / Específicos usando Middleware "permission"
     Route::middleware(['permission:inventario.acceder'])->group(function () {

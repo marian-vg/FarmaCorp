@@ -31,7 +31,8 @@
     class="fixed top-4 inset-x-0 mx-auto z-50 flex items-center w-full max-w-xs p-4 space-x-3 text-gray-700 rounded-lg shadow-lg dark:text-zinc-200 ring-1"
     :class="{
         'bg-emerald-50 ring-emerald-500/20 dark:bg-emerald-900/40 dark:ring-emerald-500/30': type === 'success',
-        'bg-red-50 ring-red-500/20 dark:bg-red-900/40 dark:ring-red-500/30': type === 'error'
+        'bg-red-50 ring-red-500/20 dark:bg-red-900/40 dark:ring-red-500/30': type === 'error',
+        'bg-yellow-50 ring-yellow-500/20 dark:bg-yellow-900/40 dark:ring-yellow-500/30': type === 'warning'
     }"
     style="display: none;"
 >
@@ -41,6 +42,10 @@
 
     <div x-show="type === 'error'" class="inline-flex items-center justify-center shrink-0 w-8 h-8 text-red-500 bg-red-100/50 rounded-lg dark:bg-red-800/50 dark:text-red-400">
         <flux:icon.x-circle class="w-5 h-5" />
+    </div>
+
+    <div x-show="type === 'warning'" class="inline-flex items-center justify-center shrink-0 w-8 h-8 text-yellow-500 bg-yellow-100/50 rounded-lg dark:bg-yellow-800/50 dark:text-yellow-400">
+        <flux:icon.exclamation-circle class="w-5 h-5" />
     </div>
 
     <div class="ml-3 text-sm font-medium" x-text="message"></div>

@@ -69,6 +69,10 @@ class RoleAndPermissionSeeder extends Seeder
                 ['name' => 'admin-cajas.acceder', 'display_name' => 'Administrar Cajas e Historial'],
                 ['name' => 'admin-ventas.acceder', 'display_name' => 'Administrar Ventas e Historial'],
                 ['name' => 'admin-promociones.acceder', 'display_name' => 'Administrar Promociones'],
+                ['name' => 'admin-backup.acceder', 'display_name' => 'Acceder a Resguardos del Sistema'],
+                ['name' => 'admin-backup.crear', 'display_name' => 'Crear Resguardos del Sistema'],
+                ['name' => 'admin-backup.restaurar', 'display_name' => 'Restaurar Resguardos del Sistema'],
+                ['name' => 'admin-backup.eliminar', 'display_name' => 'Eliminar Resguardos del Sistema'],
             ],
         ];
 
