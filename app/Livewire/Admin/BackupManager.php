@@ -108,8 +108,16 @@ class BackupManager extends Component
 
     private function uploadToCloud($name, $content)
     {
-        // Simulamos Supabase Storage usando un disco dedicado o carpeta externa
-        Storage::disk('local')->put('supabase_cloud_mock/' . $name, $content);
+        try {
+            // Usamos el disco 'supabase' que configuramos recién
+            // Guardamos el contenido del SQL directamente en la nube
+            Storage::disk('supabase')->put($name, $content);
+            
+            // Opcional: Podrías registrar en un log que la subida fue exitosa
+        } catch (\Exception $e) {
+            // Si la nube falla, lanzamos el error para que la notificación lo muestre
+            throw new \Exception("Error al subir a Supabase: " . $e->getMessage());
+        }
     }
 
     private function sincronizarSecuencias()
