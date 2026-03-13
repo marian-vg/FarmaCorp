@@ -45,57 +45,59 @@ class BackupManager extends Component
 
     public function createInternalBackup()
     {
-        if (! auth()->user()->can('admin-backup.crear')) {
-            $this->notify('No tienes permisos para crear copias de seguridad.', 'error');
-            return;
-        }
-
         try {
             set_time_limit(0);
+            
+            $sqlDump = $this->generateSqlContent();
+            $fileName = 'Backup_' . now()->format('Y-m-d_H-i-s') . '.sql';
+            $storagePath = 'backups/' . $fileName;
 
-            $fileName = 'Backup_'.now()->format('Y-m-d_H-i-s').'.sql';
-            $storagePath = 'backups/'.$fileName;
-
-            if (! Storage::disk('local')->exists('backups')) {
-                Storage::disk('local')->makeDirectory('backups');
-            }
-
-            $fullPath = Storage::disk('local')->path($storagePath);
-
-            PostgreSql::create()
-                ->setDbName(config('database.connections.pgsql.database'))
-                ->setUserName(config('database.connections.pgsql.username'))
-                ->setPassword(config('database.connections.pgsql.password'))
-                ->setHost(config('database.connections.pgsql.host', '127.0.0.1'))
-                ->setPort(config('database.connections.pgsql.port', '5432'))
-                ->excludeTables([
-                    'migrations',
-                    'jobs',
-                    'job_batches',
-                    'failed_jobs',
-                    'cache',
-                    'cache_locks',
-                    'sessions'
-                ])
-                ->addExtraOption('--data-only')
-                ->addExtraOption('--inserts')
-                ->dumpToFile($fullPath);
+            // Guardamos el archivo
+            Storage::put($storagePath, $sqlDump);
+            
+            // FIX: Obtenemos la ruta absoluta de forma segura
+            $fullPath = Storage::path($storagePath);
 
             if ($this->destination === 'email' || $this->destination === 'all') {
+                // Pasamos también el nombre del usuario para el mail
                 $this->sendToEmail($fullPath, $fileName);
             }
 
             if ($this->destination === 'supabase' || $this->destination === 'all') {
-                $sqlDump = Storage::disk('local')->get($storagePath);
                 $this->uploadToCloud($fileName, $sqlDump);
             }
 
             $this->cargarListaBackups();
-            $this->notify('Backup de datos generado correctamente.', 'success');
+            $this->notify('Backup generado y distribuido correctamente.', 'success');
 
         } catch (\Exception $e) {
-            $this->notify('Fallo en la operación: '.$e->getMessage(), 'error');
+            $this->notify('Fallo en la operación: ' . $e->getMessage(), 'error');
         }
+    }
+
+    private function generateSqlContent()
+    {
+        $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'");
+        $tableNames = collect($tables)->filter(fn($t) => $t->table_name !== 'migrations')->map(fn($t) => '"' . $t->table_name . '"')->toArray();
+
+        $sqlDump = "-- FarmaCorp Security Backup\nSET session_replication_role = 'replica';\n\n";
+        
+        if (!empty($tableNames)) {
+            $sqlDump .= "TRUNCATE TABLE " . implode(', ', $tableNames) . " RESTART IDENTITY CASCADE;\n\n";
+        }
+
+        foreach ($tables as $table) {
+            if ($table->table_name === 'migrations') continue;
+            $rows = DB::table($table->table_name)->get();
+            foreach ($rows as $row) {
+                $rowArray = (array) $row;
+                $columns = array_keys($rowArray);
+                $values = array_map(fn($v) => is_null($v) ? 'NULL' : (is_bool($v) ? ($v ? 'true' : 'false') : DB::getPdo()->quote($v)), array_values($rowArray));
+                $sqlDump .= "INSERT INTO \"{$table->table_name}\" (\"" . implode('", "', $columns) . "\") VALUES (" . implode(', ', $values) . ");\n";
+            }
+        }
+        $sqlDump .= "\nSET session_replication_role = 'origin';";
+        return $sqlDump;
     }
 
     private function sendToEmail($path, $name)
@@ -127,6 +129,7 @@ class BackupManager extends Component
 
     private function sincronizarSecuencias()
     {
+        // Consultamos solo las tablas y columnas que tienen un valor por defecto autoincremental (nextval)
         $sequences = DB::select("
             SELECT table_name, column_name
             FROM information_schema.columns
@@ -138,10 +141,11 @@ class BackupManager extends Component
             $tableName = $seq->table_name;
             $columnName = $seq->column_name;
 
-            if (!\Illuminate\Support\Facades\Schema::hasTable($tableName)) {
+            if ($tableName === 'migrations') {
                 continue;
             }
 
+            // Sincronizamos la secuencia detectada con el valor máximo real de esa columna específica
             DB::statement("
                 SELECT setval(
                     pg_get_serial_sequence('\"$tableName\"', '$columnName'), 
@@ -153,51 +157,19 @@ class BackupManager extends Component
 
     public function restoreFromDisk($fileName)
     {
-        if (! auth()->user()->can('admin-backup.restaurar')) {
-            $this->notify('No tienes permisos críticos para restaurar el sistema.', 'error');
-            return;
-        }
-
         try {
             $sql = Storage::get('backups/'.$fileName);
 
             DB::transaction(function () use ($sql) {
                 DB::statement("SET session_replication_role = 'replica';");
-
-                $excludedTables = [
-                    'migrations',
-                    'jobs',
-                    'job_batches',
-                    'failed_jobs',
-                    'cache',
-                    'cache_locks',
-                    'sessions'
-                ];
-
-                $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'");
-                
-                // Filtramos para limpiar SOLO las tablas de negocio (batches, clients, medicines, etc.)
-                $tableNames = collect($tables)
-                    ->filter(fn($t) => !in_array($t->table_name, $excludedTables))
-                    ->map(fn($t) => '"' . $t->table_name . '"')
-                    ->toArray();
-
-                if (!empty($tableNames)) {
-                    DB::statement("TRUNCATE TABLE " . implode(', ', $tableNames) . " RESTART IDENTITY CASCADE;");
-                }
-
-                // Inyectamos los datos limpios
                 DB::unprepared($sql);
-                
                 DB::statement("SET session_replication_role = 'origin';");
                 $this->sincronizarSecuencias();
             });
 
-            app()[PermissionRegistrar::class]->forgetCachedPermissions();
-
             $this->notify('Sistema restaurado al estado de '.$fileName, 'success');
         } catch (\Exception $e) {
-            $this->notify('Error al restaurar: '.$e->getMessage(), 'error');
+            $this->notify('Error al restaurar: '.$e->getMessage(), 'danger');
         }
     }
 
