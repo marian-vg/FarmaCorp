@@ -44,15 +44,28 @@ class BackupManager extends Component
         try {
             set_time_limit(0);
             
-            // Reutilizamos tu lógica de generación de SQL puro PHP
             $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'");
-            $sqlDump = "SET session_replication_role = 'replica';\n\n";
+            $tableNames = [];
+            
+            foreach ($tables as $table) {
+                if ($table->table_name !== 'migrations') {
+                    $tableNames[] = '"' . $table->table_name . '"';
+                }
+            }
 
+            $sqlDump = "-- FarmaCorp Internal Restore Point\n";
+            $sqlDump .= "SET session_replication_role = 'replica';\n\n";
+
+            // PASO 1: Limpiamos TODAS las tablas de una sola vez para evitar el borrado por cascada posterior
+            if (!empty($tableNames)) {
+                $sqlDump .= "TRUNCATE TABLE " . implode(', ', $tableNames) . " RESTART IDENTITY CASCADE;\n\n";
+            }
+
+            // PASO 2: Insertamos los datos
             foreach ($tables as $table) {
                 $tableName = $table->table_name;
                 if ($tableName == 'migrations') continue;
 
-                $sqlDump .= "TRUNCATE TABLE \"$tableName\" RESTART IDENTITY CASCADE;\n";
                 $rows = DB::table($tableName)->get();
 
                 foreach ($rows as $row) {
@@ -66,10 +79,11 @@ class BackupManager extends Component
 
                     $sqlDump .= "INSERT INTO \"$tableName\" (\"" . implode('", "', $columns) . "\") VALUES (" . implode(', ', $values) . ");\n";
                 }
+                $sqlDump .= "\n";
             }
+            
             $sqlDump .= "\nSET session_replication_role = 'origin';";
 
-            // GUARDAR EN DISCO EN VEZ DE DESCARGAR
             $fileName = 'Backup_' . now()->format('Y-m-d_H-i-s') . '.sql';
             Storage::put('backups/' . $fileName, $sqlDump);
 
