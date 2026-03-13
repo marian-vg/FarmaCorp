@@ -116,7 +116,7 @@ class VentaManager extends Component
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
 
         if (! Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
-            $this->notify('No tiene permisos para descargar este comprobante.', 'danger');
+            $this->notify('No tiene permisos para descargar este comprobante.', 'error');
 
             return;
         }
@@ -404,7 +404,7 @@ class VentaManager extends Component
         }
 
         if ($montoVenta < 0) {
-            $this->notify('El descuento no puede superar el monto total.', 'danger');
+            $this->notify('El descuento no puede superar el monto total.', 'error');
 
             return;
         }

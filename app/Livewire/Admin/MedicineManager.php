@@ -9,9 +9,9 @@ use App\Traits\Notifies;
 use Flux\Flux;
 use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Livewire\Attributes\On;
 
 #[Layout('components.layouts.app', ['title' => 'Alta de Medicamento'])]
 class MedicineManager extends Component

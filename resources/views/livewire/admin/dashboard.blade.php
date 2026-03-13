@@ -53,7 +53,7 @@
     </div>
 
     <div class="mt-8 border-t pt-6">
-        <flux:heading size="lg">Control de Inflación (RF-21)</flux:heading>
+        <flux:heading size="lg">Control de Inflación</flux:heading>
         <flux:subheading>Define la antigüedad máxima permitida para el precio de un producto antes de bloquear su venta.</flux:subheading>
         
         <form wire:submit.prevent="savePriceConfig" class="mt-4 flex items-end gap-4">
@@ -63,7 +63,7 @@
     </div>
 
     <div class="mt-8 border-t pt-6">
-        <flux:heading size="lg">Comportamiento de Cierre (RF-20)</flux:heading>
+        <flux:heading size="lg">Comportamiento de Cierre</flux:heading>
         <flux:subheading>Define qué sucede automáticamente al confirmar una venta.</flux:subheading>
         
         <form wire:submit.prevent="saveSaleConfig" class="mt-4 space-y-4">
@@ -178,7 +178,7 @@
                                 
                                 <flux:dropdown>
                                     <flux:button size="sm" class="w-40 justify-between items-center text-left" icon-trailing="chevron-down">
-                                        {{ $user->roles->count() }} Perfil(es)
+                                        {{ $user->roles->count() }} Rol(es)
                                     </flux:button>
                                     <flux:menu class="max-h-48 overflow-y-auto">
                                         @forelse ($user->roles as $role)
@@ -223,7 +223,7 @@
                             <div class="flex gap-2">
                                 <flux:dropdown>
                                     <flux:button size="sm" class="w-40 justify-between items-center text-left" icon-trailing="chevron-down">
-                                        {{ $user->profiles->count() }} Extra(s)
+                                        {{ $user->profiles->count() }} Perfil(es)
                                     </flux:button>
                                     <flux:menu class="max-h-48 overflow-y-auto w-40">
                                         @forelse($user->profiles as $profile)

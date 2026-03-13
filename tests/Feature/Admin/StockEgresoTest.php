@@ -12,7 +12,6 @@ use App\Models\Stock;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->admin = User::factory()->create();

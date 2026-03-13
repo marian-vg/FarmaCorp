@@ -22,13 +22,22 @@ class RoleAndPermissionSeeder extends Seeder
         $permissionsByGroup = [
             'Usuarios' => [
                 ['name' => 'usuarios.acceder', 'display_name' => 'Acceder a Usuarios'],
-                ['name' => 'usuarios.crear_editar', 'display_name' => 'Crear / Editar Usuarios'],
+                ['name' => 'usuarios.crear', 'display_name' => 'Crear Usuarios'],
+                ['name' => 'usuarios.editar', 'display_name' => 'Editar Usuarios'],
                 ['name' => 'usuarios.desactivar', 'display_name' => 'Desactivar Usuarios'],
+                ['name' => 'usuarios.reactivar', 'display_name' => 'Reactivar Usuarios'],
+                ['name' => 'usuarios.roles.modificar', 'display_name' => 'Modificar Roles de Usuario'],
+                ['name' => 'usuarios.permisos.modificar', 'display_name' => 'Modificar Permisos de Usuario'],
+                ['name' => 'usuarios.perfiles.modificar', 'display_name' => 'Modificar Perfiles de Usuario'],
+                ['name' => 'usuarios.password.modificar', 'display_name' => 'Modificar Contraseña de Usuario'],
             ],
             'Roles y Perfiles' => [
                 ['name' => 'roles.acceder', 'display_name' => 'Acceder a Roles'],
                 ['name' => 'roles.crear_editar', 'display_name' => 'Crear / Editar Roles'],
                 ['name' => 'roles.eliminar', 'display_name' => 'Eliminar Roles'],
+            ],
+            'Configuración' => [
+                ['name' => 'configuracion.modificar', 'display_name' => 'Modificar Configuración del Sistema'],
             ],
             'Inventario' => [
                 ['name' => 'inventario.acceder', 'display_name' => 'Acceder al Inventario'],
@@ -57,6 +66,9 @@ class RoleAndPermissionSeeder extends Seeder
             ],
             'Sistema' => [
                 ['name' => 'admin-panel.acceder', 'display_name' => 'Acceder al Panel de Administración'],
+                ['name' => 'admin-cajas.acceder', 'display_name' => 'Administrar Cajas e Historial'],
+                ['name' => 'admin-ventas.acceder', 'display_name' => 'Administrar Ventas e Historial'],
+                ['name' => 'admin-promociones.acceder', 'display_name' => 'Administrar Promociones'],
             ],
         ];
 

@@ -2,11 +2,10 @@
 
 namespace App\Livewire\Admin;
 
-use Livewire\Component;
-use Illuminate\Support\Facades\DB;
 use App\Traits\Notifies;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
+use Livewire\Component;
 
 class BackupManager extends Component
 {
@@ -22,19 +21,19 @@ class BackupManager extends Component
     public function cargarListaBackups()
     {
         // Aseguramos que la carpeta exista
-        if (!Storage::exists('backups')) {
+        if (! Storage::exists('backups')) {
             Storage::makeDirectory('backups');
         }
 
         // Leemos los archivos y los ordenamos por fecha (el más nuevo primero)
         $files = Storage::files('backups');
-        
-        $this->backups = collect($files)->map(function($path) {
+
+        $this->backups = collect($files)->map(function ($path) {
             return [
                 'name' => basename($path),
-                'size' => round(Storage::size($path) / 1024, 2) . ' KB',
+                'size' => round(Storage::size($path) / 1024, 2).' KB',
                 'date' => date('d/m/Y H:i:s', Storage::lastModified($path)),
-                'raw_path' => $path
+                'raw_path' => $path,
             ];
         })->sortByDesc('date')->values()->all();
     }
@@ -43,14 +42,16 @@ class BackupManager extends Component
     {
         try {
             set_time_limit(0);
-            
+
             // Reutilizamos tu lógica de generación de SQL puro PHP
             $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'");
             $sqlDump = "SET session_replication_role = 'replica';\n\n";
 
             foreach ($tables as $table) {
                 $tableName = $table->table_name;
-                if ($tableName == 'migrations') continue;
+                if ($tableName == 'migrations') {
+                    continue;
+                }
 
                 $sqlDump .= "TRUNCATE TABLE \"$tableName\" RESTART IDENTITY CASCADE;\n";
                 $rows = DB::table($tableName)->get();
@@ -59,25 +60,30 @@ class BackupManager extends Component
                     $rowArray = (array) $row;
                     $columns = array_keys($rowArray);
                     $values = array_map(function ($value) {
-                        if (is_null($value)) return 'NULL';
-                        if (is_bool($value)) return $value ? 'true' : 'false';
+                        if (is_null($value)) {
+                            return 'NULL';
+                        }
+                        if (is_bool($value)) {
+                            return $value ? 'true' : 'false';
+                        }
+
                         return DB::getPdo()->quote($value);
                     }, array_values($rowArray));
 
-                    $sqlDump .= "INSERT INTO \"$tableName\" (\"" . implode('", "', $columns) . "\") VALUES (" . implode(', ', $values) . ");\n";
+                    $sqlDump .= "INSERT INTO \"$tableName\" (\"".implode('", "', $columns).'") VALUES ('.implode(', ', $values).");\n";
                 }
             }
             $sqlDump .= "\nSET session_replication_role = 'origin';";
 
             // GUARDAR EN DISCO EN VEZ DE DESCARGAR
-            $fileName = 'Backup_' . now()->format('Y-m-d_H-i-s') . '.sql';
-            Storage::put('backups/' . $fileName, $sqlDump);
+            $fileName = 'Backup_'.now()->format('Y-m-d_H-i-s').'.sql';
+            Storage::put('backups/'.$fileName, $sqlDump);
 
             $this->cargarListaBackups();
             $this->notify('Punto de restauración creado con éxito.', 'success');
 
         } catch (\Exception $e) {
-            $this->notify('Error: ' . $e->getMessage(), 'danger');
+            $this->notify('Error: '.$e->getMessage(), 'danger');
         }
     }
 
@@ -95,7 +101,9 @@ class BackupManager extends Component
             $tableName = $seq->table_name;
             $columnName = $seq->column_name;
 
-            if ($tableName === 'migrations') continue;
+            if ($tableName === 'migrations') {
+                continue;
+            }
 
             // Sincronizamos la secuencia detectada con el valor máximo real de esa columna específica
             DB::statement("
@@ -110,7 +118,7 @@ class BackupManager extends Component
     public function restoreFromDisk($fileName)
     {
         try {
-            $sql = Storage::get('backups/' . $fileName);
+            $sql = Storage::get('backups/'.$fileName);
 
             DB::transaction(function () use ($sql) {
                 DB::statement("SET session_replication_role = 'replica';");
@@ -119,15 +127,15 @@ class BackupManager extends Component
                 $this->sincronizarSecuencias();
             });
 
-            $this->notify('Sistema restaurado al estado de ' . $fileName, 'success');
+            $this->notify('Sistema restaurado al estado de '.$fileName, 'success');
         } catch (\Exception $e) {
-            $this->notify('Error al restaurar: ' . $e->getMessage(), 'danger');
+            $this->notify('Error al restaurar: '.$e->getMessage(), 'danger');
         }
     }
 
     public function deleteBackup($fileName)
     {
-        Storage::delete('backups/' . $fileName);
+        Storage::delete('backups/'.$fileName);
         $this->cargarListaBackups();
         $this->notify('Archivo de respaldo eliminado.', 'warning');
     }

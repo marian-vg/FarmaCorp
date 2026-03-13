@@ -94,7 +94,6 @@
                 <flux:subheading>Define las características del producto o insumo y si es aplicable como medicamento.</flux:subheading>
             </div>
 
-            <!-- Basic product fields -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <flux:input wire:model="productContext.name" label="Nombre del producto" placeholder="Ej: Ibuprofeno" required />
@@ -104,7 +103,6 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     
-                    {{-- RF-18: Vencimiento COMERCIAL --}}
                     <div class="col-span-2">
                         <flux:input type="date" wire:model="productContext.price_expires_at" label="Vencimiento de la OFERTA/PRECIO" />
                         <flux:text size="xs" class="mt-1 text-orange-600 font-medium">Límite comercial del precio actual.</flux:text>
@@ -118,12 +116,10 @@
 
             <flux:separator variant="subtle" />
 
-            <!-- Medicine Toggle -->
             <div>
                 <flux:switch wire:model.live="isMedicine" label="Es un Medicamento" description="Habilita esta opción si el producto requiere control médico, receta, fecha de vencimiento u hoja de información clínica." />
             </div>
 
-            <!-- Medicine Fields shown conditionally -->
             @if($isMedicine)
                 <div class="grid grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
                     <div class="col-span-2 sm:col-span-1">

@@ -132,7 +132,7 @@
                 @else
                     {{-- Datos de Facturación --}}
                     <div class="space-y-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                        <flux:select wire:model.live="tipo_comprobante" label="Comprobante (RF-04)" required>
+                        <flux:select wire:model.live="tipo_comprobante" label="Comprobante" required>
                             <option value="">Seleccione...</option>
                             <option value="TICKET">Ticket Fiscal</option>
                             <option value="FACTURA-A">Factura A</option>
@@ -267,7 +267,7 @@
 
                         {{-- Medios de Pago --}}
                         <div class="space-y-4">
-                            <flux:heading size="sm">Medios de Pago (RF-05 / RF-06)</flux:heading>
+                            <flux:heading size="sm">Medios de Pago</flux:heading>
                             @if($this->montoRestante > 0.01)
                                 <div class="flex gap-2 items-end">
                                     <div class="flex-1"><flux:select wire:model.live="medio_pago_id" label="Medio">

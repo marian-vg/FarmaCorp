@@ -135,8 +135,6 @@ class ClientDebtManager extends Component
         return Caja::where('user_id', Auth::id())->whereNull('fecha_cierre')->first();
     }
 
-    // RF-16: Propiedad Computada para Deudas Pendientes
-    // Se recarga sola cada vez que el componente se actualiza
     #[Computed]
     public function facturasPendientes()
     {
@@ -150,8 +148,6 @@ class ClientDebtManager extends Component
             ->get();
     }
 
-    // RF-24: Propiedad Computada para Historial de Pagos
-    // ¡Aquí está la solución! Siempre estará disponible si hay un cliente seleccionado
     #[Computed]
     public function facturasPagadas()
     {
@@ -176,14 +172,14 @@ class ClientDebtManager extends Component
     public function cobrarFactura()
     {
         if (! $this->cajaActiva) {
-            $this->notify('Error: Abre tu caja antes.', 'danger');
+            $this->notify('Error: Abre tu caja antes.', 'error');
 
             return;
         }
 
         // Validamos que el pago nuevo no sea cero
         if (empty($this->pagos_acumulados)) {
-            $this->notify('Debe registrar al menos un pago.', 'warning');
+            $this->notify('Debe registrar al menos un pago.', 'error');
 
             return;
         }
@@ -217,7 +213,7 @@ class ClientDebtManager extends Component
             $this->notify('Cobro registrado correctamente.', 'success');
             $this->cancelarCobro();
         } catch (\Exception $e) {
-            $this->notify('Error en el proceso.', 'danger');
+            $this->notify('Error en el proceso.', 'error');
         }
     }
 

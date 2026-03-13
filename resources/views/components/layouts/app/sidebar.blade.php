@@ -38,15 +38,24 @@
                 <flux:sidebar.item icon="credit-card" href="{{ route('admin.debts') }}" :current="request()->routeIs('admin.debts')">Cuentas Corrientes</flux:sidebar.item>
             @endcan
 
+            @can('admin-ventas.acceder')
+                <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
+            @endcan
+            
+            @can('admin-promociones.acceder')
+                <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
+            @endcan
+
             @can('facturacion.acceder')
                 <flux:sidebar.item icon="shopping-cart" href="{{ route('ventas.pos') }}" :current="request()->routeIs('ventas.pos')">Punto de Venta</flux:sidebar.item>
-                <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
-                <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
             @endcan
 
             @can('caja.acceder')
                 <flux:sidebar.item icon="wallet" href="{{ route('user.dashboard') }}" :current="request()->routeIs('user.dashboard')">Mi Caja Operativa</flux:sidebar.item>
-                <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Caja</flux:sidebar.item>
+            @endcan
+
+            @can('admin-cajas.acceder')
+                <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Administración de Cajas</flux:sidebar.item>
             @endcan
 
             @role('super-admin')

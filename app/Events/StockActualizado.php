@@ -15,7 +15,7 @@ class StockActualizado implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('stock-channel')
+            new Channel('stock-channel'),
         ];
     }
 

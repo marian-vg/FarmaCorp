@@ -10,7 +10,7 @@ it('does not cause a redirect loop for users with caja.acceder permission but no
     Permission::firstOrCreate(['name' => 'caja.acceder']);
     Permission::firstOrCreate(['name' => 'roles.acceder']);
     Role::firstOrCreate(['name' => 'admin']);
-    
+
     $user = User::factory()->create();
     $user->givePermissionTo('caja.acceder');
 

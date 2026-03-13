@@ -5,6 +5,7 @@ namespace Tests\Feature\Livewire\Admin;
 use App\Livewire\Admin\Dashboard;
 use App\Models\Profile;
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
 use Livewire\Livewire;
@@ -23,7 +24,9 @@ class DashboardTest extends TestCase
         // Register/Flush View Compiler caches for Flux to avoid test re-render resolution errors
         Blade::component('flux::card', 'flux::components.card');
 
-        Role::firstOrCreate(['name' => 'admin']);
+        $this->seed(RoleAndPermissionSeeder::class);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole->syncPermissions(Permission::all());
     }
 
     public function test_renders_successfully()
@@ -36,8 +39,6 @@ class DashboardTest extends TestCase
             ->test(Dashboard::class)
             ->assertStatus(200);
     }
-
-
 
     public function test_admin_can_search_users()
     {
