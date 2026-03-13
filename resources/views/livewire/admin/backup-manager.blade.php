@@ -1,18 +1,28 @@
 <div class="space-y-6">
     <flux:card class="!p-0 overflow-hidden">
-        {{-- Banner de Acción --}}
-        <div class="p-6 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <flux:heading size="lg">Puntos de Restauración</flux:heading>
-                <flux:subheading>Historial de copias de seguridad almacenadas en el servidor.</flux:subheading>
+        <div class="p-6 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/20">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div>
+                    <flux:heading size="lg">Resguardos del Sistema</flux:heading>
+                    <flux:subheading>Protege la información fuera del servidor local.</flux:subheading>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row gap-3 items-end">
+                    {{-- FIX: Eliminado variant="subtle" para evitar error --}}
+                    <flux:select wire:model="destination" label="Destino de la Copia">
+                        <option value="local">Solo Servidor Local</option>
+                        <option value="email">Enviar al Correo</option>
+                        <option value="supabase">Nube (Supabase Storage)</option>
+                        <option value="all">Correo + Nube (Máxima Seguridad)</option>
+                    </flux:select>
+
+                    <flux:button wire:click="createInternalBackup" icon="cloud-arrow-up" variant="primary">
+                        Ejecutar Backup
+                    </flux:button>
+                </div>
             </div>
-            
-            <flux:button wire:click="createInternalBackup" icon="plus" variant="primary" class="shadow-lg shadow-indigo-500/20">
-                Generar Punto Ahora
-            </flux:button>
         </div>
 
-        {{-- Tabla de Backups --}}
         <flux:table>
             <flux:table.columns>
                 <flux:table.column>Fecha y Hora</flux:table.column>
@@ -41,13 +51,11 @@
                         <flux:table.cell align="right">
                             <div class="flex gap-2 justify-end">
                                 <flux:modal.trigger name="confirm-restore-{{ $loop->index }}">
-                                    <flux:button size="xs" icon="arrow-path" variant="subtle" color="orange" tooltip="Restaurar este punto" />
+                                    <flux:button size="xs" icon="arrow-path" variant="subtle" color="orange" />
                                 </flux:modal.trigger>
-
-                                <flux:button size="xs" icon="trash" variant="ghost" color="red" wire:click="deleteBackup('{{ $backup['name'] }}')" tooltip="Eliminar permanentemente" />
+                                <flux:button size="xs" icon="trash" variant="ghost" color="red" wire:click="deleteBackup('{{ $backup['name'] }}')" />
                             </div>
 
-                            {{-- MODAL DE CONFIRMACIÓN --}}
                             <flux:modal name="confirm-restore-{{ $loop->index }}" class="md:w-96 text-left">
                                 <div class="space-y-6">
                                     <div class="flex gap-4">
@@ -56,19 +64,9 @@
                                         </div>
                                         <div>
                                             <flux:heading size="lg">¿Confirmar Restauración?</flux:heading>
-                                            <flux:subheading>
-                                                Se sobreescribirán todos los datos actuales con la versión del 
-                                                <span class="text-zinc-900 dark:text-white font-bold">{{ $backup['date'] }}</span>.
-                                            </flux:subheading>
+                                            <flux:subheading>Se sobreescribirán todos los datos con la versión del <strong>{{ $backup['date'] }}</strong>.</flux:subheading>
                                         </div>
                                     </div>
-
-                                    <div class="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800 rounded-2xl">
-                                        <flux:text size="xs" class="text-orange-700 dark:text-orange-400">
-                                            <strong>Nota:</strong> Esta acción es irreversible. Se recomienda crear un punto de restauración actual antes de proceder.
-                                        </flux:text>
-                                    </div>
-
                                     <div class="flex gap-2">
                                         <flux:modal.close><flux:button variant="ghost" class="flex-1">Cancelar</flux:button></flux:modal.close>
                                         <flux:button variant="danger" class="flex-1" wire:click="restoreFromDisk('{{ $backup['name'] }}')" @click="Flux.modal('confirm-restore-{{ $loop->index }}').close()">Sí, restaurar datos</flux:button>
@@ -80,10 +78,8 @@
                 @empty
                     <flux:table.row>
                         <flux:table.cell colspan="4" class="text-center py-20 text-zinc-400">
-                            <div class="flex flex-col items-center gap-2">
-                                <flux:icon.cloud class="opacity-20" size="xl" />
-                                <flux:text italic>No se encontraron copias de seguridad en el sistema.</flux:text>
-                            </div>
+                            <flux:icon.cloud class="opacity-20 mx-auto mb-2" size="xl" />
+                            <flux:text italic>No hay copias de seguridad.</flux:text>
                         </flux:table.cell>
                     </flux:table.row>
                 @endforelse
