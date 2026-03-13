@@ -16,6 +16,7 @@
         "laravel/reverb": "^1.8",
         "laravel/scout": "^10.24",
         "laravel/tinker": "^2.10.1",
+        "league/flysystem-aws-s3-v3": "3.0",
         "livewire/flux": "^2.12",
         "livewire/volt": "^1.10",
         "spatie/db-dumper": "^4.0",
