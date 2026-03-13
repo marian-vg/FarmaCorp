@@ -83,6 +83,7 @@ class ProfileManager extends Component
 
     public function saveProfile()
     {
+        $this->authorize('roles.crear_editar');
         $rules = [
             'profileContext.name' => 'required|string|max:255|unique:profiles,name'.($this->editingProfile ? ','.$this->editingProfile->id : ''),
             'profileContext.description' => 'nullable|string',
@@ -107,6 +108,7 @@ class ProfileManager extends Component
 
     public function deleteProfile()
     {
+        $this->authorize('roles.eliminar');
         if ($this->editingProfile) {
             $this->editingProfile->delete();
             Cache::forget('profiles_all');
@@ -136,6 +138,7 @@ class ProfileManager extends Component
 
     public function savePermission()
     {
+        $this->authorize('roles.crear_editar');
         $rules = [
             'permissionContext.display_name' => 'required|string|max:255',
             'permissionContext.description' => 'required|string|max:255',
@@ -183,6 +186,7 @@ class ProfileManager extends Component
 
     public function deletePermission()
     {
+        $this->authorize('roles.eliminar');
         if ($this->editingPermission) {
             $this->editingPermission->delete();
             app()[PermissionRegistrar::class]->forgetCachedPermissions();

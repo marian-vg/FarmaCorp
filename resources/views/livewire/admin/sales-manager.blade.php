@@ -55,14 +55,12 @@
                             </div>
                         </x-table.cell>
                         
-                        {{-- CLIENTE (RF-22) --}}
                         <x-table.cell>
                             <span class="text-sm {{ $venta->cliente ? 'text-zinc-900 dark:text-zinc-100' : 'text-zinc-400 italic' }}">
                                 {{ $venta->cliente ? ($venta->cliente->first_name . ' ' . $venta->cliente->last_name) : 'Consumidor Final' }}
                             </span>
                         </x-table.cell>
 
-                        {{-- ESTADO CON COLORES (AMARILLO PARA PENDIENTE) --}}
                         <x-table.cell>
                             <flux:badge :color="$venta->estado === 'PENDIENTE' ? 'yellow' : 'green'" size="sm" inset="top bottom">
                                 {{ $venta->estado }}
@@ -132,7 +130,6 @@
                     </x-table.body>
                 </x-table>
 
-                {{-- Desglose de Pagos Realizados (RF-05) --}}
                 @if($ventaSeleccionada->pagos->isNotEmpty())
                     <div class="space-y-2">
                         <flux:heading size="sm" class="text-zinc-500 uppercase tracking-wider">Flujo de Fondos (Pagos)</flux:heading>

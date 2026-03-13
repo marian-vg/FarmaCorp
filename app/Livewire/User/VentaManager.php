@@ -2,6 +2,7 @@
 
 namespace App\Livewire\User;
 
+use App\Events\StockActualizado;
 use App\Models\Batch;
 use App\Models\Caja;
 use App\Models\Client;
@@ -12,6 +13,7 @@ use App\Models\Medicine;
 use App\Models\MedioPago;
 use App\Models\MovimientoCaja;
 use App\Models\Product;
+use App\Models\Promotion;
 use App\Models\Setting;
 use App\Models\Stock;
 use App\Models\StockMovement;
@@ -22,11 +24,10 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\On;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
-use App\Events\StockActualizado;
 
 #[Layout('components.layouts.app', ['title' => 'Venta'])]
 class VentaManager extends Component
@@ -82,6 +83,7 @@ class VentaManager extends Component
     public ?Medicine $viewingMedicine = null;
 
     public $ultimaFacturaId = null;
+
     public $promotion_id = null;
 
     public $filterGroup = '';
@@ -114,7 +116,7 @@ class VentaManager extends Component
         $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
 
         if (! Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
-            $this->notify('No tiene permisos para descargar este comprobante.', 'danger');
+            $this->notify('No tiene permisos para descargar este comprobante.', 'error');
 
             return;
         }
@@ -345,12 +347,13 @@ class VentaManager extends Component
 
     public function updatedPromotionId($id)
     {
-        if (!$id) {
+        if (! $id) {
             $this->global_adjustment = 0;
+
             return;
         }
 
-        $promo = \App\Models\Promotion::find($id);
+        $promo = Promotion::find($id);
         $sub = $this->subtotal;
 
         if ($promo->type === 'discount') {
@@ -368,8 +371,6 @@ class VentaManager extends Component
             $this->updatedPromotionId($this->promotion_id);
         }
     }
-
-    
 
     public function procesarVenta()
     {
@@ -403,10 +404,12 @@ class VentaManager extends Component
         }
 
         if ($montoVenta < 0) {
-            $this->notify('El descuento no puede superar el monto total.', 'danger');
+            $this->notify('El descuento no puede superar el monto total.', 'error');
 
             return;
         }
+
+        $this->authorize('facturacion.emitir');
 
         $this->validate(['tipo_comprobante' => 'required']);
 

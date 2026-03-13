@@ -159,7 +159,7 @@
     <table class="financial-table">
         <thead>
             <tr>
-                <th>Medio de Pago (RF-05)</th>
+                <th>Medio de Pago</th>
                 <th style="text-align: right;">Ingresos (+)</th>
                 <th style="text-align: right;">Egresos (-)</th>
                 <th style="text-align: right;">Neto</th>
@@ -209,7 +209,7 @@
     </table>
 
     <div class="footer">
-        Generado por FarmaCorp el {{ now()->format('d/m/Y H:i:s') }} - Reporte Confidencial de Auditoría Interna (RF-07)
+        Generado por FarmaCorp el {{ now()->format('d/m/Y H:i:s') }} - Reporte Confidencial de Auditoría Interna
     </div>
 
 </body>

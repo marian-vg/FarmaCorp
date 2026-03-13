@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder
             MedioPagoSeeder::class,
             CajaHistorySeeder::class,
             VademecumSeeder::class,
+            RoleAndPermissionSeeder::class,
         ]);
     }
 }

@@ -12,12 +12,10 @@ use App\Models\Stock;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
-    Role::create(['name' => 'admin']);
     $this->admin = User::factory()->create();
-    $this->admin->assignRole('admin');
+    $this->admin->givePermissionTo('stock.egreso');
 
     $this->group = Group::factory()->create();
 

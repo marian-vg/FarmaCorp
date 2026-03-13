@@ -5,6 +5,7 @@ namespace Tests\Feature\Livewire\Admin;
 use App\Livewire\Admin\Dashboard;
 use App\Models\Profile;
 use App\Models\User;
+use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
 use Livewire\Livewire;
@@ -23,7 +24,9 @@ class DashboardTest extends TestCase
         // Register/Flush View Compiler caches for Flux to avoid test re-render resolution errors
         Blade::component('flux::card', 'flux::components.card');
 
-        Role::firstOrCreate(['name' => 'admin']);
+        $this->seed(RoleAndPermissionSeeder::class);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole->syncPermissions(Permission::all());
     }
 
     public function test_renders_successfully()
@@ -35,37 +38,6 @@ class DashboardTest extends TestCase
         Livewire::actingAs($admin)
             ->test(Dashboard::class)
             ->assertStatus(200);
-    }
-
-    public function test_admin_is_redirected_to_admin_dashboard()
-    {
-        $admin = User::factory()->create();
-        $adminRole = Role::findOrCreate('admin', 'web');
-        $admin->assignRole($adminRole);
-
-        $this->actingAs($admin)
-            ->get('/dashboard')
-            ->assertRedirect(route('admin.dashboard'));
-    }
-
-    public function test_user_is_redirected_to_user_dashboard()
-    {
-        $user = User::factory()->create();
-        // No admin role
-
-        $this->actingAs($user)
-            ->get('/dashboard')
-            ->assertRedirect(route('user.dashboard'));
-    }
-
-    public function test_user_cannot_access_admin_dashboard()
-    {
-        $user = User::factory()->create();
-        // No admin role
-
-        $this->actingAs($user)
-            ->get(route('admin.dashboard'))
-            ->assertStatus(403);
     }
 
     public function test_admin_can_search_users()

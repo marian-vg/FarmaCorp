@@ -133,11 +133,10 @@
                 </button>
                 <button wire:click="$set('modalTab', 'compras')" 
                     class="pb-2 text-sm font-medium transition-colors {{ $modalTab === 'compras' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-zinc-500 hover:text-zinc-700' }}">
-                    Historial de Compras (RF-24)
+                    Historial de Compras
                 </button>
             </div>
 
-            {{-- CONTENIDO PESTAÑA: INFO --}}
             @if($modalTab === 'info')
                 <div class="grid grid-cols-2 gap-4 animate-fade-in">
                     <flux:input wire:model="clientContext.first_name" label="Nombres" disabled />
@@ -150,7 +149,6 @@
                 </div>
             @endif
 
-            {{-- CONTENIDO PESTAÑA: HISTORIAL (RF-24) --}}
             @if($modalTab === 'compras')
                 <div class="space-y-3 max-h-[30rem] overflow-y-auto pr-2">
                     @forelse($this->historialCompras as $f)

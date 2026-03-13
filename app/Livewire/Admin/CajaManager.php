@@ -24,21 +24,18 @@ class CajaManager extends Component
 
     public $monto_inicial = '';
 
-    public $user_id = ''; // Nueva propiedad para elegir el usuario
+    public $user_id = '';
 
-    // Propiedades para registro de movimientos administrativos
     public $movimiento_monto = '';
 
     public $movimiento_motivo = '';
 
     public $movimiento_medio_pago = '';
 
-    public $movimiento_tipo = ''; // INGRESO o EGRESO
+    public $movimiento_tipo = '';
 
-    // Propiedad para justificación del cierre (Fase 7)
     public $observaciones_cierre = '';
 
-    // Propiedades para Filtros Paginados (RF-04)
     public string $search = '';
 
     public string $filtro_usuario = '';
@@ -299,19 +296,18 @@ class CajaManager extends Component
             });
     }
 
-    // Fase 7: Reporte en PDF (RF-07)
     public function descargarReporte($id)
     {
         $caja = Caja::with(['user', 'movimientos.medioPago'])->findOrFail($id);
 
         if (! Auth::user()->hasRole('admin') && $caja->user_id !== Auth::id()) {
-            $this->notify('No tienes permisos para descargar este reporte.', 'danger');
+            $this->notify('No tienes permisos para descargar este reporte.', 'error');
 
             return;
         }
 
         if (! $caja->fecha_cierre) {
-            $this->notify('Solo puedes emitir reportes de cajas cerradas.', 'warning');
+            $this->notify('Solo puedes emitir reportes de cajas cerradas.', 'error');
 
             return;
         }

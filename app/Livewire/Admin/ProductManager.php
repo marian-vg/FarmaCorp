@@ -104,7 +104,7 @@ class ProductManager extends Component
             ],
             'productContext.description' => 'nullable|string',
             'productContext.status' => 'boolean',
-            'productContext.price_expires_at' => 'nullable|date', // Agregamos validación para RF-18
+            'productContext.price_expires_at' => 'nullable|date',
         ];
 
         if ($this->isMedicine) {
@@ -118,8 +118,6 @@ class ProductManager extends Component
         }
 
         $this->validate($rules);
-
-        // 1. Manejo del Producto y Fecha de Actualización (RF-17)
 
         $productData = [
             'name' => $this->productContext['name'],

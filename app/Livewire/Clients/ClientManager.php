@@ -49,7 +49,7 @@ class ClientManager extends Component
 
     public function createClient()
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
+        $this->authorize('clientes.crear_editar');
         $this->reset(['clientContext', 'editingClient', 'selectedClientId']);
         Flux::modal('client-form')->show();
     }
@@ -104,7 +104,7 @@ class ClientManager extends Component
 
     public function editClient(Client $client)
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
+        $this->authorize('clientes.crear_editar');
         $this->editingClient = $client;
         $this->clientContext = [
             'first_name' => $client->first_name,
@@ -118,7 +118,7 @@ class ClientManager extends Component
 
     public function saveClient()
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
+        $this->authorize('clientes.crear_editar');
 
         $rules = [
             'clientContext.first_name' => 'required|string|max:255',
@@ -143,14 +143,14 @@ class ClientManager extends Component
 
     public function confirmDeactivate(Client $client)
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
+        $this->authorize('clientes.desactivar');
         $this->editingClient = $client;
         Flux::modal('confirm-deactivation-client')->show();
     }
 
     public function deactivateClient()
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
+        $this->authorize('clientes.desactivar');
         if ($this->editingClient) {
             $this->editingClient->update(['is_active' => false]);
             Flux::modal('confirm-deactivation-client')->close();
@@ -161,7 +161,7 @@ class ClientManager extends Component
 
     public function reactivateClient(Client $client)
     {
-        abort_unless(auth()->user()->hasAnyRole(['admin', 'empleado']), 403);
+        $this->authorize('clientes.desactivar');
         $client->update(['is_active' => true]);
         $this->notify('Cliente reactivado exitosamente.', 'success');
     }

@@ -63,6 +63,19 @@ class Dashboard extends Component
 
     public array $selectedPermissions = [];
 
+    #[Computed]
+    public function inheritedPermissions()
+    {
+        return Role::whereIn('name', $this->selectedRoles)
+            ->with('permissions')
+            ->get()
+            ->pluck('permissions')
+            ->flatten()
+            ->pluck('name')
+            ->unique()
+            ->toArray();
+    }
+
     public array $selectedProfiles = [];
 
     public function updatedSearch()
@@ -82,6 +95,12 @@ class Dashboard extends Component
 
     public function saveSaleConfig()
     {
+        if (! auth()->user()->can('configuracion.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar configuración', 'error');
+
+            return;
+        }
+
         Setting::updateOrCreate(
             ['key' => 'post_sale_action'],
             ['value' => $this->postSaleAction]
@@ -91,6 +110,12 @@ class Dashboard extends Component
 
     public function savePriceConfig()
     {
+        if (! auth()->user()->can('configuracion.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar configuración', 'error');
+
+            return;
+        }
+
         $this->validate(['priceMaxDays' => 'required|integer|min:1']);
         Setting::updateOrCreate(
             ['key' => 'price_max_days'],
@@ -116,6 +141,12 @@ class Dashboard extends Component
 
     public function saveAlertDays()
     {
+        if (! auth()->user()->can('configuracion.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar configuración', 'error');
+
+            return;
+        }
+
         $this->validate(['alertDays' => 'required|integer|min:1|max:365']);
         Setting::updateOrCreate(
             ['key' => 'alert_days'],
@@ -138,7 +169,7 @@ class Dashboard extends Component
         if ($this->editingUser && $this->editingUser->hasRole('empleado')) {
             return $allPermissions->filter(function ($permission) {
                 return ! str($permission->name)->contains(['user', 'role', 'permission', 'profile']);
-            });
+            })->values();
         }
 
         return $allPermissions;
@@ -152,6 +183,12 @@ class Dashboard extends Component
 
     public function editRoles(User $user)
     {
+        if (! auth()->user()->can('usuarios.roles.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar roles de usuario', 'error');
+
+            return;
+        }
+
         $this->editingUser = $user;
         $this->selectedRoles = $user->roles->pluck('name')->toArray();
         Flux::modal('edit-roles')->show();
@@ -159,6 +196,12 @@ class Dashboard extends Component
 
     public function saveRoles()
     {
+        if (! auth()->user()->can('usuarios.roles.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar roles de usuario', 'error');
+
+            return;
+        }
+
         if ($this->editingUser) {
             $this->editingUser->syncRoles($this->selectedRoles);
             Flux::modal('edit-roles')->close();
@@ -168,13 +211,26 @@ class Dashboard extends Component
 
     public function editPermissions(User $user)
     {
+        if (! auth()->user()->can('usuarios.permisos.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar permisos de usuario', 'error');
+
+            return;
+        }
+
         $this->editingUser = $user;
+        $this->selectedRoles = $user->roles->pluck('name')->toArray();
         $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
         Flux::modal('edit-permissions')->show();
     }
 
     public function savePermissions()
     {
+        if (! auth()->user()->can('usuarios.permisos.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar permisos de usuario', 'error');
+
+            return;
+        }
+
         if ($this->editingUser) {
             if ($this->editingUser->hasRole('empleado')) {
                 $hasAdminPermissions = collect($this->selectedPermissions)->contains(function ($name) {
@@ -188,7 +244,8 @@ class Dashboard extends Component
                 }
             }
 
-            $this->editingUser->syncPermissions($this->selectedPermissions);
+            $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
+            $this->editingUser->syncPermissions($directPermissionsToSave);
             Flux::modal('edit-permissions')->close();
             $this->dispatch('Permisos guardados correctamente.', 'success');
         }
@@ -196,6 +253,12 @@ class Dashboard extends Component
 
     public function editProfiles(User $user)
     {
+        if (! auth()->user()->can('usuarios.perfiles.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar perfiles de usuario', 'error');
+
+            return;
+        }
+
         $this->editingUser = $user;
         $this->selectedProfiles = $user->profiles->pluck('id')->toArray();
         Flux::modal('edit-profiles')->show();
@@ -203,6 +266,12 @@ class Dashboard extends Component
 
     public function saveProfiles()
     {
+        if (! auth()->user()->can('usuarios.perfiles.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar perfiles de usuario', 'error');
+
+            return;
+        }
+
         if ($this->editingUser) {
             $this->editingUser->profiles()->sync($this->selectedProfiles);
             Flux::modal('edit-profiles')->close();
@@ -212,6 +281,13 @@ class Dashboard extends Component
 
     public function createUser()
     {
+        if (! auth()->user()->can('usuarios.crear')) {
+            $this->notify('No tienes permisos para realizar esta acción: Crear usuario', 'error');
+            Flux::modal('add-user')->close();
+
+            return;
+        }
+
         $this->validate([
             'newUserContext.name' => 'required|string|max:255',
             'newUserContext.email' => 'required|string|email|max:255|unique:users,email',
@@ -238,18 +314,36 @@ class Dashboard extends Component
 
     public function deactivateUser(User $user)
     {
+        if (! auth()->user()->can('usuarios.desactivar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Desactivar usuario', 'error');
+
+            return;
+        }
+
         $user->is_active = false;
         $user->save();
     }
 
     public function reactivateUser(User $user)
     {
+        if (! auth()->user()->can('usuarios.reactivar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Reactivar usuario', 'error');
+
+            return;
+        }
+
         $user->is_active = true;
         $user->save();
     }
 
     public function editUser(User $user)
     {
+        if (! auth()->user()->can('usuarios.editar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Editar usuario', 'error');
+
+            return;
+        }
+
         $this->editingUser = $user;
         $this->editUserContext = [
             'name' => $user->name,
@@ -260,11 +354,18 @@ class Dashboard extends Component
         $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
 
         Flux::modal('edit-user')->show();
-        $this->notify('Usuario editado correctamente.', 'success');
+        $this->notify('Usuario cargado para edición.', 'success');
     }
 
     public function updateUser()
     {
+        if (! auth()->user()->can('usuarios.editar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Editar usuario', 'error');
+            Flux::modal('edit-user')->close();
+
+            return;
+        }
+
         if (! $this->editingUser) {
             return;
         }
@@ -282,7 +383,10 @@ class Dashboard extends Component
         ]);
 
         $this->editingUser->syncRoles($this->selectedRoles);
-        $this->editingUser->syncPermissions($this->selectedPermissions);
+
+        // Filter out any permission that is already inherited via the chosen roles
+        $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
+        $this->editingUser->syncPermissions($directPermissionsToSave);
 
         Flux::modal('edit-user')->close();
         $this->reset(['editUserContext', 'selectedRoles', 'selectedPermissions', 'editingUser']);
@@ -291,6 +395,12 @@ class Dashboard extends Component
 
     public function updatePassword(User $user)
     {
+        if (! auth()->user()->can('usuarios.password.modificar')) {
+            $this->notify('No tienes permisos para realizar esta acción: Modificar contraseña', 'error');
+
+            return;
+        }
+
         $this->validate([
             'newPassword' => 'required|min:8|same:newPasswordConfirmation',
         ]);
@@ -327,15 +437,13 @@ class Dashboard extends Component
             })
             ->paginate(12);
 
-        // 1. Expiring Batches (Current logic)
         $expiringBatches = Batch::where('current_quantity', '>', 0)
             ->where('expiration_date', '<=', Carbon::now()->addDays($this->alertDays))
             ->orderBy('expiration_date', 'asc')
-            ->with(['medicine.product']) // Eager loading the correct relation keys
+            ->with(['medicine.product'])
             ->take(10)
             ->get();
 
-        // 2. Minimum Stock Alerts (New Logic for RF-05)
         $lowStockBatches = Batch::where('current_quantity', '<=', DB::raw('minimum_stock'))
             ->where('current_quantity', '>', 0)
             ->orderBy('current_quantity', 'asc')

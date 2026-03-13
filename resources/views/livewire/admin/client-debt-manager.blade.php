@@ -77,7 +77,6 @@
                 <flux:subheading>Revise las deudas o el historial de pagos del cliente.</flux:subheading>
             </div>
 
-            {{-- Navegación de pestañas interna (RF-24) --}}
             <div class="flex gap-4 border-b border-zinc-200 dark:border-zinc-700">
                 <button wire:click="$set('modalTab', 'pendientes')" 
                     class="pb-2 text-sm font-medium transition-colors {{ $modalTab === 'pendientes' ? 'border-b-2 border-indigo-600 text-indigo-600' : 'text-zinc-500 hover:text-zinc-700' }}">
@@ -89,11 +88,9 @@
                 </button>
             </div>
 
-            {{-- CONTENIDO PESTAÑA PENDIENTES (RF-16) --}}
             @if($modalTab === 'pendientes')
                 <div class="space-y-4">
                     @if(!$facturaEnCobro)
-                        {{-- LISTA DE FACTURAS --}}
                         <div class="space-y-3">
                             @forelse($this->facturasPendientes as $f)
                                 @php 
@@ -121,14 +118,12 @@
                             @endforelse
                         </div>
                     @else
-                        {{-- INTERFAZ DE COBRO MULTIMEDIO (REPLICA VENTA MANAGER) --}}
                         <div class="p-4 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-2xl bg-indigo-50/30 dark:bg-indigo-900/10 space-y-4">
                             <div class="flex justify-between items-center">
                                 <flux:heading size="md">Cobrando Factura #{{ str_pad($facturaEnCobro->id, 6, '0', STR_PAD_LEFT) }}</flux:heading>
                                 <flux:button size="xs" variant="ghost" wire:click="cancelarCobro">Cambiar factura</flux:button>
                             </div>
 
-                            {{-- Inputs de pago --}}
                             @if($this->montoRestanteFactura > 0.01)
                                 <div class="flex gap-2 items-end">
                                     <div class="flex-1">
@@ -144,7 +139,6 @@
                                         <flux:input wire:model.live="monto_pago_actual" type="number" label="Monto" />
                                     </div>
 
-                                    {{-- BOTÓN RÁPIDO (EL RAYITO) --}}
                                     <flux:button 
                                         icon="bolt" 
                                         variant="ghost" 
@@ -160,7 +154,6 @@
                                 @enderror
                             @endif
 
-                            {{-- Lista de pagos parciales --}}
                             <div class="space-y-2">
                                 @foreach($pagos_acumulados as $index => $pago)
                                     <div wire:key="pago-debito-{{ $index }}" class="flex justify-between items-center p-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
@@ -170,7 +163,6 @@
                                 @endforeach
                             </div>
 
-                            {{-- Balance y Botón Final --}}
                             <div class="flex justify-between items-center pt-2">
                                 <div class="flex flex-col">
                                     <flux:text size="xs" class="uppercase font-bold text-zinc-500">Saldo Restante:</flux:text>
@@ -190,7 +182,6 @@
                 </div>
             @endif
 
-            {{-- CONTENIDO PESTAÑA HISTORIAL (RF-24) --}}
             @if($modalTab === 'historial')
                 <div class="space-y-3">
                     @forelse($this->historialCompras as $f)
@@ -208,7 +199,6 @@
                                     <flux:text size="sm" class="font-bold text-indigo-600">${{ number_format($f->total, 2) }}</flux:text>
                                 </div>
                                 
-                                {{-- Acciones de Historial --}}
                                 <div class="flex gap-1">
                                     <flux:button icon="eye" size="xs" variant="ghost" wire:click="verDetalleFactura({{ $f->id }})" tooltip="Ver productos" />
                                     <flux:button icon="document-arrow-down" size="xs" variant="ghost" wire:click="descargarFactura({{ $f->id }})" class="text-indigo-600" />
@@ -266,7 +256,6 @@
                 <div class="space-y-2">
                     <flux:heading size="sm" class="text-zinc-500 uppercase tracking-wider">Flujo de Fondos (Medios de Pago)</flux:heading>
                     <div class="grid grid-cols-2 gap-2">
-                        {{-- Agrupamos por medio de pago por si hubo varios pagos del mismo tipo --}}
                         @foreach($facturaSeleccionada->pagos->groupBy('id_medio_pago') as $idMedio => $grupoPagos)
                             <div class="flex justify-between items-center text-xs p-3 bg-zinc-50 dark:bg-zinc-800/50 border rounded-xl border-zinc-200 dark:border-zinc-700">
                                 <div class="flex items-center gap-2">

@@ -3,24 +3,28 @@
 namespace App\Livewire\Admin;
 
 use App\Models\Promotion;
-use Livewire\Component;
-use Livewire\WithPagination;
-use Livewire\Attributes\Layout;
 use App\Traits\Notifies;
 use Flux\Flux;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('components.layouts.app')]
 class PromotionManager extends Component
 {
-    use WithPagination, Notifies;
+    use Notifies, WithPagination;
 
     public $search = '';
+
     public $promotionId;
-    
+
     // Propiedades del formulario
     public $name;
+
     public $value;
+
     public $type = 'discount';
+
     public $status = true;
 
     protected $rules = [
@@ -72,7 +76,7 @@ class PromotionManager extends Component
 
     public function toggleStatus(Promotion $promotion)
     {
-        $promotion->update(['status' => !$promotion->status]);
+        $promotion->update(['status' => ! $promotion->status]);
         $this->notify('Estado actualizado.', 'success');
     }
 
@@ -90,7 +94,7 @@ class PromotionManager extends Component
             ->paginate(10);
 
         return view('livewire.admin.promotion-manager', [
-            'promotions' => $promotions
+            'promotions' => $promotions,
         ]);
     }
 }

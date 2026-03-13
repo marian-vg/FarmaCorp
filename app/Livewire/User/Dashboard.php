@@ -168,7 +168,6 @@ class Dashboard extends Component
             return collect();
         }
 
-        // Agrupamos los movimientos por el nombre del medio de pago
         return $caja->movimientos()
             ->with('medioPago')
             ->get()
@@ -181,10 +180,8 @@ class Dashboard extends Component
             });
     }
 
-    // Fase 7: Reporte en PDF (RF-07) para el Empleado
     public function descargarReporte($id)
     {
-        // Validamos estrictamente que la caja le pertenezca a Auth::id()
         $caja = Caja::where('user_id', Auth::id())
             ->with(['user', 'movimientos.medioPago'])
             ->findOrFail($id);
