@@ -86,4 +86,29 @@
             </flux:table.rows>
         </flux:table>
     </flux:card>
+    {{-- Añade esto arriba o abajo de tu card actual de backups --}}
+<flux:card class="space-y-6 mb-6">
+    <div>
+        <flux:heading size="lg">Automatización</flux:heading>
+        <flux:subheading>Configura el sistema para que realice copias de seguridad sin intervención humana.</flux:subheading>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <flux:select wire:model="auto_frequency" label="Frecuencia">
+            <option value="none">Desactivado</option>
+            <option value="daily">Diario (Media noche)</option>
+            <option value="weekly">Semanal (Domingos)</option>
+            <option value="monthly">Mensual (Día 1)</option>
+        </flux:select>
+
+        <flux:select wire:model="auto_destination" label="Destino Automático">
+            <option value="local">Solo Local</option>
+            <option value="email">Enviar al Correo</option>
+            <option value="supabase">Nube (Supabase)</option>
+            <option value="all">Correo + Nube</option>
+        </flux:select>
+
+        <flux:button wire:click="saveSettings" variant="subtle" icon="check">Guardar Preferencias</flux:button>
+    </div>
+</flux:card>
 </div>
