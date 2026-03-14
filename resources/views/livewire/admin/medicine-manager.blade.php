@@ -151,8 +151,9 @@
                     <flux:input type="date" wire:model="context.expiration_date" label="Fecha de Vencimiento Lote Actual" />
                 </div>
 
-                <div class="col-span-2 sm:col-span-1 flex items-center mt-6">
-                    <flux:switch wire:model="context.is_psychotropic" label="Es Psicotrópico (Control estricto)" />
+                <div class="col-span-2 sm:col-span-1 flex flex-col gap-4 mt-6">
+                    <flux:switch wire:model="context.is_psychotropic" label="Es Psicotrópico" description="Control estricto de stock." />
+                    <flux:switch wire:model="context.requires_prescription" label="Requiere Receta" description="Obligatorio subir PDF en venta." />
                 </div>
             </div>
 

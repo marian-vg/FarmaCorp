@@ -40,6 +40,7 @@
 
             @can('admin-ventas.acceder')
                 <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
+                <flux:sidebar.item icon="document-text" href="{{ route('admin.prescriptions') }}" :current="request()->routeIs('admin.prescriptions')">Archivo de Recetas</flux:sidebar.item>
             @endcan
 
             @can('admin-promociones.acceder')

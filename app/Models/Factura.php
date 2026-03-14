@@ -33,6 +33,11 @@ class Factura extends Model
         return $this->belongsTo(Client::class, 'cliente_id');
     }
 
+    public function prescription()
+    {
+        return $this->hasOne(Prescription::class);
+    }
+
     public function pagos()
     {
         // Una factura puede tener varios movimientos de caja (pagos parciales)

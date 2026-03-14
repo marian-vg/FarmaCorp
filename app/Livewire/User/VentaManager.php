@@ -18,21 +18,26 @@ use App\Models\Setting;
 use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Traits\Notifies;
+use App\Models\Prescription;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Flux\Flux;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 
 #[Layout('components.layouts.app', ['title' => 'Venta'])]
 class VentaManager extends Component
 {
-    use Notifies, WithPagination;
+    use Notifies, WithPagination, WithFileUploads;
+
+    public $receta_pdf;
 
     /**
      * Refreshes medicine availability when stock changes are recorded by admins.
@@ -257,11 +262,12 @@ class VentaManager extends Component
             $this->carrito[$medicine->id]['cantidad']++;
         } else {
             $this->carrito[$medicine->id] = [
-                'id' => $medicine->id, // Este id es el medicine_id a partir de ahora, para aislar
+                'id' => $medicine->id,
                 'product_id' => $product->id,
                 'name' => $medicine->presentation_name ?: $product->name,
                 'price' => $medicine->price,
                 'cantidad' => 1,
+                'requires_prescription' => $medicine->requires_prescription,
             ];
         }
         $this->notify('Añadido: '.($medicine->presentation_name ?: $product->name), 'success');
@@ -317,6 +323,7 @@ class VentaManager extends Component
                     'name' => $medicine->presentation_name ?: $medicine->product->name,
                     'price' => $medicine->price,
                     'cantidad' => $this->customQuantity,
+                    'requires_prescription' => $medicine->requires_prescription,
                 ];
             }
             $this->notify('Se añadieron '.$this->customQuantity.' unidades correctamente.', 'success');
@@ -373,141 +380,170 @@ class VentaManager extends Component
     }
 
     public function procesarVenta()
-    {
-        // 1. Validaciones Iniciales (Caja, Carrito, Totales)
-        if (! $this->cajaActiva) {
-            $this->notify('Error: Debes abrir caja antes de vender.', 'error');
+{
+    // 1. VALIDACIONES INICIALES DE SESIÓN Y CARRITO
+    if (!$this->cajaActiva) {
+        $this->notify('Error: Debes abrir caja antes de vender.', 'error');
+        return;
+    }
 
+    if (empty($this->carrito)) {
+        $this->notify('El carrito está vacío.', 'error');
+        return;
+    }
+
+    // 2. LÓGICA DE INNOVACIÓN: VALIDACIÓN DE RECETA MÉDICA
+    $necesitaReceta = collect($this->carrito)->contains('requires_prescription', true);
+
+    if ($necesitaReceta) {
+        // Regla de Negocio: No se vende bajo receta a Consumidor Final (DNI es obligatorio)
+        if (!$this->cliente_id) {
+            $this->notify('RESTRICCIÓN LEGAL: Los medicamentos bajo receta requieren vincular un cliente identificado.', 'error');
             return;
         }
 
-        if (empty($this->carrito)) {
-            $this->notify('El carrito está vacío.', 'error');
-
+        // Regla de Integridad: Verificar que el archivo temporal sea válido y exista
+        if (!$this->receta_pdf || !$this->receta_pdf instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+            $this->notify('Error: El PDF de la receta no es válido o se ha removido. Por favor, cárguelo de nuevo.', 'error');
+            $this->receta_pdf = null;
             return;
         }
+    }
 
-        $totalPagado = collect($this->pagos_realizados)->sum('monto');
-        $montoVenta = round((float) $this->totalFinal, 2);
-        $pagadoReal = round((float) $totalPagado, 2);
+    // 3. VALIDACIÓN DE MONTOS Y AUTORIZACIÓN
+    $totalPagado = collect($this->pagos_realizados)->sum('monto');
+    $montoVenta = round((float) $this->totalFinal, 2);
+    $pagadoReal = round((float) $totalPagado, 2);
 
-        if ($pagadoReal > $montoVenta) {
-            $this->notify('Error: El monto pagado ($'.number_format($pagadoReal, 2).') supera el total. Ajuste los pagos.', 'error');
+    if ($pagadoReal > $montoVenta + 0.01) {
+        $this->notify('Error: El monto pagado supera el total del comprobante.', 'error');
+        return;
+    }
 
-            return;
-        }
+    if ($pagadoReal < $montoVenta && !$this->cliente_id) {
+        $this->notify('Falta cubrir $' . number_format($montoVenta - $pagadoReal, 2) . '. Seleccione un cliente para cuenta corriente.', 'warning');
+        return;
+    }
 
-        if ($pagadoReal < $montoVenta && ! $this->cliente_id) {
-            $this->notify('Falta cubrir $'.number_format($montoVenta - $pagadoReal, 2).'. Selecciona un cliente para dejar saldo pendiente.', 'warning');
+    $this->authorize('facturacion.emitir');
 
-            return;
-        }
+    // Validación formal de Laravel
+    $this->validate([
+        'tipo_comprobante' => 'required',
+        'receta_pdf' => $necesitaReceta ? 'required|file|mimes:pdf|max:2048' : 'nullable',
+    ]);
 
-        if ($montoVenta < 0) {
-            $this->notify('El descuento no puede superar el monto total.', 'error');
+    // 4. TRANSACCIÓN ATÓMICA DE BASE DE DATOS
+    try {
+        $facturaID = \DB::transaction(function () use ($montoVenta, $pagadoReal, $necesitaReceta) {
+            $estadoFactura = ($pagadoReal >= $montoVenta - 0.01) ? 'PAGADO' : 'PENDIENTE';
 
-            return;
-        }
-
-        $this->authorize('facturacion.emitir');
-
-        $this->validate(['tipo_comprobante' => 'required']);
-
-        // 2. Transacción de Base de Datos
-        $facturaID = \DB::transaction(function () use ($montoVenta, $pagadoReal) {
-            $estadoFactura = ($pagadoReal >= $montoVenta) ? 'PAGADO' : 'PENDIENTE';
-
-            $factura = Factura::create([
+            // A. Crear la Factura
+            $factura = \App\Models\Factura::create([
                 'tipo_comprobante' => $this->tipo_comprobante,
-                'fecha_emision' => now(),
-                'total' => $this->totalFinal,
-                'ajuste_global' => $this->global_adjustment,
-                'estado' => $estadoFactura,
-                'user_id' => Auth::id(),
-                'cliente_id' => $this->cliente_id,
-                'medio_pago_id' => null,
+                'fecha_emision'    => now(),
+                'total'            => $this->totalFinal,
+                'ajuste_global'    => $this->global_adjustment,
+                'estado'           => $estadoFactura,
+                'user_id'          => Auth::id(),
+                'cliente_id'       => $this->cliente_id,
             ]);
 
-            foreach ($this->carrito as $item) {
-                FacturaDetalle::create([
-                    'cantidad' => $item['cantidad'],
-                    'precio_unitario' => $item['price'],
-                    'descuento' => 0,
+            // B. Gestión de Receta Digital (Subida a Supabase)
+            if ($necesitaReceta && $this->receta_pdf) {
+                // El nombre incluye ID de factura para evitar colisiones
+                $nombreArchivo = 'receta_factura_' . $factura->id . '.pdf';
+                $path = $this->receta_pdf->storeAs('prescriptions', $nombreArchivo, 'supabase');
+
+                \App\Models\Prescription::create([
                     'factura_id' => $factura->id,
-                    'product_id' => $item['product_id'], // Factura detalle todavía hace fk a product_id (históricamente)
+                    'client_id'  => $this->cliente_id,
+                    'file_path'  => $path,
+                ]);
+            }
+
+            // C. Procesar Ítems y Stock
+            foreach ($this->carrito as $item) {
+                \App\Models\FacturaDetalle::create([
+                    'cantidad'        => $item['cantidad'],
+                    'precio_unitario' => $item['price'],
+                    'descuento'       => 0,
+                    'factura_id'      => $factura->id,
+                    'product_id'      => $item['product_id'],
                 ]);
 
-                $stockGlobal = Stock::where('medicine_id', $item['id'])->first();
+                // Descontar del stock global de la medicina
+                $stockGlobal = \App\Models\Stock::where('medicine_id', $item['id'])->first();
                 if ($stockGlobal) {
                     $stockGlobal->cantidad_actual -= $item['cantidad'];
                     $stockGlobal->save();
                 }
 
+                // Descontar de lotes físicos (Lógica FIFO por fecha de vencimiento)
                 $cantidadRestante = $item['cantidad'];
-                $lotes = Batch::where('medicine_id', $item['id'])
+                $lotes = \App\Models\Batch::where('medicine_id', $item['id'])
                     ->where('current_quantity', '>', 0)
                     ->orderBy('expiration_date', 'asc')
                     ->get();
 
                 foreach ($lotes as $lote) {
-                    if ($cantidadRestante <= 0) {
-                        break;
-                    }
+                    if ($cantidadRestante <= 0) break;
+
                     $aQuitar = min($lote->current_quantity, $cantidadRestante);
                     $lote->current_quantity -= $aQuitar;
                     $lote->save();
 
-                    StockMovement::create([
+                    \App\Models\StockMovement::create([
                         'batch_id' => $lote->id,
-                        'user_id' => Auth::id(),
-                        'type' => 'egreso',
-                        'reason' => 'venta',
+                        'user_id'  => Auth::id(),
+                        'type'     => 'egreso',
+                        'reason'   => 'venta',
                         'quantity' => $aQuitar,
                     ]);
                     $cantidadRestante -= $aQuitar;
                 }
             }
 
+            // D. Registrar Movimientos de Caja
             foreach ($this->pagos_realizados as $pago) {
-                MovimientoCaja::create([
-                    'tipo_movimiento' => 'INGRESO',
-                    'monto' => $pago['monto'],
-                    'motivo' => "Venta #{$factura->id} - Pago parcial: {$pago['nombre']}",
+                \App\Models\MovimientoCaja::create([
+                    'tipo_movimiento'  => 'INGRESO',
+                    'monto'            => $pago['monto'],
+                    'motivo'           => "Venta #{$factura->id} - Pago: {$pago['nombre']}",
                     'fecha_movimiento' => now(),
-                    'id_medio_pago' => $pago['medio_id'],
-                    'id_caja' => $this->cajaActiva->id,
-                    'user_id' => Auth::id(),
-                    'factura_id' => $factura->id,
+                    'id_medio_pago'    => $pago['medio_id'],
+                    'id_caja'          => $this->cajaActiva->id,
+                    'user_id'          => Auth::id(),
+                    'factura_id'       => $factura->id,
                 ]);
             }
 
             return $factura->id;
         });
 
+        // 5. FINALIZACIÓN Y NOTIFICACIÓN
         $this->ultimaFacturaId = $facturaID;
+        
+        \App\Events\StockActualizado::dispatch();
+        
+        $this->limpiarVenta();
 
-        $action = Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
-
-        StockActualizado::dispatch();
-
+        $action = \App\Models\Setting::where('key', 'post_sale_action')->first()?->value ?? 'preguntar';
+        
         if ($action === 'auto_imprimir') {
-            $this->limpiarVenta();
             $url = route('factura.imprimir', ['id' => $facturaID]);
             $this->dispatch('abrir-impresion', url: $url);
-
-            return;
-        }
-
-        if ($action === 'preguntar') {
-            // Mostramos el modal para que el usuario elija
-            $this->limpiarVenta();
+        } elseif ($action === 'preguntar') {
             Flux::modal('exito-venta-modal')->show();
         } else {
-            // 'solo_guardar': Solo notificamos y limpiamos
-            $this->limpiarVenta();
-            $this->notify('Operación registrada con éxito.', 'success');
+            $this->notify('Venta procesada con éxito.', 'success');
         }
+
+    } catch (\Exception $e) {
+        $this->notify('Error Crítico: ' . $e->getMessage(), 'error');
+        \Illuminate\Support\Facades\Log::error("Fallo en proceso de venta: " . $e->getMessage());
     }
+}
 
     public function generarPdfStream($id)
     {
@@ -528,7 +564,7 @@ class VentaManager extends Component
         $this->reset([
             'carrito', 'pagos_realizados', 'tipo_comprobante',
             'cliente_id', 'search_cliente', 'global_adjustment',
-            'monto_pago_actual', 'medio_pago_id',
+            'monto_pago_actual', 'medio_pago_id', 'receta_pdf',
         ]);
 
         unset($this->totalFinal, $this->montoRestante, $this->subtotal);

@@ -15,6 +15,7 @@ use App\Livewire\Admin\StockEgresoManager;
 use App\Livewire\Admin\StockHistorialManager;
 use App\Livewire\Admin\StockIngresoManager;
 use App\Livewire\Clients\ClientManager;
+use App\Livewire\Admin\PrescriptionManager;
 use App\Livewire\User\Dashboard as UserDashboard;
 use App\Livewire\User\VentaManager;
 use Illuminate\Support\Facades\Route;
@@ -80,7 +81,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Caja y Ventas
     Route::get('admin/cajas', CajaManager::class)->name('admin.cajas')->middleware('permission:admin-cajas.acceder');
-    Route::get('admin/ventas', SalesManager::class)->name('admin.sales')->middleware('permission:admin-ventas.acceder');
+    Route::middleware(['permission:admin-ventas.acceder'])->group(function () {
+        Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
+        Route::get('admin/recetas', PrescriptionManager::class)->name('admin.prescriptions');
+    });
     Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions')->middleware('permission:admin-promociones.acceder');
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos')->middleware('permission:facturacion.acceder');
 
