@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 beforeEach(function () {
     // Basic setup
     if (! Role::where('name', 'admin')->exists()) {
-        Role::create(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'admin']);
     }
 
     $this->admin = User::factory()->create();

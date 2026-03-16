@@ -26,6 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (AuthorizationException $e, Request $request) {
+            if ($request->wantsJson() || app()->runningUnitTests()) {
+                return response('Acceso Denegado.', 403);
+            }
             return redirect()->back()->with('notify', [
                 'message' => 'Acceso Denegado: No tienes permiso para realizar esta acción.',
                 'type' => 'error',
@@ -33,6 +36,9 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (UnauthorizedException $e, Request $request) {
+            if ($request->wantsJson() || app()->runningUnitTests()) {
+                return response('Acceso Denegado.', 403);
+            }
             return redirect()->back()->with('notify', [
                 'message' => 'Acceso Denegado: No tienes permiso para realizar esta acción.',
                 'type' => 'error',

@@ -2,6 +2,7 @@
     x-data="{ 
         open: false,
         selectedId: @entangle('selectedConversationId'),
+        onlineUsers: [],
         scrollDown() {
             this.$nextTick(() => {
                 const el = this.$refs.messages;
@@ -9,10 +10,14 @@
                     el.scrollTop = el.scrollHeight;
                 }
             });
+        },
+        isOnline(participantId) {
+            return this.onlineUsers.includes(participantId);
         }
     }"
     x-on:message-received.window="scrollDown()"
     x-on:message-sent-locally.window="scrollDown()"
+    x-on:presence-updated.window="onlineUsers = $event.detail[0].userIds"
     x-init="
         $watch('selectedId', () => scrollDown());
     "
@@ -45,18 +50,40 @@
                 <div class="w-20 overflow-y-auto border-r bg-zinc-50/50 p-2 dark:bg-zinc-900/20 sm:w-28">
                     <div class="flex flex-col gap-2">
                         @foreach ($this->conversations as $conversation)
+                            @php
+                                $otherParticipant = $conversation->participants->where('id', '!=', auth()->id())->first();
+                                $chatName = $conversation->is_group ? $conversation->name : ($otherParticipant?->name ?? 'Chat');
+                            @endphp
                             <button 
                                 wire:click="selectConversation({{ $conversation->id }})"
                                 class="relative flex flex-col items-center gap-1 rounded-lg p-1 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 {{ $selectedConversationId === $conversation->id ? 'bg-zinc-100 dark:bg-zinc-800 ring-1 ring-zinc-200 dark:ring-zinc-700' : '' }}"
-                                title="{{ $conversation->is_group ? $conversation->name : ($conversation->participants->where('id', '!=', auth()->id())->first()?->name ?? 'Chat') }}"
+                                title="{{ $chatName }}"
                             >
-                                <flux:avatar 
-                                    size="sm" 
-                                    name="{{ $conversation->is_group ? $conversation->name : ($conversation->participants->where('id', '!=', auth()->id())->first()?->name ?? '?') }}" 
-                                    class="shadow-sm"
-                                />
+                                <div class="relative">
+                                    <flux:avatar 
+                                        size="sm" 
+                                        name="{{ $chatName }}" 
+                                        class="shadow-sm"
+                                    />
+                                    
+                                    <!-- Online Indicator -->
+                                    @if (!$conversation->is_group && $otherParticipant)
+                                        <div 
+                                            x-show="isOnline({{ $otherParticipant->id }})"
+                                            class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-zinc-900"
+                                            title="Online"
+                                        ></div>
+                                    @endif
+
+                                    <!-- Unread Badge -->
+                                    @if ($conversation->unread_count > 0)
+                                        <div class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[8px] font-bold text-white ring-1 ring-white">
+                                            {{ $conversation->unread_count }}
+                                        </div>
+                                    @endif
+                                </div>
                                 <span class="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-zinc-600 dark:text-zinc-400">
-                                    {{ Str::limit($conversation->is_group ? $conversation->name : ($conversation->participants->where('id', '!=', auth()->id())->first()?->name ?? 'Chat'), 8) }}
+                                    {{ Str::limit($chatName, 8) }}
                                 </span>
                             </button>
                         @endforeach

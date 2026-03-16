@@ -21,7 +21,7 @@ it('seeds the generic format correctly with group names', function () {
     expect($cajaAbrirPermiso)->not->toBeNull()
         ->and($cajaAbrirPermiso->group_name)->toBe('Caja');
 
-    $usuariosCrearEditar = Permission::where('name', 'usuarios.crear_editar')->first();
+    $usuariosCrearEditar = Permission::where('name', 'usuarios.crear')->first();
 
     expect($usuariosCrearEditar)->not->toBeNull()
         ->and($usuariosCrearEditar->group_name)->toBe('Usuarios');

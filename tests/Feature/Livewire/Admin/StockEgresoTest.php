@@ -32,7 +32,7 @@ class StockEgresoTest extends TestCase
 
         // Create initial batch with 10 units
         $batch = Batch::create([
-            'medicine_id' => $medicine->product_id,
+            'medicine_id' => $medicine->id,
             'batch_number' => 'LOTE-PARA',
             'expiration_date' => now()->addDays(100),
             'initial_quantity' => 10,

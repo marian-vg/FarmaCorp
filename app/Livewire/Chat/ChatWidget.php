@@ -4,6 +4,7 @@ namespace App\Livewire\Chat;
 
 use App\Models\Conversation;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -18,27 +19,37 @@ class ChatWidget extends Component
      */
     public function getListeners(): array
     {
-        if (! $this->selectedConversationId) {
-            return [];
+        $listeners = [
+            "echo-presence:online,here" => 'onPresenceUpdate',
+            "echo-presence:online,joining" => 'onPresenceUpdate',
+            "echo-presence:online,leaving" => 'onPresenceUpdate',
+        ];
+
+        if ($this->selectedConversationId) {
+            $listeners["echo-private:chat.{$this->selectedConversationId},MessageSent"] = 'onMessageSent';
         }
 
-        return [
-            "echo-private:chat.{$this->selectedConversationId},MessageSent" => 'onMessageSent',
-        ];
+        return $listeners;
     }
 
     /**
      * Get the list of conversations for the authenticated user.
-     * Eager loading to avoid N+1 and sorting by the latest message.
+     * Optimized query to count unread messages based on pivot data.
      */
     #[Computed]
     public function conversations(): Collection
     {
+        $userId = auth()->id();
+
         return auth()->user()->conversations()
             ->with([
                 'participants',
                 'messages' => fn($query) => $query->latest()->limit(1)
             ])
+            ->withCount(['messages as unread_count' => function ($query) use ($userId) {
+                $query->where('sender_id', '!=', $userId)
+                      ->whereColumn('messages.created_at', '>', 'conversation_user.last_read_at');
+            }])
             ->get()
             ->sortByDesc(fn($conversation) => $conversation->messages->first()?->created_at ?? $conversation->created_at);
     }
@@ -64,21 +75,27 @@ class ChatWidget extends Component
             ->latest()
             ->limit(20)
             ->get()
-            ->reverse(); // Show in chronological order for the chat
+            ->reverse();
     }
 
-    /**
-     * Select a conversation to view its messages.
-     */
     public function selectConversation(int $id): void
     {
         $this->selectedConversationId = $id;
+        $this->markAsRead();
         $this->reset('body');
     }
 
-    /**
-     * Send a message to the active conversation.
-     */
+    public function markAsRead(): void
+    {
+        if (!$this->selectedConversationId) {
+            return;
+        }
+
+        auth()->user()->conversations()->updateExistingPivot($this->selectedConversationId, [
+            'last_read_at' => now(),
+        ]);
+    }
+
     public function sendMessage(): void
     {
         if (!$this->selectedConversationId) {
@@ -87,7 +104,6 @@ class ChatWidget extends Component
 
         $conversation = Conversation::findOrFail($this->selectedConversationId);
 
-        // Security check: ensure the user is a participant
         abort_unless(
             $this->isParticipant($conversation),
             403,
@@ -105,23 +121,23 @@ class ChatWidget extends Component
 
         \App\Events\MessageSent::dispatch($message);
 
+        $this->markAsRead();
         $this->reset('body');
-        
         $this->dispatch('message-sent-locally');
     }
 
-    /**
-     * Listen for the MessageSent event via Laravel Echo.
-     */
     public function onMessageSent($payload): void
     {
-        // Re-render happens automatically. We dispatch a browser event for scrolling.
+        $this->markAsRead();
         $this->dispatch('message-received');
     }
 
-    /**
-     * Helper to check if the current user is a participant in a conversation.
-     */
+    public function onPresenceUpdate($users): void
+    {
+        $userIds = collect($users)->pluck('id')->toArray();
+        $this->dispatch('presence-updated', ['userIds' => $userIds]);
+    }
+
     private function isParticipant(Conversation $conversation): bool
     {
         return $conversation->participants()->where('user_id', auth()->id())->exists();

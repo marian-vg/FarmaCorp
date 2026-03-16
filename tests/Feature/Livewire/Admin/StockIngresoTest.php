@@ -37,8 +37,8 @@ class StockIngresoTest extends TestCase
             // Assert searchable component loads
             ->assertSee('Amoxicillin')
             // Simulate medicine selection
-            ->call('selectMedicine', $medicine->product_id)
-            ->assertSet('medicine_id', $medicine->product_id)
+            ->call('selectMedicine', $medicine->id)
+            ->assertSet('medicine_id', $medicine->id)
             // Fill the form
             ->set('batch_number', 'LOTE-1234')
             ->set('expiration_date', $futureDate)
@@ -50,7 +50,7 @@ class StockIngresoTest extends TestCase
 
         // Verify DB integrity for Batch (Lote)
         $this->assertDatabaseHas('batches', [
-            'medicine_id' => $medicine->product_id,
+            'medicine_id' => $medicine->id,
             'batch_number' => 'LOTE-1234',
             'expiration_date' => clone Carbon::parse($futureDate)->startOfDay(),
             'initial_quantity' => 100,

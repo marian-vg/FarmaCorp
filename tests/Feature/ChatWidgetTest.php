@@ -57,8 +57,10 @@ it('can send a message and save it in the database', function () {
     $this->assertDatabaseHas('messages', [
         'conversation_id' => $conversation->id,
         'sender_id' => $user->id,
-        'body' => 'Nuevo mensaje de prueba',
     ]);
+
+    $message = Message::where('conversation_id', $conversation->id)->latest()->first();
+    expect($message->body)->toBe('Nuevo mensaje de prueba');
     
     Event::assertDispatched(MessageSent::class);
 });

@@ -18,6 +18,18 @@ class Message extends Model
     ];
 
     /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'body' => 'encrypted',
+        ];
+    }
+
+    /**
      * The conversation this message belongs to.
      */
     public function conversation(): BelongsTo
