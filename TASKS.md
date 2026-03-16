@@ -13,4 +13,26 @@
 - [x] Ejecutar migraciones y validar tests (Pest).
 
 ---
-**Próxima Fase:** Fase 2: El Motor Síncrono (Lógica Livewire Base)
+
+## Fase 2: El Motor Síncrono - Lógica Livewire Base (Completada)
+- [x] Crear el componente Livewire `ChatWidget`.
+- [x] Implementar propiedad computada `conversations` con Eager Loading (evitar N+1).
+- [x] Implementar método `selectConversation` para cargar mensajes.
+- [x] Implementar método `sendMessage` con validación de seguridad (pertenencia al chat).
+- [x] Crear esqueleto básico de la vista Blade (placeholders).
+- [x] Implementar tests de integración con Pest y Livewire (`ChatWidgetTest.php`).
+- [x] Validar funcionamiento síncrono y persistencia en BD.
+
+---
+
+## Fase 3: El Latido del Sistema - Reverb y Eventos (Completada)
+- [x] Configurar Laravel Reverb (`php artisan reverb:install`).
+- [x] Crear evento `MessageSent` con `ShouldBroadcastNow`.
+- [x] Optimizar payload del evento (`broadcastWith`).
+- [x] Configurar canal privado `chat.{conversationId}` en `routes/channels.php`.
+- [x] Implementar lógica de autorización estricta en el canal.
+- [x] Refactorizar `sendMessage` para despachar el evento.
+- [x] Implementar tests de broadcasting y autorización (`ChatBroadcastingTest.php`).
+
+---
+**Próxima Fase:** Fase 4: La Interfaz Reactiva (Flux UI y Optimistic UI)
