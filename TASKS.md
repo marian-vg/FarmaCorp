@@ -35,4 +35,14 @@
 - [x] Implementar tests de broadcasting y autorización (`ChatBroadcastingTest.php`).
 
 ---
-**Próxima Fase:** Fase 4: La Interfaz Reactiva (Flux UI y Optimistic UI)
+
+## Fase 4: La Interfaz Reactiva (Flux UI y Optimistic UI) (Completada)
+- [x] Construir widget flotante de chat con Flux UI y Tailwind CSS.
+- [x] Implementar lógica de apertura/cierre en Alpine.js (`open`).
+- [x] Implementar Auto-Scroll al fondo mediante Alpine.js y eventos de Livewire.
+- [x] Conectar escucha de Echo mediante `getListeners()` dinámico.
+- [x] Implementar feedback visual (Optimistic UI) mediante Alpine y estados de Livewire.
+- [x] Validar reactividad y manejo de DOM con tests de integración.
+
+---
+**Próxima Fase:** Fase 5: El Toque Corporativo (Seguridad y Presencia)

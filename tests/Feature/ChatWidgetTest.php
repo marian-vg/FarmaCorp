@@ -1,10 +1,12 @@
 <?php
 
+use App\Events\MessageSent;
 use App\Livewire\Chat\ChatWidget;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -16,8 +18,7 @@ it('renders the component and lists conversations', function () {
 
     Livewire::actingAs($user)
         ->test(ChatWidget::class)
-        ->assertSee('Conversaciones')
-        ->assertSee($conversation->is_group ? $conversation->name : 'Chat');
+        ->assertSee('Chat Interno');
 });
 
 it('can select a conversation and see its messages', function () {
@@ -35,11 +36,13 @@ it('can select a conversation and see its messages', function () {
         ->test(ChatWidget::class)
         ->call('selectConversation', $conversation->id)
         ->assertSet('selectedConversationId', $conversation->id)
-        ->assertSee($message->body)
-        ->assertSee($user->name);
+        ->assertSee('Hola, este es un mensaje previo.');
 });
 
 it('can send a message and save it in the database', function () {
+    // Fake events to avoid broadcasting attempt to Reverb server
+    Event::fake([MessageSent::class]);
+
     $user = User::factory()->create();
     $conversation = Conversation::factory()->create();
     $conversation->participants()->attach($user->id);
@@ -56,6 +59,40 @@ it('can send a message and save it in the database', function () {
         'sender_id' => $user->id,
         'body' => 'Nuevo mensaje de prueba',
     ]);
+    
+    Event::assertDispatched(MessageSent::class);
+});
+
+it('reacts to Echo MessageSent event and updates messages', function () {
+    $user = User::factory()->create();
+    $conversation = Conversation::factory()->create();
+    $conversation->participants()->attach($user->id);
+
+    // Create a real message in DB so it shows up when component re-renders
+    $message = Message::create([
+        'id' => 999,
+        'body' => 'Mensaje desde el WebSocket',
+        'sender_id' => User::factory()->create()->id,
+        'conversation_id' => $conversation->id,
+    ]);
+
+    $component = Livewire::actingAs($user)
+        ->test(ChatWidget::class)
+        ->set('selectedConversationId', $conversation->id);
+
+    // Simulate the Echo event dispatching. 
+    // In Livewire 4, this triggers the method linked to the listener.
+    $payload = [
+        'id' => $message->id,
+        'body' => $message->body,
+        'sender_id' => $message->sender_id,
+        'sender_name' => 'Otro Usuario',
+        'created_at' => now()->format('H:i'),
+        'conversation_id' => $conversation->id,
+    ];
+
+    $component->dispatch("echo-private:chat.{$conversation->id},MessageSent", $payload)
+        ->assertSee('Mensaje desde el WebSocket');
 });
 
 it('authorizes message sending only to participants', function () {

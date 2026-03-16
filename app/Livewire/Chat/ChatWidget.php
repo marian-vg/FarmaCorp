@@ -14,6 +14,20 @@ class ChatWidget extends Component
     public ?int $selectedConversationId = null;
 
     /**
+     * Define listeners dynamically to avoid issues with null placeholders.
+     */
+    public function getListeners(): array
+    {
+        if (! $this->selectedConversationId) {
+            return [];
+        }
+
+        return [
+            "echo-private:chat.{$this->selectedConversationId},MessageSent" => 'onMessageSent',
+        ];
+    }
+
+    /**
      * Get the list of conversations for the authenticated user.
      * Eager loading to avoid N+1 and sorting by the latest message.
      */
@@ -92,6 +106,17 @@ class ChatWidget extends Component
         \App\Events\MessageSent::dispatch($message);
 
         $this->reset('body');
+        
+        $this->dispatch('message-sent-locally');
+    }
+
+    /**
+     * Listen for the MessageSent event via Laravel Echo.
+     */
+    public function onMessageSent($payload): void
+    {
+        // Re-render happens automatically. We dispatch a browser event for scrolling.
+        $this->dispatch('message-received');
     }
 
     /**
