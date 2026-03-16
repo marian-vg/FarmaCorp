@@ -75,6 +75,25 @@ class User extends Authenticatable
         return $this->belongsToMany(Profile::class);
     }
 
+    /**
+     * The conversations the user participates in.
+     */
+    public function conversations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class)
+            ->using(ConversationUser::class)
+            ->withPivot('last_read_at')
+            ->withTimestamps();
+    }
+
+    /**
+     * The messages sent by the user.
+     */
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Message::class, 'sender_id');
+    }
+
     public function toSearchableArray()
     {
         return [
