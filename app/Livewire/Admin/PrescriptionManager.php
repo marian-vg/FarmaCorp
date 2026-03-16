@@ -32,7 +32,7 @@ class PrescriptionManager extends Component
 
     public function render()
     {
-        $prescriptions = Prescription::with(['cliente', 'factura'])
+        $prescriptions = Prescription::with(['cliente', 'factura.details.product'])
             ->whereHas('cliente', function($q) {
                 $q->where('first_name', 'ilike', "%{$this->search}%")
                   ->orWhere('last_name', 'ilike', "%{$this->search}%");

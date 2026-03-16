@@ -191,6 +191,7 @@
         @php
             $necesitaReceta = collect($carrito)->contains('requires_prescription', true);
             $archivoListo = $receta_pdf && method_exists($receta_pdf, 'getRealPath');
+            $archivoReal = $receta_pdf instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
         @endphp
 
         @if($necesitaReceta)
@@ -209,7 +210,7 @@
 
                 <flux:text size="xs">Se detectaron productos con receta. Adjunte el PDF.</flux:text>
                 
-                <flux:input type="file" wire:model.live="receta_pdf" accept=".pdf" size="sm" />
+                {{--<flux:input type="file" wire:model.live="receta_pdf" accept=".pdf" size="sm" />
                 
                 <div wire:loading wire:target="receta_pdf" class="flex items-center gap-2">
                     <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></div>
@@ -217,13 +218,62 @@
                 </div>
 
                 {{-- MENSAJE DE ÉXITO REAL --}}
-                @if($archivoListo)
+                {{--@if($archivoReal)
                     <div class="flex items-center gap-2 text-green-600 text-[10px] font-bold uppercase">
                         <flux:icon.check-circle variant="micro" /> PDF Cargado: {{ $receta_pdf->getClientOriginalName() }}
                     </div>
                 @else
                    <div class="text-[10px] text-zinc-400 italic">Formatos permitidos: PDF (Máx. 2MB)</div>
+                @endif--}}
+
+                <div wire:key="upload-container-{{ count($carrito) }}" class="{{ $archivoReal ? 'hidden' : 'block' }}">
+                    <flux:input 
+                        type="file" 
+                        wire:model.live="receta_pdf" 
+                        accept=".pdf" 
+                        size="sm" 
+                        label="Adjuntar PDF"
+                    />
+                    <div class="mt-1 text-[9px] text-zinc-500 italic">Formatos: PDF (Máx. 2MB)</div>
+                </div>
+
+                @if($archivoReal)
+                    <div class="flex items-center justify-between p-2 bg-white dark:bg-zinc-800 rounded-xl border border-green-200 shadow-sm animate-in fade-in zoom-in duration-200">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <flux:icon.check-circle class="text-green-500 w-4 h-4 flex-shrink-0" />
+                            <span class="text-[10px] font-medium truncate text-zinc-600 dark:text-zinc-300">{{ $receta_pdf->getClientOriginalName() }}</span>
+                        </div>
+                        <div class="flex gap-1">
+                            {{-- BOTÓN PREVISUALIZAR --}}
+                            <flux:button 
+                                type="button" 
+                                size="xs" 
+                                variant="ghost" 
+                                icon="eye" 
+                                tooltip="Ver documento" 
+                                @click="window.open('{{ $receta_pdf->temporaryUrl() }}', '_blank')" 
+                            />
+                            {{-- BOTÓN PARA ELIMINAR Y CARGAR OTRO --}}
+                            <flux:button 
+                                type="button"
+                                size="xs" 
+                                variant="ghost" 
+                                icon="trash" 
+                                class="text-red-500" 
+                                wire:click="$set('receta_pdf', null)" 
+                                tooltip="Quitar archivo"
+                            />
+                        </div>
+                    </div>
+                @else
+                    <div class="text-[9px] text-zinc-500 italic">Debe subir el comprobante médico para continuar.</div>
                 @endif
+
+                <div wire:loading wire:target="receta_pdf" class="flex items-center gap-2 text-indigo-600 animate-pulse">
+                    <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                    <span class="text-[10px] font-bold">PROCESANDO...</span>
+                </div>
+
             </div>
         @endif
 

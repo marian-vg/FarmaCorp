@@ -403,9 +403,11 @@ class VentaManager extends Component
         }
 
         // Regla de Integridad: Verificar que el archivo temporal sea válido y exista
-        if (!$this->receta_pdf || !$this->receta_pdf instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
-            $this->notify('Error: El PDF de la receta no es válido o se ha removido. Por favor, cárguelo de nuevo.', 'error');
-            $this->receta_pdf = null;
+        $esArchivoValido = $this->receta_pdf instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+
+        if (!$this->receta_pdf || !$esArchivoValido) {
+            $this->notify('Error: La receta es obligatoria. Por favor, adjunte el archivo PDF nuevamente.', 'error');
+            $this->receta_pdf = null; // Forzamos el nulo para limpiar basura
             return;
         }
     }

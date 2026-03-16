@@ -30,8 +30,7 @@
                     </x-table.cell>
                     <x-table.cell>
                         <div class="max-w-xs truncate text-xs text-zinc-600">
-                            {{-- Aquí podrías listar los medicamentos de la factura que pedían receta --}}
-                            {{ $p->factura->details->pluck('product.name')->implode(', ') }}
+                            {{ $p->factura->details->map(fn($d) => $d->product->name)->implode(', ') ?: 'Sin productos' }}
                         </div>
                     </x-table.cell>
                     <x-table.cell class="text-right">
