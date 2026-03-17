@@ -280,6 +280,7 @@ class VentaManager extends Component
             ];
         }
         $this->notify('Añadido: '.($medicine->presentation_name ?: $product->name), 'success');
+        $this->recalculateOSDiscount();
     }
 
     public function quitarUnoDelCarrito($medicineId)
@@ -290,6 +291,7 @@ class VentaManager extends Component
                 unset($this->carrito[$medicineId]);
             }
         }
+        $this->recalculateOSDiscount();
     }
 
     public function openCustomModal($medicineId, $operation = 'agregar')
@@ -353,6 +355,7 @@ class VentaManager extends Component
     public function quitarDelCarrito($medicineId)
     {
         unset($this->carrito[$medicineId]);
+        $this->recalculateOSDiscount();
     }
 
     public function validarConObraSocial()
@@ -402,6 +405,49 @@ class VentaManager extends Component
         $this->notify("Autorización: {$this->authorization_code}. Descuento aplicado: $" . number_format($this->os_discount_amount, 2), 'success');
     }
 
+    private function recalculateOSDiscount()
+    {
+        $this->is_validated = false;
+        // Si no está validado o no hay cliente, el descuento es CERO
+        if (!$this->is_validated || !$this->cliente_id) {
+            $this->os_discount_amount = 0;
+            return;
+        }
+
+        $cliente = Client::find($this->cliente_id);
+        $obraSocial = $cliente?->obrasSociales()->first();
+
+        if (!$obraSocial || empty($this->carrito)) {
+            $this->os_discount_amount = 0;
+            $this->is_validated = false; // Si el carrito está vacío, invalidamos
+            return;
+        }
+
+        $descuentoAcumulado = 0;
+        
+        foreach ($this->carrito as $item) {
+            $cobertura = \DB::table('obra_social_medicine')
+                ->where('obra_social_id', $obraSocial->id)
+                ->where('medicine_id', $item['id'])
+                ->first();
+
+            if ($cobertura && $cobertura->discount_percentage > 0) {
+                $montoItem = $item['price'] * $item['cantidad'];
+                $descuentoAcumulado += ($montoItem * ($cobertura->discount_percentage / 100));
+            }
+        }
+
+        $this->os_discount_amount = round($descuentoAcumulado, 2);
+    }
+
+    public function quitarCliente()
+    {
+        $this->reset(['cliente_id', 'search_cliente', 'is_validated', 'os_discount_amount', 'authorization_code']);
+        // Al quitar al cliente, forzamos que el total se limpie de beneficios de OS
+        $this->notify('Cliente desvinculado. Se han removido los descuentos de Obra Social.', 'info');
+        $this->recalculateOSDiscount();
+    }
+
     #[Computed]
     public function subtotal()
     {
@@ -433,6 +479,7 @@ class VentaManager extends Component
         if ($this->promotion_id) {
             $this->updatedPromotionId($this->promotion_id);
         }
+        $this->recalculateOSDiscount();
     }
 
     public function procesarVenta()
@@ -660,6 +707,41 @@ class VentaManager extends Component
             })
             ->orderBy('fecha_emision', 'desc')
             ->paginate(10);
+    }
+
+    #[Computed]
+    public function tieneOS()
+    {
+        if (!$this->cliente_id) return false;
+        
+        return \App\Models\Client::find($this->cliente_id)
+            ->obrasSociales()
+            ->exists();
+    }
+
+    #[Computed]
+    public function tieneProductosCubiertos()
+    {
+        if (!$this->cliente_id || empty($this->carrito)) {
+            return false;
+        }
+
+        $cliente = Client::find($this->cliente_id);
+        $obraSocial = $cliente?->obrasSociales()->first();
+
+        if (!$obraSocial) {
+            return false;
+        }
+
+        // Obtenemos los IDs de los medicamentos en el carrito
+        $idsEnCarrito = collect($this->carrito)->pluck('id')->toArray();
+
+        // Buscamos si alguno de esos IDs existe en el Vademécum de esta OS con descuento > 0
+        return \DB::table('obra_social_medicine')
+            ->where('obra_social_id', $obraSocial->id)
+            ->whereIn('medicine_id', $idsEnCarrito)
+            ->where('discount_percentage', '>', 0)
+            ->exists();
     }
 
     #[Computed]

@@ -160,7 +160,7 @@
                 @if($cliente_id)
                     <div class="mt-2 p-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg flex justify-between items-center">
                         <flux:text size="xs" class="text-green-700 dark:text-green-400 font-bold uppercase">✓ Cliente vinculado</flux:text>
-                        <button wire:click="$set('cliente_id', null); $set('search_cliente', '')" class="text-[10px] text-green-600 hover:underline font-bold uppercase">Quitar</button>
+                        <button wire:click="quitarCliente" class="text-[10px] text-green-600 hover:underline font-bold uppercase">Quitar</button>
                     </div>
                 @endif
             </div>
@@ -209,16 +209,11 @@
                 @endif
 
                 {{-- PASO 1: VALIDACIÓN MÉDICA (BOTÓN DINÁMICO) --}}
-                @php 
-                    $clienteActual = $cliente_id ? \App\Models\Client::find($cliente_id) : null;
-                    $tieneOS = $clienteActual && $clienteActual->obrasSociales()->exists(); 
-                @endphp
                 
-                @if($tieneOS)
+                @if($this->tieneOS && $this->tieneProductosCubiertos)
                     <div class="space-y-1">
                         @if(!$is_validated)
                             <flux:button 
-                                {{--wire:click="$dispatch('open-modal', { name: 'validation-modal' })" --}}
                                 wire:click="validatePrescription"
                                 variant="primary" 
                                 class="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition-all"
@@ -240,6 +235,11 @@
                                 <span class="text-[9px] text-green-600 font-bold uppercase tracking-tighter">-${{ number_format($os_discount_amount, 2) }}</span>
                             </div>
                         @endif
+                    </div>
+                @elseif($this->tieneOS && !$this->tieneProductosCubiertos && !empty($carrito))
+                    {{-- Opcional: Un pequeño aviso de que la OS no cubre estos productos --}}
+                    <div class="p-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 rounded-lg">
+                        <flux:text size="xs" class="text-zinc-500 italic text-center">La Obra Social vinculada no posee cobertura para los productos actuales.</flux:text>
                     </div>
                 @endif
 
@@ -366,25 +366,21 @@
             {{-- BOTÓN DE CIERRE DE VENTA --}}
             <flux:button 
     variant="primary" 
+    :color="($this->tieneOS && $this->tieneProductosCubiertos && !$is_validated) ? 'orange' : 'indigo'"
     class="w-full !py-4 shadow-xl shadow-indigo-500/20" 
     wire:click="procesarVenta" 
     icon="banknotes" 
     :disabled="!$tipo_comprobante || empty($carrito) || ($this->montoRestante > 0.01 && !$cliente_id) || ($necesitaReceta && (!$cliente_id || !$archivoListo))"
 >
     @if($necesitaReceta && !$cliente_id)
-        {{-- Caso 1: Falta el cliente para un medicamento controlado --}}
         Vincular Cliente para Receta
     @elseif($necesitaReceta && !$archivoListo)
-        {{-- Caso 2: Falta el archivo físico de la receta --}}
         Adjuntar PDF de Receta
+    @elseif($this->tieneOS && $this->tieneProductosCubiertos && !$is_validated)
+        ⚠️ Vender SIN Descuento de O.S.
     @elseif($this->montoRestante > 0.01 && $cliente_id)
-        {{-- Caso 3: Hay saldo pendiente y el cliente está identificado (Cuenta Corriente) --}}
         Vender con Saldo Deudor
-    @elseif($this->montoRestante > 0.01 && !$cliente_id)
-        {{-- Caso 4: Hay deuda pero no hay cliente (Este bloque bloquea el botón por el :disabled) --}}
-        Saldar Total o Vincular Cliente
     @else
-        {{-- Caso 5: Todo en orden para factura al contado --}}
         Confirmar y Facturar
     @endif
 </flux:button>
