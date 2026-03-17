@@ -11,8 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('obra_socials', function (Blueprint $table) {
+        Schema::create('obras_sociales', function (Blueprint $table) {
             $table->id();
+            $table->string('name')->unique();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
@@ -22,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('obra_socials');
+        Schema::dropIfExists('obra_social');
     }
 };

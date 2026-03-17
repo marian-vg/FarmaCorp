@@ -90,6 +90,20 @@
 
             <flux:input wire:model="clientContext.address" label="Dirección Física" required />
 
+            <flux:separator variant="subtle" class="my-2" />
+            
+            <flux:heading size="sm" class="mb-2">Cobertura Médica (Opcional)</flux:heading>
+            <div class="grid grid-cols-2 gap-4">
+                <flux:select wire:model.live="selected_os_id" label="Obra Social / Prepaga" placeholder="Ninguna">
+                    <flux:select.option value="">Sin Obra Social</flux:select.option>
+                    @foreach(\App\Models\ObraSocial::where('is_active', true)->get() as $os)
+                        <flux:select.option value="{{ $os->id }}">{{ $os->name }}</flux:select.option>
+                    @endforeach
+                </flux:select>
+
+                <flux:input wire:model="affiliate_number" label="Número de Carnet/Afiliado" placeholder="Ej: 00054321/01" :disabled="!$selected_os_id" />
+            </div>
+
             <div class="flex justify-end gap-2">
                 <flux:modal.close>
                     <flux:button variant="ghost">Cancelar</flux:button>
@@ -145,6 +159,21 @@
                     <flux:input wire:model="clientContext.phone" label="Teléfono" disabled />
                     <div class="col-span-2">
                         <flux:input wire:model="clientContext.address" label="Dirección Física" disabled />
+                    </div>
+                    <div class="col-span-2 mt-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-dashed border-zinc-300">
+                        <flux:heading size="sm" class="mb-2 uppercase text-zinc-500 tracking-wider font-bold">Datos de Cobertura</flux:heading>
+                        @php $osActual = $editingClient?->obrasSociales->first(); @endphp
+                        @if($osActual)
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <flux:text size="sm" class="font-bold text-indigo-600">{{ $osActual->name }}</flux:text>
+                                    <flux:text size="xs" class="text-zinc-500 font-mono">Carnet N°: {{ $osActual->pivot->affiliate_number }}</flux:text>
+                                </div>
+                                <flux:badge color="green" size="xs">Validado</flux:badge>
+                            </div>
+                        @else
+                            <flux:text size="xs" class="text-zinc-400 italic">Este cliente no tiene una obra social vinculada.</flux:text>
+                        @endif
                     </div>
                 </div>
             @endif
