@@ -56,7 +56,7 @@
                                             <flux:text size="xs" class="uppercase text-zinc-400 font-semibold tracking-wider">Medicamento</flux:text>
                                             
                                             @if($precioVencido)
-                                                <flux:badge size="xs" color="red" variant="solid">Precio Caducado</flux:badge>
+                                                <flux:badge size="xs" color="red" variant="primary">Precio Caducado</flux:badge>
                                             @elseif($precioAntiguo)
                                                 <flux:badge size="xs" color="orange" variant="subtle" icon="clock">Revisar Precio</flux:badge>
                                             @endif
@@ -78,9 +78,9 @@
                                         
                                         <div class="flex items-center gap-1.5">
                                             @if($fueraDeStock && $stockRealDB > 0)
-                                                <flux:badge size="xs" color="orange" variant="solid">Lim. Carrito</flux:badge>
+                                                <flux:badge size="xs" color="orange" variant="primary">Lim. Carrito</flux:badge>
                                             @elseif($fueraDeStock)
-                                                <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
+                                                <flux:badge size="xs" color="red" variant="primary">Sin Stock</flux:badge>
                                             @else
                                                 <flux:badge size="xs" :color="$stockActual <= ($medicine->stock?->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
                                                     {{ $stockActual }} disponibles
@@ -195,7 +195,7 @@
         @endphp
 
         @if($necesitaReceta)
-            <div class="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-2xl space-y-3">
+            <div class="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-2xl space-y-4">
                 <div class="flex items-center gap-2 text-orange-700 dark:text-orange-400">
                     <flux:icon.document-text variant="micro" />
                     <flux:heading size="sm" class="uppercase tracking-wider font-bold">Receta Obligatoria</flux:heading>
@@ -208,7 +208,45 @@
                     </div>
                 @endif
 
-                <flux:text size="xs">Se detectaron productos con receta. Adjunte el PDF.</flux:text>
+                {{-- PASO 1: VALIDACIÓN MÉDICA (BOTÓN DINÁMICO) --}}
+                @php 
+                    $clienteActual = $cliente_id ? \App\Models\Client::find($cliente_id) : null;
+                    $tieneOS = $clienteActual && $clienteActual->obrasSociales()->exists(); 
+                @endphp
+                
+                @if($tieneOS)
+                    <div class="space-y-1">
+                        @if(!$is_validated)
+                            <flux:button 
+                                {{--wire:click="$dispatch('open-modal', { name: 'validation-modal' })" --}}
+                                wire:click="validatePrescription"
+                                variant="primary" 
+                                class="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition-all"
+                                icon="shield-check"
+                            >
+                                Validar Receta con Obra Social
+                            </flux:button>
+                        @else
+                            <flux:button 
+                                variant="primary"
+                                color="green"
+                                class="w-full shadow-sm pointer-events-none animate-in zoom-in duration-300"
+                                icon="check-circle"
+                            >
+                                Receta Validada ({{ $authorization_code }})
+                            </flux:button>
+                            <div class="flex justify-between px-2 mt-1">
+                                <span class="text-[9px] text-green-600 font-bold uppercase tracking-tighter">Descuento aplicado</span>
+                                <span class="text-[9px] text-green-600 font-bold uppercase tracking-tighter">-${{ number_format($os_discount_amount, 2) }}</span>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
+                <flux:separator variant="subtle" />
+
+                {{-- PASO 2: CARGA FÍSICA DEL PDF --}}
+                <flux:text size="xs" class="font-medium text-zinc-600">Adjuntar comprobante médico (PDF):</flux:text>
 
                 <div wire:key="upload-container-{{ count($carrito) }}" class="{{ $archivoReal ? 'hidden' : 'block' }}">
                     <flux:input 
@@ -216,7 +254,6 @@
                         wire:model.live="receta_pdf" 
                         accept=".pdf" 
                         size="sm" 
-                        label="Adjuntar PDF"
                     />
                     <div class="mt-1 text-[9px] text-zinc-500 italic">Formatos: PDF (Máx. 2MB)</div>
                 </div>
@@ -228,7 +265,6 @@
                             <span class="text-[10px] font-medium truncate text-zinc-600 dark:text-zinc-300">{{ $receta_pdf->getClientOriginalName() }}</span>
                         </div>
                         <div class="flex gap-1">
-                            {{-- BOTÓN PREVISUALIZAR --}}
                             <flux:button 
                                 type="button" 
                                 size="xs" 
@@ -237,7 +273,6 @@
                                 tooltip="Ver documento" 
                                 @click="window.open('{{ $receta_pdf->temporaryUrl() }}', '_blank')" 
                             />
-                            {{-- BOTÓN PARA ELIMINAR Y CARGAR OTRO --}}
                             <flux:button 
                                 type="button"
                                 size="xs" 
@@ -249,15 +284,12 @@
                             />
                         </div>
                     </div>
-                @else
-                    <div class="text-[9px] text-zinc-500 italic">Debe subir el comprobante médico para continuar.</div>
                 @endif
 
                 <div wire:loading wire:target="receta_pdf" class="flex items-center gap-2 text-indigo-600 animate-pulse">
                     <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                    <span class="text-[10px] font-bold">PROCESANDO...</span>
+                    <span class="text-[10px] font-bold">PROCESANDO PDF...</span>
                 </div>
-
             </div>
         @endif
 
@@ -408,7 +440,7 @@
 
                             <x-table.cell>
                                 @if($venta->estado === 'PENDIENTE')
-                                    <flux:badge size="sm" color="red" variant="solid" icon="clock">Cuenta Corriente</flux:badge>
+                                    <flux:badge size="sm" color="red" variant="primary" icon="clock">Cuenta Corriente</flux:badge>
                                     @if($venta->pagos->isNotEmpty())
                                         <flux:text size="xs" class="block text-zinc-400 mt-0.5">Entrega parcial realizada</flux:text>
                                     @endif
@@ -631,4 +663,25 @@
         window.open(event.detail.url, '_blank');
     });
 </script>
+
+{{-- MODAL DE VALIDACIÓN DE RECETA --}}
+    <flux:modal name="validation-modal" class="md:w-96">
+        <form wire:submit.prevent="validarConObraSocial" class="space-y-6">
+            <div>
+                <flux:heading size="lg">Validación de Receta Digital</flux:heading>
+                <flux:subheading>Simulación de conexión con entidad prestadora.</flux:subheading>
+            </div>
+
+            <div class="space-y-4">
+                <flux:input wire:model="doctor_license" label="Matrícula Profesional (Médico)" placeholder="Ej: 12345-BA" required />
+                <flux:input type="date" wire:model="prescription_date" label="Fecha de Emisión de Receta" required />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
+                <flux:button type="submit" variant="primary" icon="check-badge">Validar y Calcular</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+
 </div>

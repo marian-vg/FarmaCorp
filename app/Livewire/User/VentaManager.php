@@ -104,6 +104,14 @@ class VentaManager extends Component
 
     public $customOperation = 'agregar'; // 'agregar' o 'quitar'
 
+    // --- PROPIEDADES DEL SIMULADOR DE OBRA SOCIAL ---
+    public $showValidationModal = false;
+    public $doctor_license = ''; // Matrícula
+    public $prescription_date = ''; // Fecha de la receta
+    public $is_validated = false; // ¿Pasó la validación?
+    public $authorization_code = ''; // El AUTH-XXXXX
+    public $os_discount_amount = 0; // Monto total ahorrado por OS
+
     public function viewLeaflet($productId)
     {
         $this->viewingMedicine = Medicine::with('product')->where('product_id', $productId)->first();
@@ -211,7 +219,8 @@ class VentaManager extends Component
     #[Computed]
     public function totalFinal()
     {
-        return round($this->subtotal + $this->global_adjustment, 2);
+        $total = ($this->subtotal + $this->global_adjustment) - $this->os_discount_amount;
+        return round($total, 2);
     }
 
     #[Computed]
@@ -346,6 +355,53 @@ class VentaManager extends Component
         unset($this->carrito[$medicineId]);
     }
 
+    public function validarConObraSocial()
+    {
+        $this->validate([
+            'doctor_license' => 'required|string|min:4',
+            'prescription_date' => 'required|date|before_or_equal:today',
+        ]);
+
+        // 1. Verificar antigüedad de la receta (Regla de los 30 días)
+        $fecha = \Carbon\Carbon::parse($this->prescription_date);
+        if ($fecha->diffInDays(now()) > 30) {
+            $this->notify('Validación Fallida: La receta tiene más de 30 días de antigüedad.', 'error');
+            return;
+        }
+
+        // 2. Obtener la Obra Social del cliente
+        $cliente = Client::find($this->cliente_id);
+        $obraSocial = $cliente->obrasSociales()->first();
+
+        if (!$obraSocial) {
+            $this->notify('El cliente no tiene una Obra Social activa.', 'error');
+            return;
+        }
+
+        // 3. Simular cálculo de descuentos basado en el Vademécum
+        $descuentoAcumulado = 0;
+        
+        foreach ($this->carrito as $item) {
+            $cobertura = \DB::table('obra_social_medicine')
+                ->where('obra_social_id', $obraSocial->id)
+                ->where('medicine_id', $item['id'])
+                ->first();
+
+            if ($cobertura && $cobertura->discount_percentage > 0) {
+                $montoItem = $item['price'] * $item['cantidad'];
+                $descuentoAcumulado += ($montoItem * ($cobertura->discount_percentage / 100));
+            }
+        }
+
+        // 4. Resultado de la "Simulación"
+        $this->os_discount_amount = round($descuentoAcumulado, 2);
+        $this->authorization_code = 'AUTH-' . strtoupper(bin2hex(random_bytes(3)));
+        $this->is_validated = true;
+        
+        Flux::modal('validation-modal')->close();
+        $this->notify("Autorización: {$this->authorization_code}. Descuento aplicado: $" . number_format($this->os_discount_amount, 2), 'success');
+    }
+
     #[Computed]
     public function subtotal()
     {
@@ -461,6 +517,9 @@ class VentaManager extends Component
                     'factura_id' => $factura->id,
                     'client_id'  => $this->cliente_id,
                     'file_path'  => $path,
+                    'doctor_license' => $this->doctor_license, // Guardamos Matrícula
+                    'prescription_date' => $this->prescription_date, // Guardamos Fecha
+                    'authorization_code' => $this->authorization_code, // Guardamos Código AUTH
                 ]);
             }
 
@@ -540,6 +599,16 @@ class VentaManager extends Component
         } else {
             $this->notify('Venta procesada con éxito.', 'success');
         }
+
+        $this->reset([
+            'carrito', 'pagos_realizados', 'tipo_comprobante',
+            'cliente_id', 'search_cliente', 'global_adjustment',
+            'monto_pago_actual', 'medio_pago_id', 'receta_pdf',
+            'is_validated', 'authorization_code', 'os_discount_amount', // <-- AGREGADO
+            'doctor_license', 'prescription_date' // <-- AGREGADO
+        ]);
+
+        unset($this->totalFinal, $this->montoRestante, $this->subtotal);
 
     } catch (\Exception $e) {
         $this->notify('Error Crítico: ' . $e->getMessage(), 'error');
@@ -624,6 +693,11 @@ class VentaManager extends Component
         }
 
         return $collection;
+    }
+
+    public function validatePrescription()
+    {
+        Flux::modal('validation-modal')->show();
     }
 
     public function render()
