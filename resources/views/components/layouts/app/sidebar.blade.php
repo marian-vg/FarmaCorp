@@ -45,6 +45,7 @@
 
             @can('admin-promociones.acceder')
                 <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
+                <flux:sidebar.item icon="building-library" href="{{ route('admin.obras-sociales') }}" :current="request()->routeIs('admin.obras-sociales')">Obras Sociales</flux:sidebar.item>
             @endcan
 
             @can('facturacion.acceder')

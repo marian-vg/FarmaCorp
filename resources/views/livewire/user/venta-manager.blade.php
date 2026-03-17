@@ -209,22 +209,6 @@
                 @endif
 
                 <flux:text size="xs">Se detectaron productos con receta. Adjunte el PDF.</flux:text>
-                
-                {{--<flux:input type="file" wire:model.live="receta_pdf" accept=".pdf" size="sm" />
-                
-                <div wire:loading wire:target="receta_pdf" class="flex items-center gap-2">
-                    <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600"></div>
-                    <span class="text-[10px] text-indigo-600 font-bold uppercase">Cargando archivo...</span>
-                </div>
-
-                {{-- MENSAJE DE ÉXITO REAL --}}
-                {{--@if($archivoReal)
-                    <div class="flex items-center gap-2 text-green-600 text-[10px] font-bold uppercase">
-                        <flux:icon.check-circle variant="micro" /> PDF Cargado: {{ $receta_pdf->getClientOriginalName() }}
-                    </div>
-                @else
-                   <div class="text-[10px] text-zinc-400 italic">Formatos permitidos: PDF (Máx. 2MB)</div>
-                @endif--}}
 
                 <div wire:key="upload-container-{{ count($carrito) }}" class="{{ $archivoReal ? 'hidden' : 'block' }}">
                     <flux:input 
