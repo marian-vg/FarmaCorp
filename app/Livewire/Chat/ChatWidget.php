@@ -2,15 +2,18 @@
 
 namespace App\Livewire\Chat;
 
+use App\Events\MessageSent;
 use App\Models\Conversation;
+use App\Models\User;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class ChatWidget extends Component
 {
     public string $body = '';
+
+    public string $userSearch = '';
 
     public ?int $selectedConversationId = null;
 
@@ -19,10 +22,12 @@ class ChatWidget extends Component
      */
     public function getListeners(): array
     {
+        $userId = auth()->id();
         $listeners = [
-            "echo-presence:online,here" => 'onPresenceUpdate',
-            "echo-presence:online,joining" => 'onPresenceUpdate',
-            "echo-presence:online,leaving" => 'onPresenceUpdate',
+            'echo-presence:online,here' => 'onPresenceUpdate',
+            'echo-presence:online,joining' => 'onPresenceUpdate',
+            'echo-presence:online,leaving' => 'onPresenceUpdate',
+            "echo-private:App.Models.User.{$userId},MessageSent" => 'onGlobalMessageReceived',
         ];
 
         if ($this->selectedConversationId) {
@@ -30,6 +35,13 @@ class ChatWidget extends Component
         }
 
         return $listeners;
+    }
+
+    public function onGlobalMessageReceived($payload): void
+    {
+        // This will refresh the conversations list and the unread count
+        unset($this->conversations);
+        unset($this->totalUnreadCount);
     }
 
     /**
@@ -44,14 +56,35 @@ class ChatWidget extends Component
         return auth()->user()->conversations()
             ->with([
                 'participants',
-                'messages' => fn($query) => $query->latest()->limit(1)
+                'messages' => fn ($query) => $query->latest()->limit(1),
             ])
             ->withCount(['messages as unread_count' => function ($query) use ($userId) {
                 $query->where('sender_id', '!=', $userId)
-                      ->whereColumn('messages.created_at', '>', 'conversation_user.last_read_at');
+                    ->whereColumn('messages.created_at', '>', 'conversation_user.last_read_at');
             }])
             ->get()
-            ->sortByDesc(fn($conversation) => $conversation->messages->first()?->created_at ?? $conversation->created_at);
+            ->sortByDesc(fn ($conversation) => $conversation->messages->first()?->created_at ?? $conversation->created_at);
+    }
+
+    #[Computed]
+    public function totalUnreadCount(): int
+    {
+        return $this->conversations->sum('unread_count');
+    }
+
+    #[Computed]
+    public function availableUsers(): Collection
+    {
+        $query = User::where('id', '!=', auth()->id());
+
+        if (strlen($this->userSearch) >= 2) {
+            $query->where(function ($q) {
+                $q->where('name', 'ilike', "%{$this->userSearch}%")
+                    ->orWhere('email', 'ilike', "%{$this->userSearch}%");
+            });
+        }
+
+        return $query->limit(20)->get();
     }
 
     /**
@@ -60,13 +93,13 @@ class ChatWidget extends Component
     #[Computed]
     public function chatMessages(): Collection
     {
-        if (!$this->selectedConversationId) {
+        if (! $this->selectedConversationId) {
             return collect();
         }
 
         $conversation = Conversation::find($this->selectedConversationId);
 
-        if (!$conversation || !$this->isParticipant($conversation)) {
+        if (! $conversation || ! $this->isParticipant($conversation)) {
             return collect();
         }
 
@@ -82,12 +115,43 @@ class ChatWidget extends Component
     {
         $this->selectedConversationId = $id;
         $this->markAsRead();
-        $this->reset('body');
+        $this->reset(['body', 'userSearch']);
+    }
+
+    public function startConversation(int $userId): void
+    {
+        $currentUserId = auth()->id();
+
+        // Buscar si ya existe una conversación privada entre ambos
+        $existingConversation = Conversation::where('is_group', false)
+            ->whereHas('participants', function ($query) use ($currentUserId) {
+                $query->where('user_id', $currentUserId);
+            })
+            ->whereHas('participants', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->first();
+
+        if ($existingConversation) {
+            $this->selectedConversationId = $existingConversation->id;
+        } else {
+            // Crear nueva conversación
+            $conversation = Conversation::create([
+                'is_group' => false,
+            ]);
+
+            $conversation->participants()->attach([$currentUserId, $userId]);
+            $this->selectedConversationId = $conversation->id;
+        }
+
+        $this->markAsRead();
+        $this->reset(['body', 'userSearch']);
+        $this->dispatch('close-modal', name: 'new-conversation-modal');
     }
 
     public function markAsRead(): void
     {
-        if (!$this->selectedConversationId) {
+        if (! $this->selectedConversationId) {
             return;
         }
 
@@ -98,7 +162,7 @@ class ChatWidget extends Component
 
     public function sendMessage(): void
     {
-        if (!$this->selectedConversationId) {
+        if (! $this->selectedConversationId) {
             return;
         }
 
@@ -119,7 +183,7 @@ class ChatWidget extends Component
             'body' => $this->body,
         ]);
 
-        \App\Events\MessageSent::dispatch($message);
+        MessageSent::dispatch($message);
 
         $this->markAsRead();
         $this->reset('body');

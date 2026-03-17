@@ -42,7 +42,12 @@
                     <flux:icon name="chat-bubble-left-right" class="text-zinc-500" />
                     <flux:heading size="sm" class="font-bold">Chat Interno</flux:heading>
                 </div>
-                <flux:button variant="ghost" icon="x-mark" size="xs" x-on:click="open = false" />
+                <div class="flex items-center gap-1">
+                    <flux:modal.trigger name="new-conversation-modal">
+                        <flux:button variant="ghost" icon="plus" size="xs" inset="top bottom" />
+                    </flux:modal.trigger>
+                    <flux:button variant="ghost" icon="x-mark" size="xs" x-on:click="open = false" />
+                </div>
             </div>
 
             <div class="flex flex-1 overflow-hidden">
@@ -155,16 +160,69 @@
     </div>
 
     <!-- Toggle Button -->
-    <flux:button 
-        variant="primary" 
-        x-on:click="open = !open; if(open) scrollDown()"
-        class="h-14 w-14 rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95"
-    >
-        <template x-if="!open">
-            <flux:icon name="chat-bubble-left-right" class="h-6 w-6 text-white" />
-        </template>
-        <template x-if="open">
-            <flux:icon name="chevron-down" class="h-6 w-6 text-white" />
-        </template>
-    </flux:button>
+    <div class="relative">
+        @if ($this->totalUnreadCount > 0)
+            <div class="absolute -top-1 -left-1 z-10 h-4 w-4 rounded-full border-2 border-white bg-red-500 dark:border-zinc-800"></div>
+        @endif
+
+        <flux:button 
+            variant="primary" 
+            x-on:click="open = !open; if(open) scrollDown()"
+            class="h-14 w-14 rounded-full shadow-2xl transition-transform hover:scale-110 active:scale-95"
+        >
+            <template x-if="!open">
+                <flux:icon name="chat-bubble-left-right" class="h-6 w-6 text-white" />
+            </template>
+            <template x-if="open">
+                <flux:icon name="chevron-down" class="h-6 w-6 text-white" />
+            </template>
+        </flux:button>
+    </div>
+
+    <!-- New Conversation Modal -->
+    <flux:modal name="new-conversation-modal" class="md:w-96">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">Nueva Conversación</flux:heading>
+                <flux:subheading>Busca un usuario para comenzar a chatear.</flux:subheading>
+            </div>
+
+            <flux:input 
+                wire:model.live.debounce.300ms="userSearch" 
+                placeholder="Nombre o correo..." 
+                icon="magnifying-glass"
+                autocomplete="off"
+            />
+
+            <div class="max-h-64 overflow-y-auto">
+                <flux:navlist variant="outline">
+                    @forelse ($this->availableUsers as $user)
+                        <flux:navlist.item 
+                            as="button"
+                            wire:click="startConversation({{ $user->id }})"
+                        >
+                            <div class="flex items-center gap-3">
+                                <flux:avatar size="xs" name="{{ $user->name }}" />
+                                <div class="flex flex-col items-start">
+                                    <span class="text-sm font-medium">{{ $user->name }}</span>
+                                    <span class="text-xs text-zinc-500">{{ $user->email }}</span>
+                                </div>
+                            </div>
+                        </flux:navlist.item>
+                    @empty
+                        <div class="p-4 text-center text-xs text-zinc-400">
+                            No se encontraron usuarios.
+                        </div>
+                    @endforelse
+                </flux:navlist>
+            </div>
+
+            <div class="flex">
+                <flux:spacer />
+                <flux:modal.close>
+                    <flux:button variant="ghost">Cerrar</flux:button>
+                </flux:modal.close>
+            </div>
+        </div>
+    </flux:modal>
 </div>

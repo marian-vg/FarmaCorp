@@ -81,6 +81,7 @@
             {{ $slot }}
         </main>       
 
+        @livewire('chat.chat-widget')
         <x-toast/>
         @fluxScripts
     </body>
