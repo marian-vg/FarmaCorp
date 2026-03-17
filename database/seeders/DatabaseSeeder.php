@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'test@test.com',
             'password' => 'password',
             'is_active' => true,
+            
         ]);
 
         $testUser->assignRole($empleadoRole);

@@ -17,7 +17,9 @@
     }"
     x-on:message-received.window="scrollDown()"
     x-on:message-sent-locally.window="scrollDown()"
-    x-on:presence-updated.window="onlineUsers = $event.detail[0].userIds"
+    x-on:presence-here.window="onlineUsers = $event.detail.userIds"
+    x-on:presence-joining.window="if(!onlineUsers.includes($event.detail.userId)) onlineUsers.push($event.detail.userId)"
+    x-on:presence-leaving.window="onlineUsers = onlineUsers.filter(id => id !== $event.detail.userId)"
     x-init="
         $watch('selectedId', () => scrollDown());
     "

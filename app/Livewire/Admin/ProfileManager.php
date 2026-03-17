@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\UserPermissionsUpdated;
 use App\Models\Profile;
 use App\Traits\Notifies;
 use Flux\Flux;
@@ -99,6 +100,10 @@ class ProfileManager extends Component
         }
 
         $profile->syncPermissions($this->selectedPermissions);
+
+        foreach ($profile->users()->get() as $user) {
+            UserPermissionsUpdated::dispatch($user);
+        }
 
         Cache::forget('profiles_all');
         Flux::modal('profile-form')->close();

@@ -24,10 +24,11 @@ class ChatWidget extends Component
     {
         $userId = auth()->id();
         $listeners = [
-            'echo-presence:online,here' => 'onPresenceUpdate',
-            'echo-presence:online,joining' => 'onPresenceUpdate',
-            'echo-presence:online,leaving' => 'onPresenceUpdate',
+            'echo-presence:online,here' => 'onPresenceHere',
+            'echo-presence:online,joining' => 'onPresenceJoining',
+            'echo-presence:online,leaving' => 'onPresenceLeaving',
             "echo-private:App.Models.User.{$userId},MessageSent" => 'onGlobalMessageReceived',
+            "echo-private:App.Models.User.{$userId},UserPermissionsUpdated" => 'handlePermissionsUpdate',
         ];
 
         if ($this->selectedConversationId) {
@@ -44,8 +45,14 @@ class ChatWidget extends Component
         unset($this->totalUnreadCount);
     }
 
+    public function handlePermissionsUpdate($payload): void
+    {
+        $this->js('window.location.reload()');
+    }
+
     /**
      * Get the list of conversations for the authenticated user.
+...
      * Optimized query to count unread messages based on pivot data.
      */
     #[Computed]
@@ -196,10 +203,20 @@ class ChatWidget extends Component
         $this->dispatch('message-received');
     }
 
-    public function onPresenceUpdate($users): void
+    public function onPresenceHere($users): void
     {
         $userIds = collect($users)->pluck('id')->toArray();
-        $this->dispatch('presence-updated', ['userIds' => $userIds]);
+        $this->dispatch('presence-here', userIds: $userIds);
+    }
+
+    public function onPresenceJoining($user): void
+    {
+        $this->dispatch('presence-joining', userId: $user['id']);
+    }
+
+    public function onPresenceLeaving($user): void
+    {
+        $this->dispatch('presence-leaving', userId: $user['id']);
     }
 
     private function isParticipant(Conversation $conversation): bool
