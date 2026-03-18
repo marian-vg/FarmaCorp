@@ -40,11 +40,17 @@
 
             @can('admin-ventas.acceder')
                 <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
+            @endcan
+
+            @can('recetas.acceder')
                 <flux:sidebar.item icon="document-text" href="{{ route('admin.prescriptions') }}" :current="request()->routeIs('admin.prescriptions')">Archivo de Recetas</flux:sidebar.item>
             @endcan
 
             @can('admin-promociones.acceder')
                 <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
+            @endcan
+
+            @can('obrasocial.acceder')
                 <flux:sidebar.item icon="building-library" href="{{ route('admin.obras-sociales') }}" :current="request()->routeIs('admin.obras-sociales')">Obras Sociales</flux:sidebar.item>
             @endcan
 

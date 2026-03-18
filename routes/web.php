@@ -7,6 +7,8 @@ use App\Livewire\Admin\ClientDebtManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\GroupManager;
 use App\Livewire\Admin\MedicineManager;
+use App\Livewire\Admin\ObraSocialManager;
+use App\Livewire\Admin\PrescriptionManager;
 use App\Livewire\Admin\ProductManager;
 use App\Livewire\Admin\ProfileManager;
 use App\Livewire\Admin\PromotionManager;
@@ -15,7 +17,6 @@ use App\Livewire\Admin\StockEgresoManager;
 use App\Livewire\Admin\StockHistorialManager;
 use App\Livewire\Admin\StockIngresoManager;
 use App\Livewire\Clients\ClientManager;
-use App\Livewire\Admin\PrescriptionManager;
 use App\Livewire\User\Dashboard as UserDashboard;
 use App\Livewire\User\VentaManager;
 use Illuminate\Support\Facades\Route;
@@ -81,12 +82,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Caja y Ventas
     Route::get('admin/cajas', CajaManager::class)->name('admin.cajas')->middleware('permission:admin-cajas.acceder');
+
     Route::middleware(['permission:admin-ventas.acceder'])->group(function () {
         Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
-        Route::get('admin/recetas', PrescriptionManager::class)->name('admin.prescriptions');
     });
+
     Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions')->middleware('permission:admin-promociones.acceder');
-    Route::get('admin/obras-sociales', \App\Livewire\Admin\ObraSocialManager::class)->name('admin.obras-sociales');
+
+    Route::get('admin/obras-sociales', ObraSocialManager::class)->name('admin.obras-sociales')->middleware('permission:obrasocial.acceder');
+
+    Route::get('admin/recetas', PrescriptionManager::class)->name('admin.prescriptions')->middleware('permission:recetas.acceder');
+
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos')->middleware('permission:facturacion.acceder');
 
     // Acciones específicas emitiendo factura

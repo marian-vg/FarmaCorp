@@ -2,15 +2,15 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\ObraSocial;
-use App\Models\Medicine;
 use App\Models\Group;
+use App\Models\Medicine;
+use App\Models\ObraSocial;
 use App\Traits\Notifies;
 use Flux\Flux;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\DB;
 
 #[Layout('components.layouts.app', ['title' => 'Gestión de Obras Sociales'])]
 class ObraSocialManager extends Component
@@ -19,30 +19,41 @@ class ObraSocialManager extends Component
 
     // Filtros y Búsqueda
     public string $search = '';
+
     public string $statusFilter = '';
 
     // Gestión de Obra Social (CRUD)
     public ?ObraSocial $editingOS = null;
+
     public array $osContext = ['name' => '', 'is_active' => true];
 
     // Gestión de Vademécum (Modal)
     public ?ObraSocial $selectedOS = null;
+
     public string $searchProduct = '';
+
     public string $filterGroup = '';
+
     public array $selectedMedicines = []; // Checkboxes
+
     public $bulkDiscount = 0; // Input de descuento masivo
 
-    public function updatedSearch() { $this->resetPage(); }
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
 
     // --- CRUD BÁSICO ---
     public function createOS()
     {
+        $this->authorize('obrasocial.crear_editar');
         $this->reset(['osContext', 'editingOS']);
         Flux::modal('os-form')->show();
     }
 
     public function editOS(ObraSocial $os)
     {
+        $this->authorize('obrasocial.crear_editar');
         $this->editingOS = $os;
         $this->osContext = ['name' => $os->name, 'is_active' => $os->is_active];
         Flux::modal('os-form')->show();
@@ -50,8 +61,9 @@ class ObraSocialManager extends Component
 
     public function saveOS()
     {
+        $this->authorize('obrasocial.crear_editar');
         $this->validate([
-            'osContext.name' => 'required|string|max:255|unique:obras_sociales,name,' . ($this->editingOS->id ?? 'NULL'),
+            'osContext.name' => 'required|string|max:255|unique:obras_sociales,name,'.($this->editingOS->id ?? 'NULL'),
         ]);
 
         if ($this->editingOS) {
@@ -67,6 +79,7 @@ class ObraSocialManager extends Component
     // --- LÓGICA DEL VADEMÉCUM (MODAL DEL OJO) ---
     public function manageVademecum(ObraSocial $os)
     {
+        $this->authorize('obrasocial.crear_editar');
         $this->selectedOS = $os;
         $this->reset(['selectedMedicines', 'bulkDiscount', 'searchProduct', 'filterGroup']);
         Flux::modal('vademecum-modal')->show();
@@ -74,8 +87,10 @@ class ObraSocialManager extends Component
 
     public function applyBulkDiscount()
     {
+        $this->authorize('obrasocial.crear_editar');
         if (empty($this->selectedMedicines)) {
             $this->notify('Seleccione al menos un medicamento.', 'warning');
+
             return;
         }
 
@@ -92,7 +107,7 @@ class ObraSocialManager extends Component
             }
         });
 
-        $this->notify("Descuento del {$this->bulkDiscount}% aplicado a " . count($this->selectedMedicines) . " productos.", 'success');
+        $this->notify("Descuento del {$this->bulkDiscount}% aplicado a ".count($this->selectedMedicines).' productos.', 'success');
         $this->reset(['selectedMedicines', 'bulkDiscount']);
         // Refrescamos la relación para que se vea en el modal si fuera necesario
         $this->selectedOS->load('medicines');
@@ -102,7 +117,7 @@ class ObraSocialManager extends Component
     {
         // Lista principal de Obras Sociales
         $obrasSociales = ObraSocial::where('name', 'ilike', "%{$this->search}%")
-            ->when($this->statusFilter !== '', fn($q) => $q->where('is_active', $this->statusFilter))
+            ->when($this->statusFilter !== '', fn ($q) => $q->where('is_active', $this->statusFilter))
             ->paginate(10);
 
         // Lista de medicamentos para el modal del Vademécum
@@ -110,7 +125,7 @@ class ObraSocialManager extends Component
             ->with(['product', 'group'])
             ->join('products', 'medicines.product_id', '=', 'products.id')
             ->where('products.name', 'ilike', "%{$this->searchProduct}%")
-            ->when($this->filterGroup !== '', fn($q) => $q->where('medicines.group_id', $this->filterGroup))
+            ->when($this->filterGroup !== '', fn ($q) => $q->where('medicines.group_id', $this->filterGroup))
             ->select('medicines.*')
             ->get();
 

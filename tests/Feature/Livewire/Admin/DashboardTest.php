@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -113,6 +114,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_save_roles()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -131,6 +133,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_save_permissions()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -149,6 +152,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_save_profiles()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -167,6 +171,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_edit_and_update_user()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 

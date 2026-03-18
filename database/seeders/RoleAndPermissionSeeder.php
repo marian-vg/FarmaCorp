@@ -59,6 +59,14 @@ class RoleAndPermissionSeeder extends Seeder
                 ['name' => 'facturacion.acceder', 'display_name' => 'Acceder a módulo de Facturación'],
                 ['name' => 'facturacion.emitir', 'display_name' => 'Emitir Factura/Comprobante'],
             ],
+            'Obras Sociales' => [
+                ['name' => 'obrasocial.acceder', 'display_name' => 'Acceder a Obras Sociales'],
+                ['name' => 'obrasocial.crear_editar', 'display_name' => 'Crear / Editar Obras Sociales'],
+            ],
+            'Recetas' => [
+                ['name' => 'recetas.acceder', 'display_name' => 'Acceder a Recetas'],
+                ['name' => 'recetas.crear_editar', 'display_name' => 'Crear / Editar Recetas'],
+            ],
             'Clientes' => [
                 ['name' => 'clientes.acceder', 'display_name' => 'Acceder a Clientes'],
                 ['name' => 'clientes.crear_editar', 'display_name' => 'Crear / Editar Clientes'],
