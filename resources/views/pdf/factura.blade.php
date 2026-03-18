@@ -63,7 +63,7 @@
                     </td>
                     <td style="border: none;" class="text-right">
                         <strong>N° AUTORIZACIÓN:</strong> <span style="color: #1e3a8a; font-family: monospace; font-size: 11px;">{{ $factura->prescription->authorization_code }}</span><br>
-                        <strong>RECETA DEL:</strong> {{ \Carbon\Carbon::parse($factura->prescription->prescription_date)->format('d/m/Y') }}
+                        <strong>RECETA DEL:</strong> {{ $factura->prescription->prescription_date ? \Carbon\Carbon::parse($factura->prescription->prescription_date)->format('d/m/Y') : 'N/D' }}
                     </td>
                 </tr>
             </table>

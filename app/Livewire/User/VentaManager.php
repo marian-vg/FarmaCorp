@@ -556,7 +556,6 @@ class VentaManager extends Component
 
             // B. Gestión de Receta Digital (Subida a Supabase)
             if ($necesitaReceta && $this->receta_pdf) {
-                // El nombre incluye ID de factura para evitar colisiones
                 $nombreArchivo = 'receta_factura_' . $factura->id . '.pdf';
                 $path = $this->receta_pdf->storeAs('prescriptions', $nombreArchivo, 'supabase');
 
@@ -564,9 +563,9 @@ class VentaManager extends Component
                     'factura_id' => $factura->id,
                     'client_id'  => $this->cliente_id,
                     'file_path'  => $path,
-                    'doctor_license' => $this->doctor_license, // Guardamos Matrícula
-                    'prescription_date' => $this->prescription_date, // Guardamos Fecha
-                    'authorization_code' => $this->authorization_code, // Guardamos Código AUTH
+                    'doctor_license' => !empty($this->doctor_license) ? $this->doctor_license : null,
+                    'prescription_date' => !empty($this->prescription_date) ? $this->prescription_date : null,
+                    'authorization_code' => !empty($this->authorization_code) ? $this->authorization_code : null,
                 ]);
             }
 
