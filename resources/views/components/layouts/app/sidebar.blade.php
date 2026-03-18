@@ -45,6 +45,7 @@
 
             @can('admin-promociones.acceder')
                 <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
+                <flux:sidebar.item icon="building-library" href="{{ route('admin.obras-sociales') }}" :current="request()->routeIs('admin.obras-sociales')">Obras Sociales</flux:sidebar.item>
             @endcan
 
             @can('facturacion.acceder')
@@ -58,10 +59,6 @@
             @can('admin-cajas.acceder')
                 <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Administración de Cajas</flux:sidebar.item>
             @endcan
-
-            @role('super-admin')
-                <flux:sidebar.item icon="wrench-screwdriver" href="{{ route('admin.backup') }}" :current="request()->routeIs('admin.backup')">Base de Datos</flux:sidebar.item>
-            @endrole
 
             <flux:spacer/>
             <flux:separator/>

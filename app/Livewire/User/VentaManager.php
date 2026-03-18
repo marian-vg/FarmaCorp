@@ -104,6 +104,14 @@ class VentaManager extends Component
 
     public $customOperation = 'agregar'; // 'agregar' o 'quitar'
 
+    // --- PROPIEDADES DEL SIMULADOR DE OBRA SOCIAL ---
+    public $showValidationModal = false;
+    public $doctor_license = ''; // Matrícula
+    public $prescription_date = ''; // Fecha de la receta
+    public $is_validated = false; // ¿Pasó la validación?
+    public $authorization_code = ''; // El AUTH-XXXXX
+    public $os_discount_amount = 0; // Monto total ahorrado por OS
+
     public function viewLeaflet($productId)
     {
         $this->viewingMedicine = Medicine::with('product')->where('product_id', $productId)->first();
@@ -118,7 +126,7 @@ class VentaManager extends Component
     public function descargarFactura($id)
     {
         // Cargamos la factura con todas sus relaciones para el reporte
-        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+        $factura = Factura::with(['user', 'cliente.obrasSociales', 'details.product', 'pagos.medioPago', 'prescription'])->findOrFail($id);
 
         if (! Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
             $this->notify('No tiene permisos para descargar este comprobante.', 'error');
@@ -211,7 +219,8 @@ class VentaManager extends Component
     #[Computed]
     public function totalFinal()
     {
-        return round($this->subtotal + $this->global_adjustment, 2);
+        $total = ($this->subtotal + $this->global_adjustment) - $this->os_discount_amount;
+        return round($total, 2);
     }
 
     #[Computed]
@@ -271,6 +280,7 @@ class VentaManager extends Component
             ];
         }
         $this->notify('Añadido: '.($medicine->presentation_name ?: $product->name), 'success');
+        $this->recalculateOSDiscount();
     }
 
     public function quitarUnoDelCarrito($medicineId)
@@ -281,6 +291,7 @@ class VentaManager extends Component
                 unset($this->carrito[$medicineId]);
             }
         }
+        $this->recalculateOSDiscount();
     }
 
     public function openCustomModal($medicineId, $operation = 'agregar')
@@ -344,6 +355,97 @@ class VentaManager extends Component
     public function quitarDelCarrito($medicineId)
     {
         unset($this->carrito[$medicineId]);
+        $this->recalculateOSDiscount();
+    }
+
+    public function validarConObraSocial()
+    {
+        $this->validate([
+            'doctor_license' => 'required|string|min:4',
+            'prescription_date' => 'required|date|before_or_equal:today',
+        ]);
+
+        // 1. Verificar antigüedad de la receta (Regla de los 30 días)
+        $fecha = \Carbon\Carbon::parse($this->prescription_date);
+        if ($fecha->diffInDays(now()) > 30) {
+            $this->notify('Validación Fallida: La receta tiene más de 30 días de antigüedad.', 'error');
+            return;
+        }
+
+        // 2. Obtener la Obra Social del cliente
+        $cliente = Client::find($this->cliente_id);
+        $obraSocial = $cliente->obrasSociales()->first();
+
+        if (!$obraSocial) {
+            $this->notify('El cliente no tiene una Obra Social activa.', 'error');
+            return;
+        }
+
+        // 3. Simular cálculo de descuentos basado en el Vademécum
+        $descuentoAcumulado = 0;
+        
+        foreach ($this->carrito as $item) {
+            $cobertura = \DB::table('obra_social_medicine')
+                ->where('obra_social_id', $obraSocial->id)
+                ->where('medicine_id', $item['id'])
+                ->first();
+
+            if ($cobertura && $cobertura->discount_percentage > 0) {
+                $montoItem = $item['price'] * $item['cantidad'];
+                $descuentoAcumulado += ($montoItem * ($cobertura->discount_percentage / 100));
+            }
+        }
+
+        // 4. Resultado de la "Simulación"
+        $this->os_discount_amount = round($descuentoAcumulado, 2);
+        $this->authorization_code = 'AUTH-' . strtoupper(bin2hex(random_bytes(3)));
+        $this->is_validated = true;
+        
+        Flux::modal('validation-modal')->close();
+        $this->notify("Autorización: {$this->authorization_code}. Descuento aplicado: $" . number_format($this->os_discount_amount, 2), 'success');
+    }
+
+    private function recalculateOSDiscount()
+    {
+        $this->is_validated = false;
+        // Si no está validado o no hay cliente, el descuento es CERO
+        if (!$this->is_validated || !$this->cliente_id) {
+            $this->os_discount_amount = 0;
+            return;
+        }
+
+        $cliente = Client::find($this->cliente_id);
+        $obraSocial = $cliente?->obrasSociales()->first();
+
+        if (!$obraSocial || empty($this->carrito)) {
+            $this->os_discount_amount = 0;
+            $this->is_validated = false; // Si el carrito está vacío, invalidamos
+            return;
+        }
+
+        $descuentoAcumulado = 0;
+        
+        foreach ($this->carrito as $item) {
+            $cobertura = \DB::table('obra_social_medicine')
+                ->where('obra_social_id', $obraSocial->id)
+                ->where('medicine_id', $item['id'])
+                ->first();
+
+            if ($cobertura && $cobertura->discount_percentage > 0) {
+                $montoItem = $item['price'] * $item['cantidad'];
+                $descuentoAcumulado += ($montoItem * ($cobertura->discount_percentage / 100));
+            }
+        }
+
+        $this->os_discount_amount = round($descuentoAcumulado, 2);
+    }
+
+    public function quitarCliente()
+    {
+        $this->reset(['cliente_id', 'search_cliente', 'is_validated', 'os_discount_amount', 'authorization_code']);
+        // Al quitar al cliente, forzamos que el total se limpie de beneficios de OS
+        $this->notify('Cliente desvinculado. Se han removido los descuentos de Obra Social.', 'info');
+        $this->recalculateOSDiscount();
     }
 
     #[Computed]
@@ -377,6 +479,7 @@ class VentaManager extends Component
         if ($this->promotion_id) {
             $this->updatedPromotionId($this->promotion_id);
         }
+        $this->recalculateOSDiscount();
     }
 
     public function procesarVenta()
@@ -453,7 +556,6 @@ class VentaManager extends Component
 
             // B. Gestión de Receta Digital (Subida a Supabase)
             if ($necesitaReceta && $this->receta_pdf) {
-                // El nombre incluye ID de factura para evitar colisiones
                 $nombreArchivo = 'receta_factura_' . $factura->id . '.pdf';
                 $path = $this->receta_pdf->storeAs('prescriptions', $nombreArchivo, 'supabase');
 
@@ -461,6 +563,9 @@ class VentaManager extends Component
                     'factura_id' => $factura->id,
                     'client_id'  => $this->cliente_id,
                     'file_path'  => $path,
+                    'doctor_license' => !empty($this->doctor_license) ? $this->doctor_license : null,
+                    'prescription_date' => !empty($this->prescription_date) ? $this->prescription_date : null,
+                    'authorization_code' => !empty($this->authorization_code) ? $this->authorization_code : null,
                 ]);
             }
 
@@ -541,6 +646,16 @@ class VentaManager extends Component
             $this->notify('Venta procesada con éxito.', 'success');
         }
 
+        $this->reset([
+            'carrito', 'pagos_realizados', 'tipo_comprobante',
+            'cliente_id', 'search_cliente', 'global_adjustment',
+            'monto_pago_actual', 'medio_pago_id', 'receta_pdf',
+            'is_validated', 'authorization_code', 'os_discount_amount', // <-- AGREGADO
+            'doctor_license', 'prescription_date' // <-- AGREGADO
+        ]);
+
+        unset($this->totalFinal, $this->montoRestante, $this->subtotal);
+
     } catch (\Exception $e) {
         $this->notify('Error Crítico: ' . $e->getMessage(), 'error');
         \Illuminate\Support\Facades\Log::error("Fallo en proceso de venta: " . $e->getMessage());
@@ -594,6 +709,41 @@ class VentaManager extends Component
     }
 
     #[Computed]
+    public function tieneOS()
+    {
+        if (!$this->cliente_id) return false;
+        
+        return \App\Models\Client::find($this->cliente_id)
+            ->obrasSociales()
+            ->exists();
+    }
+
+    #[Computed]
+    public function tieneProductosCubiertos()
+    {
+        if (!$this->cliente_id || empty($this->carrito)) {
+            return false;
+        }
+
+        $cliente = Client::find($this->cliente_id);
+        $obraSocial = $cliente?->obrasSociales()->first();
+
+        if (!$obraSocial) {
+            return false;
+        }
+
+        // Obtenemos los IDs de los medicamentos en el carrito
+        $idsEnCarrito = collect($this->carrito)->pluck('id')->toArray();
+
+        // Buscamos si alguno de esos IDs existe en el Vademécum de esta OS con descuento > 0
+        return \DB::table('obra_social_medicine')
+            ->where('obra_social_id', $obraSocial->id)
+            ->whereIn('medicine_id', $idsEnCarrito)
+            ->where('discount_percentage', '>', 0)
+            ->exists();
+    }
+
+    #[Computed]
     public function medicines(): Collection
     {
         $lk = $this->likeOperator();
@@ -624,6 +774,11 @@ class VentaManager extends Component
         }
 
         return $collection;
+    }
+
+    public function validatePrescription()
+    {
+        Flux::modal('validation-modal')->show();
     }
 
     public function render()

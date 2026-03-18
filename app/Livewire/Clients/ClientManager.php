@@ -3,10 +3,11 @@
 namespace App\Livewire\Clients;
 
 use App\Models\Client;
-use App\Models\Factura; // Importante para el historial
+use App\Models\Factura;
+use App\Models\ObraSocial;
 use App\Traits\Notifies;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Flux\Flux; // Necesario para propiedades computadas
+use Flux\Flux;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -36,6 +37,9 @@ class ClientManager extends Component
         'phone' => '',
         'address' => '',
     ];
+
+    public $selected_os_id = null;
+    public $affiliate_number = '';
 
     public function updatedSearch()
     {
@@ -113,6 +117,15 @@ class ClientManager extends Component
             'phone' => $client->phone,
             'address' => $client->address,
         ];
+
+        $osVinculada = $client->obrasSociales()->first();
+        if ($osVinculada) {
+            $this->selected_os_id = $osVinculada->id;
+            $this->affiliate_number = $osVinculada->pivot->affiliate_number;
+        } else {
+            $this->reset(['selected_os_id', 'affiliate_number']);
+        }
+
         Flux::modal('client-form')->show();
     }
 
@@ -126,18 +139,32 @@ class ClientManager extends Component
             'clientContext.email' => 'nullable|email|max:255|unique:clients,email'.($this->editingClient ? ','.$this->editingClient->id : ''),
             'clientContext.phone' => 'required|string|max:255',
             'clientContext.address' => 'required|string|max:255',
+            'selected_os_id' => 'nullable|exists:obras_sociales,id',
+            'affiliate_number' => 'nullable|required_with:selected_os_id|string|max:50',
         ];
 
         $this->validate($rules);
 
         if ($this->editingClient) {
             $this->editingClient->update($this->clientContext);
+            $cliente = $this->editingClient;
         } else {
-            Client::create($this->clientContext);
+            $cliente = Client::create($this->clientContext);
+        }
+
+        // --- NUEVA LÓGICA DE VINCULACIÓN ---
+        if ($this->selected_os_id) {
+            // Sincronizamos: si ya tenía una, la reemplaza por esta con su número
+            $cliente->obrasSociales()->sync([
+                $this->selected_os_id => ['affiliate_number' => $this->affiliate_number]
+            ]);
+        } else {
+            // Si el select está vacío, quitamos cualquier vinculación
+            $cliente->obrasSociales()->detach();
         }
 
         Flux::modal('client-form')->close();
-        $this->reset(['clientContext', 'editingClient']);
+        $this->reset(['clientContext', 'editingClient', 'selected_os_id', 'affiliate_number']);
         $this->notify('Cliente guardado exitosamente.', 'success');
     }
 

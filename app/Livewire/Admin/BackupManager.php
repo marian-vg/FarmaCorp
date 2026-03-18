@@ -117,13 +117,19 @@ class BackupManager extends Component
     private function uploadToCloud($name, $content)
     {
         try {
-            // Usamos el disco 'supabase' que configuramos recién
-            // Guardamos el contenido del SQL directamente en la nube
-            Storage::disk('supabase')->put($name, $content);
+            // Sinceridad de Analista: Validamos el retorno del put
+            $resultado = Storage::disk('supabase')->put($name, $content);
+
+            if (!$resultado) {
+                // Si devuelve false, forzamos una excepción manual
+                throw new \Exception("El disco 'supabase' devolvió FALSE. Revisar conexión o permisos del Bucket.");
+            }
             
-            // Opcional: Podrías registrar en un log que la subida fue exitosa
+            // Log opcional para ver en storage/logs/laravel.log
+            \Illuminate\Support\Facades\Log::info("Backup subido con éxito a Supabase: " . $name);
+
         } catch (\Exception $e) {
-            // Si la nube falla, lanzamos el error para que la notificación lo muestre
+            // Ahora este error sí llegará al componente y verás el cartel rojo
             throw new \Exception("Error al subir a Supabase: " . $e->getMessage());
         }
     }

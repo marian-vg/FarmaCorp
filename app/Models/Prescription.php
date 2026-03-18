@@ -14,6 +14,9 @@ class Prescription extends Model
         'factura_id',
         'client_id',
         'file_path',
+        'doctor_license',
+        'prescription_date',
+        'authorization_code'
     ];
 
     /**

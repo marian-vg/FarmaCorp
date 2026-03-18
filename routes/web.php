@@ -86,6 +86,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('admin/recetas', PrescriptionManager::class)->name('admin.prescriptions');
     });
     Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions')->middleware('permission:admin-promociones.acceder');
+    Route::get('admin/obras-sociales', \App\Livewire\Admin\ObraSocialManager::class)->name('admin.obras-sociales');
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos')->middleware('permission:facturacion.acceder');
 
     // Acciones específicas emitiendo factura
