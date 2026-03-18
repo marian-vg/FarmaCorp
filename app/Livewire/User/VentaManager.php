@@ -220,7 +220,7 @@ class VentaManager extends Component
     public function totalFinal()
     {
         $total = ($this->subtotal + $this->global_adjustment) - $this->os_discount_amount;
-        return round($total, 2);
+        return max(0, round($total, 2));
     }
 
     #[Computed]
