@@ -126,7 +126,7 @@ class VentaManager extends Component
     public function descargarFactura($id)
     {
         // Cargamos la factura con todas sus relaciones para el reporte
-        $factura = Factura::with(['user', 'cliente', 'details.product', 'pagos.medioPago'])->findOrFail($id);
+        $factura = Factura::with(['user', 'cliente.obrasSociales', 'details.product', 'pagos.medioPago', 'prescription'])->findOrFail($id);
 
         if (! Auth::user()->hasRole('admin') && $factura->user_id !== Auth::id()) {
             $this->notify('No tiene permisos para descargar este comprobante.', 'error');

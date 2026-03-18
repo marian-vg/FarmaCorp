@@ -53,6 +53,23 @@
         <strong>DOMICILIO:</strong> {{ $factura->cliente->address ?? 'N/D' }} | <strong>TEL:</strong> {{ $factura->cliente->phone ?? 'N/D' }}
     </div>
 
+    @if($factura->prescription)
+        <div style="border: 1px solid #1e3a8a; padding: 8px; margin-top: 5px; background-color: #f0f4ff;">
+            <table style="width: 100%; border: none;">
+                <tr>
+                    <td style="border: none;">
+                        <strong>COBERTURA:</strong> {{ $factura->cliente->obrasSociales->first()->name ?? 'O.S. Validada' }}<br>
+                        <strong>MÉDICO (Mat.):</strong> {{ $factura->prescription->doctor_license }}
+                    </td>
+                    <td style="border: none;" class="text-right">
+                        <strong>N° AUTORIZACIÓN:</strong> <span style="color: #1e3a8a; font-family: monospace; font-size: 11px;">{{ $factura->prescription->authorization_code }}</span><br>
+                        <strong>RECETA DEL:</strong> {{ \Carbon\Carbon::parse($factura->prescription->prescription_date)->format('d/m/Y') }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+    @endif
+
     <table class="items-table">
         <thead>
             <tr>
@@ -75,19 +92,36 @@
     </table>
 
     <table class="totals-table">
+        @php
+            $subtotalItems = $factura->details->sum(function($item) {
+                return $item->cantidad * $item->precio_unitario;
+            });
+            // El ahorro real por OS es la diferencia entre (Subtotal + Promo) y lo que se cobró al final
+            $ahorroOS = ($subtotalItems + $factura->ajuste_global) - $factura->total;
+        @endphp
+
         <tr>
             <td><strong>SUBTOTAL:</strong></td>
-            <td style="text-align: right;">$ {{ number_format($factura->total - $factura->ajuste_global, 2) }}</td>
+            <td style="text-right">$ {{ number_format($subtotalItems, 2) }}</td>
         </tr>
+
         @if($factura->ajuste_global != 0)
             <tr>
-                <td><strong>AJUSTE (DESC/REC):</strong></td>
-                <td style="text-align: right;">$ {{ number_format($factura->ajuste_global, 2) }} </td>
+                <td><strong>{{ $factura->ajuste_global < 0 ? 'DESCUENTO PROMO:' : 'RECARGO COMERCIAL:' }}</strong></td>
+                <td style="text-right">$ {{ number_format(abs($factura->ajuste_global), 2) }} </td>
             </tr>
         @endif
+
+        @if($ahorroOS > 0.01)
+            <tr style="color: #166534;">
+                <td><strong>AHORRO OBRA SOCIAL:</strong></td>
+                <td style="text-right">- $ {{ number_format($ahorroOS, 2) }}</td>
+            </tr>
+        @endif
+
         <tr style="background: #eee; font-size: 12px;">
-            <td><strong>TOTAL:</strong></td>
-            <td style="text-align: right;"><strong>$ {{ number_format($factura->total, 2) }}</strong></td>
+            <td><strong>TOTAL A PAGAR:</strong></td>
+            <td style="text-right"><strong>$ {{ number_format($factura->total, 2) }}</strong></td>
         </tr>
     </table>
 
