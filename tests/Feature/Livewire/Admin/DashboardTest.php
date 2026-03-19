@@ -112,6 +112,20 @@ class DashboardTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_deactivate_self()
+    {
+        $admin = User::factory()->create();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin->assignRole($adminRole);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->call('deactivateUser', $admin->id)
+            ->assertDispatched('notify', message: 'Seguridad: No puedes desactivar tu propia cuenta.', type: 'error');
+
+        $this->assertTrue($admin->fresh()->is_active);
+    }
+
     public function test_admin_can_save_roles()
     {
         Event::fake();

@@ -252,9 +252,11 @@
                                 </flux:modal.trigger>
                                 
                                 @if($user->is_active)
-                                    <flux:modal.trigger name="confirm-deactivation-{{ $user->id }}">
-                                        <flux:button size="sm" icon="trash" variant="danger" ghost />
-                                    </flux:modal.trigger>
+                                    @if($user->id !== auth()->id())
+                                        <flux:modal.trigger name="confirm-deactivation-{{ $user->id }}">
+                                            <flux:button size="sm" icon="trash" variant="danger" ghost />
+                                        </flux:modal.trigger>
+                                    @endif
                                 @else
                                     <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateUser({{ $user->id }})" />
                                 @endif

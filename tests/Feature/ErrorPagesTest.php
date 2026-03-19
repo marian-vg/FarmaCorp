@@ -84,7 +84,7 @@ class ErrorPagesTest extends TestCase
             $view = view('errors.403')->render();
 
             $this->assertStringContainsString('Volver a Mi Caja Operativa', $view);
-            $this->assertStringContainsString(route('user.dashboard'), $view);
+            $this->assertStringContainsString(route('user.caja'), $view);
         }
     }
 

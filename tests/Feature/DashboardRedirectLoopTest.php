@@ -20,10 +20,10 @@ it('does not cause a redirect loop for users with caja.acceder permission but no
     // 1. Validar que la redirección original del portal de acceso funciona si tratare de ir a /dashboard
     $this->actingAs($user)
         ->get('/dashboard')
-        ->assertRedirect(route('user.dashboard'));
+        ->assertRedirect(route('user.caja'));
 
     // 2. Validar que la ruta de destino EFECTIVAMENTE carga y no rebota devuelta a un 302
     $this->actingAs($user)
-        ->get(route('user.dashboard'))
+        ->get(route('user.caja'))
         ->assertStatus(200);
 });

@@ -324,6 +324,12 @@ class Dashboard extends Component
             return;
         }
 
+        if ($user->id === auth()->id()) {
+            $this->notify('Seguridad: No puedes desactivar tu propia cuenta.', 'error');
+
+            return;
+        }
+
         $user->is_active = false;
         $user->save();
     }

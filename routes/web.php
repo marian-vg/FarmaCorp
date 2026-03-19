@@ -42,7 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         if (auth()->user()->hasPermissionTo('caja.acceder')) {
-            return redirect()->route('user.dashboard');
+            return redirect()->route('user.caja');
         }
 
         abort(403, 'Tu cuenta no tiene permisos operativos asignados. Por favor, contacta a un administrador.');
@@ -53,7 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('admin.dashboard');
     });
 
-    Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard')->middleware('permission:caja.acceder');
+    Route::get('user/caja', UserDashboard::class)->name('user.caja')->middleware('permission:caja.acceder');
 
     // Módulo de Administración Principal
     Route::middleware(['permission:roles.acceder'])->group(function () {

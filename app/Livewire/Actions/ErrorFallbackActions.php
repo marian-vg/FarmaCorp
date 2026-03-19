@@ -47,7 +47,7 @@ class ErrorFallbackActions extends Component
                 'admin-promociones.acceder' => ['route' => 'admin.promotions', 'name' => 'Promociones'],
                 'obrasocial.acceder' => ['route' => 'admin.obras-sociales', 'name' => 'Obras Sociales'],
                 'facturacion.acceder' => ['route' => 'ventas.pos', 'name' => 'Punto de Venta'],
-                'caja.acceder' => ['route' => 'user.dashboard', 'name' => 'Mi Caja Operativa'],
+                'caja.acceder' => ['route' => 'user.caja', 'name' => 'Mi Caja Operativa'],
                 'admin-cajas.acceder' => ['route' => 'admin.cajas', 'name' => 'Administración de Cajas'],
             ];
 

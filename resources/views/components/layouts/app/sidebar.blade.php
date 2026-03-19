@@ -59,7 +59,7 @@
             @endcan
 
             @can('caja.acceder')
-                <flux:sidebar.item icon="wallet" href="{{ route('user.dashboard') }}" :current="request()->routeIs('user.dashboard')">Mi Caja Operativa</flux:sidebar.item>
+                <flux:sidebar.item icon="wallet" href="{{ route('user.caja') }}" :current="request()->routeIs('user.caja')">Mi Caja Operativa</flux:sidebar.item>
             @endcan
 
             @can('admin-cajas.acceder')
