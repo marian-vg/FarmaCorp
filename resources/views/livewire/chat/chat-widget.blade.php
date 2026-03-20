@@ -25,7 +25,7 @@
     "
     class="fixed bottom-4 right-4 z-50 flex flex-col items-end"
 >
-    <!-- Chat Window -->
+    <!-- Ventana de Chat -->
     <div 
         x-show="open" 
         x-transition:enter="transition ease-out duration-300"
@@ -38,7 +38,7 @@
         style="display: none;"
     >
         <flux:card class="flex h-[500px] flex-col overflow-hidden p-0 shadow-xl">
-            <!-- Header -->
+            <!-- Cabecera -->
             <div class="flex items-center justify-between border-b bg-zinc-50 p-3 dark:bg-zinc-900/50">
                 <div class="flex items-center gap-2">
                     <flux:icon name="chat-bubble-left-right" class="text-zinc-500" />
@@ -53,7 +53,7 @@
             </div>
 
             <div class="flex flex-1 overflow-hidden">
-                <!-- Sidebar (Conversation List) -->
+                <!-- Sidebar (Lista de Conversaciones) -->
                 <div class="w-20 overflow-y-auto border-r bg-zinc-50/50 p-2 dark:bg-zinc-900/20 sm:w-28">
                     <div class="flex flex-col gap-2">
                         @foreach ($this->conversations as $conversation)
@@ -73,12 +73,12 @@
                                         class="shadow-sm"
                                     />
                                     
-                                    <!-- Online Indicator -->
+                                    <!-- Indicador de conexión -->
                                     @if (!$conversation->is_group && $otherParticipant)
                                         <div 
                                             x-show="isOnline({{ $otherParticipant->id }})"
                                             class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-full border-2 border-white bg-green-500 dark:border-zinc-900"
-                                            title="Online"
+                                            title="En línea"
                                         ></div>
                                     @endif
 
@@ -97,10 +97,10 @@
                     </div>
                 </div>
 
-                <!-- Chat Body -->
+                <!-- Cuerpo del Chat -->
                 <div class="flex flex-1 flex-col overflow-hidden bg-white dark:bg-zinc-950">
                     @if ($selectedConversationId)
-                        <!-- Messages -->
+                        <!-- Mensajes -->
                         <div 
                             x-ref="messages"
                             class="flex-1 overflow-y-auto p-4"

@@ -1,5 +1,5 @@
 <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
-    <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
+    <flux:heading level="1" size="lg">Panel de Administración</flux:heading>
 
     <div class="w-full overflow-hidden rounded-lg border border-gray-200 dark:border-zinc-700">
 

@@ -7,7 +7,7 @@
             <flux:subheading>Asignar permisos excepcionales directos.</flux:subheading>
         </div>
 
-        <div class="space-y-2 max-h-60 overflow-y-auto">
+        <div class="space-y-2 max-h-90 overflow-y-auto">
             @if($permissions->isEmpty())
                 {{-- Mensaje de alerta cuando no hay permisos disponibles --}}
                 <div class="p-4 border border-dashed border-gray-300 dark:border-zinc-700 rounded-lg text-center bg-gray-50 dark:bg-zinc-800">
@@ -16,7 +16,7 @@
                     </flux:text>
                 </div>
             @else
-                <div class="space-y-6 max-h-96 overflow-y-auto pr-2 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
+                <div class="space-y-6 h-full  pr-2 rounded-md border border-neutral-200 p-4 dark:border-neutral-700">
                     @foreach($permissions->groupBy('group_name') as $group => $groupPermissions)
                         <div class="space-y-3">
                             <flux:heading size="sm">{{ $group ?: 'Generales' }}</flux:heading>

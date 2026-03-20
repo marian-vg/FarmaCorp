@@ -10,7 +10,7 @@
 
             {{-- VISTA ADMINISTRADOR --}}
             @can('admin-panel.acceder')
-                <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Dashboard</flux:sidebar.item>
+                <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Panel de Control</flux:sidebar.item>
             @endcan
             {{-- CATEGORÍAS SEGÚN PERMISOS --}}
             @can('inventario.acceder')
@@ -70,12 +70,12 @@
             <flux:separator/>
 
             <flux:sidebar.item icon="cog-6-tooth" href="{{ route('settings.index') }}" :current="request()->routeIs('settings.index')">Configuración</flux:sidebar.item>
-            <flux:sidebar.item icon="book-open" href="{{ route('manual') }}" :current="request()->routeIs('manual')">Documentación</flux:sidebar.item>
+            <flux:sidebar.item icon="book-open" href="{{ route('manual') }}" :current="request()->routeIs('manual')" target="_blank">Documentación</flux:sidebar.item>
 
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf
                 <flux:sidebar.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full" data-test="logout-button">
-                    {{ __('Log Out') }}
+                    {{ __('Salir') }}
                 </flux:sidebar.item>
             </form>
         </flux:sidebar>

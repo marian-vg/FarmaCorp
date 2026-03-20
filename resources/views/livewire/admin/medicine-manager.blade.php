@@ -77,7 +77,7 @@
                         </x-table.cell>
                         <x-table.cell>
                             <div class="flex flex-col items-start gap-1">
-                                @if($medicine->product->status)
+                                @if($medicine->product->status ?? null)
                                     <flux:badge variant="success" size="sm">Activo</flux:badge>
                                 @else
                                     <flux:badge variant="danger" size="sm">Inactivo</flux:badge>

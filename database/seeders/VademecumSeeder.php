@@ -27,13 +27,11 @@ class VademecumSeeder extends Seeder
         $vademecumData = json_decode($json, true);
 
         foreach ($vademecumData as $data) {
-            // 1. Grupo Farmacológico
             $group = Group::firstOrCreate(
                 ['name' => $data['group']],
                 ['description' => "Grupo autogenerado para {$data['group']}"]
             );
 
-            // 2. Producto Base (Genérico)
             $product = Product::firstOrCreate(
                 ['name' => $data['name']],
                 [
@@ -57,6 +55,7 @@ class VademecumSeeder extends Seeder
                             'level' => $medData['level'],
                             'leaflet' => $medData['leaflet'],
                             'is_psychotropic' => current(array_filter([$medData['is_psychotropic'] ?? false])),
+                            'requires_prescription' => $medData['requires_prescription'] ?? false,
                             'expiration_date' => now()->addYears(2), // Por defecto
                         ]
                     );

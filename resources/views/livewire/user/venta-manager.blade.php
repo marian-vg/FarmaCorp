@@ -130,7 +130,7 @@
             </div>
             <flux:heading size="md">Caja Cerrada</flux:heading>
             <flux:text size="sm" class="px-4">Debes abrir un turno operativo para comenzar a facturar.</flux:text>
-            <flux:button variant="primary" size="sm" href="{{ route('dashboard') }}">Ir a Cajas</flux:button>
+            <flux:button variant="primary" size="sm" href="{{ route('user.caja') }}">Ir a Cajas</flux:button>
         </div>
     @else
         {{-- 1. ENCABEZADO: DATOS DE FACTURACIÓN --}}

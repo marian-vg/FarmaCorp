@@ -29,3 +29,8 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# AGENTS
+/docs
+GEMINI.md
+CLAUDE.md
