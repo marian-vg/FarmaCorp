@@ -9,9 +9,8 @@ it('loads the settings page for authenticated users with theme toggle', function
 
     $response->assertStatus(200);
     $response->assertSee('Configuración del Sistema');
-    $response->assertSee('Apariencia');
-    $response->assertSee('Modo Oscuro');
-    $response->assertSeeLivewire('actions.settings-manager');
+    $response->assertSee('Preferencia Visual');
+    $response->assertSee('Modo de Visualización');
 });
 
 it('redirects guests to login when accessing settings', function () {

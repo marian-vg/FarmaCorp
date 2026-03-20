@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Events\UserPermissionsUpdated;
 use App\Models\Batch;
 use App\Models\Profile;
 use App\Models\Setting;
@@ -33,7 +34,7 @@ class Dashboard extends Component
 
     public string $statusFilter = 'all'; // all, active, inactive
 
-    public string $roleFilter = '';
+    public string $profileFilter = '';
 
     public int $alertDays = 30;
 
@@ -66,12 +67,21 @@ class Dashboard extends Component
     #[Computed]
     public function inheritedPermissions()
     {
-        return Role::whereIn('name', $this->selectedRoles)
+        $rolePermissions = Role::whereIn('name', $this->selectedRoles)
             ->with('permissions')
             ->get()
             ->pluck('permissions')
             ->flatten()
-            ->pluck('name')
+            ->pluck('name');
+
+        $profilePermissions = Profile::whereIn('id', $this->selectedProfiles)
+            ->with('permissions')
+            ->get()
+            ->pluck('permissions')
+            ->flatten()
+            ->pluck('name');
+
+        return $rolePermissions->merge($profilePermissions)
             ->unique()
             ->toArray();
     }
@@ -88,7 +98,7 @@ class Dashboard extends Component
         $this->resetPage();
     }
 
-    public function updatedRoleFilter()
+    public function updatedProfileFilter()
     {
         $this->resetPage();
     }
@@ -158,7 +168,7 @@ class Dashboard extends Component
     #[Computed]
     public function roles()
     {
-        return Cache::remember('roles_all', 86400, fn () => Role::all());
+        return Cache::remember('roles_all', 86400, fn () => Role::where('name', '!=', 'super-admin')->get());
     }
 
     #[Computed]
@@ -203,10 +213,12 @@ class Dashboard extends Component
         }
 
         if ($this->editingUser) {
-            $this->editingUser->syncRoles($this->selectedRoles);
+            $rolesToSync = collect($this->selectedRoles)->reject(fn ($role) => $role === 'super-admin')->toArray();
+            $this->editingUser->syncRoles($rolesToSync);
+            UserPermissionsUpdated::dispatch($this->editingUser);
             Flux::modal('edit-roles')->close();
         }
-        $this->dispatch('Roles guardados exitosamente.', 'success');
+        $this->notify('Roles guardados exitosamente.', 'success');
     }
 
     public function editPermissions(User $user)
@@ -220,6 +232,8 @@ class Dashboard extends Component
         $this->editingUser = $user;
         $this->selectedRoles = $user->roles->pluck('name')->toArray();
         $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
+        $this->selectedProfiles = $user->profiles->pluck('id')->toArray();
+
         Flux::modal('edit-permissions')->show();
     }
 
@@ -246,8 +260,9 @@ class Dashboard extends Component
 
             $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
             $this->editingUser->syncPermissions($directPermissionsToSave);
+            UserPermissionsUpdated::dispatch($this->editingUser);
             Flux::modal('edit-permissions')->close();
-            $this->dispatch('Permisos guardados correctamente.', 'success');
+            $this->notify('Permisos guardados correctamente.', 'success');
         }
     }
 
@@ -274,6 +289,7 @@ class Dashboard extends Component
 
         if ($this->editingUser) {
             $this->editingUser->profiles()->sync($this->selectedProfiles);
+            UserPermissionsUpdated::dispatch($this->editingUser);
             Flux::modal('edit-profiles')->close();
             $this->notify('Perfiles actualizados correctamente.', 'success');
         }
@@ -294,6 +310,12 @@ class Dashboard extends Component
             'newUserContext.role' => 'required|string|exists:roles,name',
             'newUserContext.password' => 'required|string|min:8|same:newUserContext.password_confirmation',
         ]);
+
+        if ($this->newUserContext['role'] === 'super-admin') {
+            $this->notify('Seguridad: No se puede asignar el rol de Super Administrador.', 'error');
+
+            return;
+        }
 
         $user = User::create([
             'name' => $this->newUserContext['name'],
@@ -316,6 +338,12 @@ class Dashboard extends Component
     {
         if (! auth()->user()->can('usuarios.desactivar')) {
             $this->notify('No tienes permisos para realizar esta acción: Desactivar usuario', 'error');
+
+            return;
+        }
+
+        if ($user->id === auth()->id()) {
+            $this->notify('Seguridad: No puedes desactivar tu propia cuenta.', 'error');
 
             return;
         }
@@ -352,6 +380,7 @@ class Dashboard extends Component
         ];
         $this->selectedRoles = $user->roles->pluck('name')->toArray();
         $this->selectedPermissions = $user->getDirectPermissions()->pluck('name')->toArray();
+        $this->selectedProfiles = $user->profiles->pluck('id')->toArray();
 
         Flux::modal('edit-user')->show();
         $this->notify('Usuario cargado para edición.', 'success');
@@ -376,17 +405,25 @@ class Dashboard extends Component
             'editUserContext.is_active' => 'boolean',
         ]);
 
+        $isActive = $this->editUserContext['is_active'];
+        if ($this->editingUser->id === auth()->id()) {
+            $isActive = true;
+        }
+
         $this->editingUser->update([
             'name' => $this->editUserContext['name'],
             'email' => $this->editUserContext['email'],
-            'is_active' => $this->editUserContext['is_active'],
+            'is_active' => $isActive,
         ]);
 
-        $this->editingUser->syncRoles($this->selectedRoles);
+        $rolesToSync = collect($this->selectedRoles)->reject(fn ($role) => $role === 'super-admin')->toArray();
+        $this->editingUser->syncRoles($rolesToSync);
 
         // Filter out any permission that is already inherited via the chosen roles
         $directPermissionsToSave = array_diff($this->selectedPermissions, $this->inheritedPermissions());
         $this->editingUser->syncPermissions($directPermissionsToSave);
+
+        UserPermissionsUpdated::dispatch($this->editingUser);
 
         Flux::modal('edit-user')->close();
         $this->reset(['editUserContext', 'selectedRoles', 'selectedPermissions', 'editingUser']);
@@ -421,7 +458,7 @@ class Dashboard extends Component
     {
         $users = User::search($this->search)
             ->query(function ($query) {
-                $query->with(['roles.permissions', 'permissions', 'profiles']);
+                $query->with(['roles.permissions', 'permissions', 'profiles.permissions']);
 
                 if ($this->statusFilter === 'active') {
                     $query->where('is_active', true);
@@ -429,9 +466,9 @@ class Dashboard extends Component
                     $query->where('is_active', false);
                 }
 
-                if ($this->roleFilter) {
-                    $query->whereHas('roles', function ($q) {
-                        $q->where('name', $this->roleFilter);
+                if ($this->profileFilter) {
+                    $query->whereHas('profiles', function ($q) {
+                        $q->where('name', $this->profileFilter);
                     });
                 }
             })

@@ -59,6 +59,14 @@ class RoleAndPermissionSeeder extends Seeder
                 ['name' => 'facturacion.acceder', 'display_name' => 'Acceder a módulo de Facturación'],
                 ['name' => 'facturacion.emitir', 'display_name' => 'Emitir Factura/Comprobante'],
             ],
+            'Obras Sociales' => [
+                ['name' => 'obrasocial.acceder', 'display_name' => 'Acceder a Obras Sociales'],
+                ['name' => 'obrasocial.crear_editar', 'display_name' => 'Crear / Editar Obras Sociales'],
+            ],
+            'Recetas' => [
+                ['name' => 'recetas.acceder', 'display_name' => 'Acceder a Recetas'],
+                ['name' => 'recetas.crear_editar', 'display_name' => 'Crear / Editar Recetas'],
+            ],
             'Clientes' => [
                 ['name' => 'clientes.acceder', 'display_name' => 'Acceder a Clientes'],
                 ['name' => 'clientes.crear_editar', 'display_name' => 'Crear / Editar Clientes'],
@@ -72,7 +80,6 @@ class RoleAndPermissionSeeder extends Seeder
             ],
         ];
 
-        // Crear los permisos
         foreach ($permissionsByGroup as $groupName => $permissions) {
             foreach ($permissions as $permissionData) {
                 Permission::firstOrCreate(
@@ -85,23 +92,10 @@ class RoleAndPermissionSeeder extends Seeder
             }
         }
 
-        // Crear el rol Super Admin y asignarle todos los permisos
-        $roleInfo = [
-            'name' => 'super-admin',
-            'display_name' => 'Super Administrador',
-            'description' => 'Rol con acceso total al sistema',
-        ];
-
-        // Verificar si la tabla roles tiene estos campos antes de crear (los agregados anteriormente a profiles o si la idea era extender).
-        // En migraciones vimos solo description, display_name lo tiene permissions
-        // Vamos a verificar si Roles tiene display_name, no lo vimos en migrations, Spatie defaults a solo name.
-        // Lo crearemos básico para Spatie e iremos ajustando si es necesario.
         $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
 
-        // Asignar todos los permisos creados
         $superAdmin->syncPermissions(Permission::all());
 
-        // Opcional: Asignar este rol al primer usuario (si existe)
         $firstUser = User::first();
         if ($firstUser) {
             $firstUser->assignRole($superAdmin);

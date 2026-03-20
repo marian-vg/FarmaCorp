@@ -56,7 +56,7 @@
                                             <flux:text size="xs" class="uppercase text-zinc-400 font-semibold tracking-wider">Medicamento</flux:text>
                                             
                                             @if($precioVencido)
-                                                <flux:badge size="xs" color="red" variant="solid">Precio Caducado</flux:badge>
+                                                <flux:badge size="xs" color="red" variant="primary">Precio Caducado</flux:badge>
                                             @elseif($precioAntiguo)
                                                 <flux:badge size="xs" color="orange" variant="subtle" icon="clock">Revisar Precio</flux:badge>
                                             @endif
@@ -78,9 +78,9 @@
                                         
                                         <div class="flex items-center gap-1.5">
                                             @if($fueraDeStock && $stockRealDB > 0)
-                                                <flux:badge size="xs" color="orange" variant="solid">Lim. Carrito</flux:badge>
+                                                <flux:badge size="xs" color="orange" variant="primary">Lim. Carrito</flux:badge>
                                             @elseif($fueraDeStock)
-                                                <flux:badge size="xs" color="red" variant="solid">Sin Stock</flux:badge>
+                                                <flux:badge size="xs" color="red" variant="primary">Sin Stock</flux:badge>
                                             @else
                                                 <flux:badge size="xs" :color="$stockActual <= ($medicine->stock?->stock_minimo ?? 5) ? 'yellow' : 'green'" variant="subtle">
                                                     {{ $stockActual }} disponibles
@@ -119,219 +119,274 @@
             </div>
 
             {{-- Lado Derecho: Carrito --}}
-            <div wire:key="resumen-venta-{{ count($carrito) }}-{{ count($pagos_realizados) }}"
-                class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl p-6 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto flex flex-col sticky top-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-700">
-                
-                @if(!$this->cajaActiva)
-                    <div class="flex flex-col items-center justify-center py-10 text-center space-y-4">
-                        <flux:icon.lock-closed class="text-orange-600 w-12 h-12 opacity-50" />
-                        <flux:heading size="md">Caja Cerrada</flux:heading>
-                        <flux:text size="sm">Debes abrir un turno para facturar.</flux:text>
-                        <flux:button variant="primary" size="sm" href="{{ route('dashboard') }}">Ir a Cajas</flux:button>
-                    </div>
-                @else
-                    {{-- Datos de Facturación --}}
-                    <div class="space-y-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                        <flux:select wire:model.live="tipo_comprobante" label="Comprobante" required>
-                            <option value="">Seleccione...</option>
-                            <option value="TICKET">Ticket Fiscal</option>
-                            <option value="FACTURA-A">Factura A</option>
-                            <option value="FACTURA-B">Factura B</option>
-                        </flux:select>
-
-                        <div class="relative">
-                            <flux:input wire:model.live.debounce.300ms="search_cliente" label="Cliente" icon="user" placeholder="Buscar..." />
-                            @if($search_cliente && $this->clientes->isNotEmpty() && !$cliente_id)
-                                <div class="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg overflow-hidden">
-                                    @foreach($this->clientes as $cli)
-                                        <button 
-                                            wire:click="$set('cliente_id', {{ $cli->id }}); $set('search_cliente', '{{ $cli->first_name }} {{ $cli->last_name }}')" 
-                                            class="w-full p-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 flex flex-col border-b last:border-0 border-zinc-100 dark:border-zinc-800"
-                                        >
-                                            {{-- Forzamos el color del texto para que sea visible --}}
-                                            <span class="font-bold text-zinc-900 dark:text-white">{{ $cli->first_name }} {{ $cli->last_name }}</span>
-                                            <span class="text-xs text-zinc-500">{{ $cli->phone ?: 'Sin teléfono' }}</span>
-                                        </button>
-                                    @endforeach
-                                </div>
-                            @endif
-                            @if($cliente_id)
-                                <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded-md flex justify-between items-center">
-                                    <flux:text size="sm" class="text-green-700">✓ Cliente vinculado</flux:text>
-                                    <button wire:click="$set('cliente_id', null); $set('search_cliente', '')" class="text-xs text-green-600 hover:underline">Quitar</button>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-
-                    {{-- Lista Carrito --}}
-                    <div class="space-y-3 max-h-64 overflow-y-auto">
-                        @forelse($carrito as $item)
-                            <div wire:key="cart-item-{{ $item['id'] }}-{{ $item['cantidad'] }}" class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                                <div class="flex-1 pr-2">
-                                    <flux:text class="font-medium truncate">{{ $item['name'] }}</flux:text>
-                                    <flux:text size="xs" class="text-zinc-500">{{ $item['cantidad'] }} x ${{ number_format($item['price'], 2) }}</flux:text>
-                                </div>
-                                <div class="flex items-center gap-1">
-                                    <flux:button variant="ghost" icon="minus" size="xs" class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200" wire:click="quitarUnoDelCarrito({{ $item['id'] }})" tooltip="Quitar 1" />
-                                    <flux:button variant="ghost" icon="pencil-square" size="xs" class="text-zinc-400 hover:text-indigo-600" wire:click="openCustomModal({{ $item['id'] }}, 'quitar')" tooltip="Quitar personalizado" />
-                                    <flux:button variant="ghost" icon="trash" size="xs" class="text-red-500 hover:text-red-700" wire:click="quitarDelCarrito({{ $item['id'] }})" tooltip="Eliminar ítem" />
-                                </div>
-                            </div>
-                        @empty
-                            <div class="flex flex-col items-center justify-center py-12 text-zinc-400 dark:text-zinc-500 italic">
-                                <flux:icon.shopping-cart class="w-12 h-12 mb-3 opacity-20" />
-                                <flux:text size="sm">Tu carrito está esperando productos...</flux:text>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    {{-- Totales y Ajustes --}}
-                    <div class="pt-4 border-t space-y-4">
-                        <div class="space-y-2">
-    <flux:label>Promoción / Recargo (%)</flux:label>
+<div wire:key="resumen-venta-{{ count($carrito) }}-{{ count($pagos_realizados) }}"
+    class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-3xl p-6 h-fit sticky top-4 space-y-6 shadow-sm shadow-zinc-200/50 dark:shadow-none">
     
-    <flux:dropdown>
-        <flux:button variant="subtle" class="w-full justify-between" icon="receipt-percent">
-            @if($promotion_id)
-                @php $currentPromo = \App\Models\Promotion::find($promotion_id); @endphp
-                {{ $currentPromo->name }} ({{ number_format($currentPromo->value, 0) }}%)
-            @else
-                Precio de Lista (Sin ajuste)
-            @endif
-        </flux:button>
-
-        <flux:menu class="min-w-[220px]">
-            <flux:menu.item wire:click="$set('promotion_id', null)" icon="x-mark">Sin ajuste</flux:menu.item>
-            
-            <flux:menu.separator />
-            
-            @foreach(\App\Models\Promotion::where('status', true)->get() as $promo)
-                <flux:menu.item wire:click="$set('promotion_id', {{ $promo->id }})">
-                    <div class="flex items-center gap-2 w-full">
-                        @if($promo->type === 'discount')
-                            <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                            <span class="flex-1 font-medium text-green-600 dark:text-green-400">-{{ number_format($promo->value, 0) }}%</span>
-                        @else
-                            <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                            <span class="flex-1 font-medium text-red-600 dark:text-red-400">+{{ number_format($promo->value, 0) }}%</span>
-                        @endif
-                        <span class="text-zinc-500 text-xs">{{ $promo->name }}</span>
-                    </div>
-                </flux:menu.item>
-            @endforeach
-        </flux:menu>
-    </flux:dropdown>
-</div>
-
-    <div class="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-    <div class="space-y-2 px-1">
-        <div class="flex justify-between text-xs text-zinc-500 uppercase tracking-widest font-semibold">
-            <span>Subtotal</span>
-            <span>${{ number_format($this->subtotal, 2) }}</span>
+    @if(!$this->cajaActiva)
+        {{-- ESTADO: CAJA CERRADA --}}
+        <div class="flex flex-col items-center justify-center py-10 text-center space-y-4">
+            <div class="bg-orange-100 dark:bg-orange-900/30 p-4 rounded-full">
+                <flux:icon.lock-closed class="text-orange-600 w-10 h-10" />
+            </div>
+            <flux:heading size="md">Caja Cerrada</flux:heading>
+            <flux:text size="sm" class="px-4">Debes abrir un turno operativo para comenzar a facturar.</flux:text>
+            <flux:button variant="primary" size="sm" href="{{ route('user.caja') }}">Ir a Cajas</flux:button>
         </div>
-        
-        @if($global_adjustment != 0)
-            <div class="flex justify-between items-center p-2 rounded-xl {{ $global_adjustment < 0 ? 'bg-green-50 dark:bg-green-900/10 text-green-700' : 'bg-red-50 dark:bg-red-900/10 text-red-700' }}">
-                <div class="flex items-center gap-2">
-                    <flux:icon :variant="$global_adjustment < 0 ? 'check-badge' : 'plus-circle'" size="sm" />
-                    <span class="text-xs font-bold uppercase">Ajuste Aplicado</span>
-                </div>
-                <span class="font-mono font-bold text-sm">
-                    {{ $global_adjustment < 0 ? '-' : '+' }} ${{ number_format(abs($global_adjustment), 2) }}
-                </span>
-            </div>
-        @endif
+    @else
+        {{-- 1. ENCABEZADO: DATOS DE FACTURACIÓN --}}
+        <div class="space-y-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+            <flux:select wire:model.live="tipo_comprobante" label="Tipo de Comprobante" required>
+                <option value="">Seleccione...</option>
+                <option value="TICKET">Ticket Fiscal</option>
+                <option value="FACTURA-A">Factura A</option>
+                <option value="FACTURA-B">Factura B</option>
+            </flux:select>
 
-        {{-- Gran Total Estilizado --}}
-        <div class="relative overflow-hidden bg-indigo-600 dark:bg-indigo-500 p-5 rounded-3xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02]">
-            {{-- Decoración sutil de fondo --}}
-            <div class="absolute -right-4 -top-4 opacity-10">
-                <flux:icon.banknotes size="xl" variant="solid" class="w-24 h-24 text-white" />
-            </div>
-            
-            <div class="relative z-10 flex justify-between items-center">
-                <div class="flex flex-col">
-                    <span class="text-[10px] font-black uppercase text-indigo-200 tracking-[0.2em]">Total a Cobrar</span>
-                    <flux:heading size="xl" class="text-white !text-3xl font-black tracking-tight">
-                        ${{ number_format($this->totalFinal, 2) }}
-                    </flux:heading>
-                </div>
-                <div class="bg-white/20 p-2 rounded-2xl backdrop-blur-md">
-                    <flux:icon.check variant="mini" class="text-white" />
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-                        {{-- Medios de Pago --}}
-                        <div class="space-y-4">
-                            <flux:heading size="sm">Medios de Pago</flux:heading>
-                            @if($this->montoRestante > 0.01)
-                                <div class="flex gap-2 items-end">
-                                    <div class="flex-1"><flux:select wire:model.live="medio_pago_id" label="Medio">
-                                        <option value="">Elegir...</option>
-                                        @foreach($mediosPago as $mp) <option value="{{ $mp->id }}">{{ $mp->nombre }}</option> @endforeach
-                                    </flux:select></div>
-                                    <div class="w-32"><flux:input wire:model.live="monto_pago_actual" type="number" label="Monto" /></div>
-                                    <flux:button icon="bolt" variant="ghost" wire:click="autocompletarMonto" class="mb-0.5" />
-                                    <flux:button icon="plus" variant="subtle" wire:click="agregarPago" class="mb-0.5" />
-                                </div>
-                            @endif
-
-                            <div class="space-y-2">
-                                @foreach($pagos_realizados as $index => $pago)
-                                    <div class="flex justify-between items-center p-2 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200">
-                                        <flux:text size="sm"><strong>{{ $pago['nombre'] }}:</strong> ${{ number_format($pago['monto'], 2) }}</flux:text>
-                                        <flux:button icon="x-mark" size="xs" variant="ghost" wire:click="quitarPago({{ $index }})" />
-                                    </div>
-                                @endforeach
-                            </div>
-
-                            <div 
-                                wire:key="balance-container-{{ count($pagos_realizados) }}" 
-                                class="flex justify-between items-center p-3 rounded-xl border-2 border-dashed 
-                                {{ $this->montoRestante <= 0.01 && collect($pagos_realizados)->sum('monto') <= $this->totalFinal ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200' }}
-                                {{ collect($pagos_realizados)->sum('monto') > $this->totalFinal ? 'bg-red-50 border-red-500' : '' }}"
+            <div class="relative">
+                <flux:input wire:model.live.debounce.300ms="search_cliente" label="Vincular Cliente" icon="user" placeholder="Buscar por nombre o DNI..." />
+                @if($search_cliente && $this->clientes->isNotEmpty() && !$cliente_id)
+                    <div class="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl overflow-hidden">
+                        @foreach($this->clientes as $cli)
+                            <button 
+                                wire:click="$set('cliente_id', {{ $cli->id }}); $set('search_cliente', '{{ $cli->first_name }} {{ $cli->last_name }}')" 
+                                class="w-full p-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-700/50 flex flex-col border-b last:border-0 border-zinc-100 dark:border-zinc-800"
                             >
-                                @if(collect($pagos_realizados)->sum('monto') > $this->totalFinal)
-                                    {{-- ALERTA ROJA: Si el usuario puso un descuento y ahora sobra plata --}}
-                                    <flux:text size="xs" class="font-bold text-red-600 uppercase">⚠️ Monto excedido:</flux:text>
-                                    <flux:heading size="lg" class="text-red-600">
-                                        -${{ number_format(collect($pagos_realizados)->sum('monto') - $this->totalFinal, 2) }}
-                                    </flux:heading>
-                                @else
-                                    {{-- ESTADO NORMAL: Falta pagar o está saldado --}}
-                                    <flux:text size="xs" class="font-bold uppercase tracking-tighter">Restante:</flux:text>
-                                    <flux:heading size="lg" class="{{ $this->montoRestante <= 0.01 ? 'text-green-600' : 'text-orange-600' }}">
-                                        ${{ number_format($this->montoRestante, 2) }}
-                                    </flux:heading>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- ALERTA AZUL (Si paga una parte y hay cliente) --}}
-                        @if($this->montoRestante > 0.01 && $cliente_id)
-                            <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg">
-                                <flux:text size="xs" class="text-blue-700 dark:text-blue-400">
-                                    ℹ️ Se cobrarán ${{ number_format(collect($pagos_realizados)->sum('monto'), 2) }} y el resto se cargará a la deuda de <strong>{{ $search_cliente }}</strong>.
-                                </flux:text>
-                            </div>
-                        @endif
-
-                        <flux:button 
-                            variant="primary" 
-                            class="w-full" 
-                            wire:click="procesarVenta" 
-                            icon="banknotes" 
-                            :disabled="!$tipo_comprobante || empty($carrito) || ($this->montoRestante > 0.01 && !$cliente_id) || (collect($pagos_realizados)->sum('monto') > $this->totalFinal)"
-                        >
-                            {{ (collect($pagos_realizados)->sum('monto') > $this->totalFinal) ? 'Monto Excedido' : (($this->montoRestante > 0.01 && $cliente_id) ? 'Vender con Saldo Deudor' : 'Confirmar y Facturar') }}
-                        </flux:button>
+                                <span class="font-bold text-zinc-900 dark:text-white">{{ $cli->first_name }} {{ $cli->last_name }}</span>
+                                <span class="text-[10px] text-zinc-500 uppercase tracking-tighter">DNI: {{ $cli->dni ?? 'N/D' }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+                @if($cliente_id)
+                    <div class="mt-2 p-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg flex justify-between items-center">
+                        <flux:text size="xs" class="text-green-700 dark:text-green-400 font-bold uppercase">✓ Cliente vinculado</flux:text>
+                        <button wire:click="quitarCliente" class="text-[10px] text-green-600 hover:underline font-bold uppercase">Quitar</button>
                     </div>
                 @endif
             </div>
+        </div>
+
+        {{-- 2. CUERPO: LISTA DEL CARRITO (Con Scroll Interno) --}}
+        <div class="space-y-3 max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-700">
+            @forelse($carrito as $item)
+                <div wire:key="cart-item-{{ $item['id'] }}-{{ $item['cantidad'] }}" class="flex justify-between items-center text-sm border-b border-zinc-100 dark:border-zinc-800 pb-2 last:border-0">
+                    <div class="flex-1 pr-2">
+                        <flux:text class="font-medium truncate block max-w-[150px]">{{ $item['name'] }}</flux:text>
+                        <flux:text size="xs" class="text-zinc-500">{{ $item['cantidad'] }} x ${{ number_format($item['price'], 2) }}</flux:text>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <flux:button variant="ghost" icon="minus" size="xs" wire:click="quitarUnoDelCarrito({{ $item['id'] }})" />
+                        <flux:button variant="ghost" icon="trash" size="xs" class="text-red-500" wire:click="quitarDelCarrito({{ $item['id'] }})" />
+                    </div>
+                </div>
+            @empty
+                <div class="flex flex-col items-center justify-center py-10 text-zinc-400 dark:text-zinc-500 italic">
+                    <flux:icon.shopping-cart class="w-10 h-10 mb-2 opacity-20" />
+                    <flux:text size="sm">Carrito vacío</flux:text>
+                </div>
+            @endforelse
+        </div>
+
+        {{-- 3. INNOVACIÓN: VALIDACIÓN DE RECETA --}}
+        @php
+            $necesitaReceta = collect($carrito)->contains('requires_prescription', true);
+            $archivoListo = $receta_pdf && method_exists($receta_pdf, 'getRealPath');
+            $archivoReal = $receta_pdf instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+        @endphp
+
+        @if($necesitaReceta)
+            <div class="p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-2xl space-y-4">
+                <div class="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                    <flux:icon.document-text variant="micro" />
+                    <flux:heading size="sm" class="uppercase tracking-wider font-bold">Receta Obligatoria</flux:heading>
+                </div>
+
+                {{-- ALERTA DE CLIENTE FALTANTE --}}
+                @if(!$cliente_id)
+                    <div class="p-2 bg-red-100 text-red-700 text-[10px] font-bold rounded-lg animate-pulse">
+                        ⚠️ REQUIERE VINCULAR UN CLIENTE PRIMERO
+                    </div>
+                @endif
+
+                {{-- PASO 1: VALIDACIÓN MÉDICA (BOTÓN DINÁMICO) --}}
+                
+                @if($this->tieneOS && $this->tieneProductosCubiertos)
+                    <div class="space-y-1">
+                        @if(!$is_validated)
+                            <flux:button 
+                                wire:click="validatePrescription"
+                                variant="primary" 
+                                class="w-full bg-indigo-600 text-white hover:bg-indigo-700 shadow-md transition-all"
+                                icon="shield-check"
+                            >
+                                Validar Receta con Obra Social
+                            </flux:button>
+                        @else
+                            <flux:button 
+                                variant="primary"
+                                color="green"
+                                class="w-full shadow-sm pointer-events-none animate-in zoom-in duration-300"
+                                icon="check-circle"
+                            >
+                                Receta Validada ({{ $authorization_code }})
+                            </flux:button>
+                            <div class="flex justify-between px-2 mt-1">
+                                <span class="text-[9px] text-green-600 font-bold uppercase tracking-tighter">Descuento aplicado</span>
+                                <span class="text-[9px] text-green-600 font-bold uppercase tracking-tighter">-${{ number_format($os_discount_amount, 2) }}</span>
+                            </div>
+                        @endif
+                    </div>
+                @elseif($this->tieneOS && !$this->tieneProductosCubiertos && !empty($carrito))
+                    {{-- Opcional: Un pequeño aviso de que la OS no cubre estos productos --}}
+                    <div class="p-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 rounded-lg">
+                        <flux:text size="xs" class="text-zinc-500 italic text-center">La Obra Social vinculada no posee cobertura para los productos actuales.</flux:text>
+                    </div>
+                @endif
+
+                <flux:separator variant="subtle" />
+
+                {{-- PASO 2: CARGA FÍSICA DEL PDF --}}
+                <flux:text size="xs" class="font-medium text-zinc-600">Adjuntar comprobante médico (PDF):</flux:text>
+
+                <div wire:key="upload-container-{{ count($carrito) }}" class="{{ $archivoReal ? 'hidden' : 'block' }}">
+                    <flux:input 
+                        type="file" 
+                        wire:model.live="receta_pdf" 
+                        accept=".pdf" 
+                        size="sm" 
+                    />
+                    <div class="mt-1 text-[9px] text-zinc-500 italic">Formatos: PDF (Máx. 2MB)</div>
+                </div>
+
+                @if($archivoReal)
+                    <div class="flex items-center justify-between p-2 bg-white dark:bg-zinc-800 rounded-xl border border-green-200 shadow-sm animate-in fade-in zoom-in duration-200">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <flux:icon.check-circle class="text-green-500 w-4 h-4 flex-shrink-0" />
+                            <span class="text-[10px] font-medium truncate text-zinc-600 dark:text-zinc-300">{{ $receta_pdf->getClientOriginalName() }}</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <flux:button 
+                                type="button" 
+                                size="xs" 
+                                variant="ghost" 
+                                icon="eye" 
+                                tooltip="Ver documento" 
+                                @click="window.open('{{ $receta_pdf->temporaryUrl() }}', '_blank')" 
+                            />
+                            <flux:button 
+                                type="button"
+                                size="xs" 
+                                variant="ghost" 
+                                icon="trash" 
+                                class="text-red-500" 
+                                wire:click="$set('receta_pdf', null)" 
+                                tooltip="Quitar archivo"
+                            />
+                        </div>
+                    </div>
+                @endif
+
+                <div wire:loading wire:target="receta_pdf" class="flex items-center gap-2 text-indigo-600 animate-pulse">
+                    <div class="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                    <span class="text-[10px] font-bold">PROCESANDO PDF...</span>
+                </div>
+            </div>
+        @endif
+
+        {{-- 4. LIQUIDACIÓN: TOTALES Y PAGOS --}}
+        <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
+            {{-- Descuentos y Promociones --}}
+            <div class="space-y-2">
+                <flux:label>Ajuste / Promoción</flux:label>
+                <flux:dropdown>
+                    <flux:button variant="subtle" class="w-full justify-between" icon="receipt-percent">
+                        @if($promotion_id)
+                            @php $currentPromo = \App\Models\Promotion::find($promotion_id); @endphp
+                            {{ $currentPromo->name }} ({{ number_format($currentPromo->value, 0) }}%)
+                        @else
+                            Sin ajuste aplicado
+                        @endif
+                    </flux:button>
+                    <flux:menu class="min-w-[220px]">
+                        <flux:menu.item wire:click="$set('promotion_id', null)" icon="x-mark">Quitar ajuste</flux:menu.item>
+                        <flux:menu.separator />
+                        @foreach(\App\Models\Promotion::where('status', true)->get() as $promo)
+                            <flux:menu.item wire:click="$set('promotion_id', {{ $promo->id }})">
+                                <span class="font-medium {{ $promo->type === 'discount' ? 'text-green-600' : 'text-red-600' }}">
+                                    {{ $promo->type === 'discount' ? '-' : '+' }}{{ number_format($promo->value, 0) }}%
+                                </span>
+                                <span class="ml-2 text-xs text-zinc-500">{{ $promo->name }}</span>
+                            </flux:menu.item>
+                        @endforeach
+                    </flux:menu>
+                </flux:dropdown>
+            </div>
+
+            {{-- Cuadro de Total Final --}}
+            <div class="bg-indigo-600 dark:bg-indigo-500 p-5 rounded-3xl text-white shadow-lg shadow-indigo-200 dark:shadow-none transition-transform hover:scale-[1.01]">
+                <div class="flex justify-between items-center text-indigo-100 uppercase text-[10px] font-black tracking-widest mb-1">
+                    <span>Total a Liquidar</span>
+                    <flux:icon.check-badge variant="mini" />
+                </div>
+                <div class="text-3xl font-black tracking-tighter">
+                    ${{ number_format($this->totalFinal, 2) }}
+                </div>
+            </div>
+
+            {{-- Gestión de Pagos --}}
+            <div class="space-y-4 pt-2">
+                <flux:heading size="sm">Medios de Pago</flux:heading>
+                @if($this->montoRestante > 0.01)
+                    <div class="flex gap-2 items-end">
+                        <div class="flex-1"><flux:select wire:model.live="medio_pago_id" label="Medio" placeholder="Elegir...">
+                            @foreach($mediosPago as $mp) <option value="{{ $mp->id }}">{{ $mp->nombre }}</option> @endforeach
+                        </flux:select></div>
+                        <div class="w-24"><flux:input wire:model.live="monto_pago_actual" type="number" label="Monto" /></div>
+                        <flux:button icon="bolt" variant="ghost" wire:click="autocompletarMonto" tooltip="Saldar" />
+                        <flux:button icon="plus" variant="subtle" wire:click="agregarPago" />
+                    </div>
+                @endif
+
+                <div class="space-y-2">
+                    @foreach($pagos_realizados as $index => $pago)
+                        <div class="flex justify-between items-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-100 dark:border-zinc-700">
+                            <flux:text size="xs"><strong>{{ $pago['nombre'] }}:</strong> ${{ number_format($pago['monto'], 2) }}</flux:text>
+                            <flux:button icon="x-mark" size="xs" variant="ghost" wire:click="quitarPago({{ $index }})" />
+                        </div>
+                    @endforeach
+                </div>
+
+                {{-- Balance Restante --}}
+                <div class="flex justify-between items-center p-3 rounded-2xl border-2 border-dashed {{ $this->montoRestante <= 0.01 ? 'bg-green-50 border-green-200 text-green-700' : 'bg-orange-50 border-orange-200 text-orange-700' }}">
+                    <span class="text-[10px] font-black uppercase tracking-widest">Saldo Restante:</span>
+                    <span class="text-lg font-bold">${{ number_format($this->montoRestante, 2) }}</span>
+                </div>
+            </div>
+
+            {{-- BOTÓN DE CIERRE DE VENTA --}}
+            <flux:button 
+    variant="primary" 
+    :color="($this->tieneOS && $this->tieneProductosCubiertos && !$is_validated) ? 'orange' : 'indigo'"
+    class="w-full !py-4 shadow-xl shadow-indigo-500/20" 
+    wire:click="procesarVenta" 
+    icon="banknotes" 
+    :disabled="!$tipo_comprobante || empty($carrito) || ($this->montoRestante > 0.01 && !$cliente_id) || ($necesitaReceta && (!$cliente_id || !$archivoListo))"
+>
+    @if($necesitaReceta && !$cliente_id)
+        Vincular Cliente para Receta
+    @elseif($necesitaReceta && !$archivoListo)
+        Adjuntar PDF de Receta
+    @elseif($this->tieneOS && $this->tieneProductosCubiertos && !$is_validated)
+        ⚠️ Vender SIN Descuento de O.S.
+    @elseif($this->montoRestante > 0.01 && $cliente_id)
+        Vender con Saldo Deudor
+    @else
+        Confirmar y Facturar
+    @endif
+</flux:button>
+        </div>
+    @endif
+</div>
         </div>
     @endif
 
@@ -381,7 +436,7 @@
 
                             <x-table.cell>
                                 @if($venta->estado === 'PENDIENTE')
-                                    <flux:badge size="sm" color="red" variant="solid" icon="clock">Cuenta Corriente</flux:badge>
+                                    <flux:badge size="sm" color="red" variant="primary" icon="clock">Cuenta Corriente</flux:badge>
                                     @if($venta->pagos->isNotEmpty())
                                         <flux:text size="xs" class="block text-zinc-400 mt-0.5">Entrega parcial realizada</flux:text>
                                     @endif
@@ -604,4 +659,25 @@
         window.open(event.detail.url, '_blank');
     });
 </script>
+
+{{-- MODAL DE VALIDACIÓN DE RECETA --}}
+    <flux:modal name="validation-modal" class="md:w-96">
+        <form wire:submit.prevent="validarConObraSocial" class="space-y-6">
+            <div>
+                <flux:heading size="lg">Validación de Receta Digital</flux:heading>
+                <flux:subheading>Simulación de conexión con entidad prestadora.</flux:subheading>
+            </div>
+
+            <div class="space-y-4">
+                <flux:input wire:model="doctor_license" label="Matrícula Profesional (Médico)" placeholder="Ej: 12345-BA" required />
+                <flux:input type="date" wire:model="prescription_date" label="Fecha de Emisión de Receta" required />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+                <flux:modal.close><flux:button variant="ghost">Cancelar</flux:button></flux:modal.close>
+                <flux:button type="submit" variant="primary" icon="check-badge">Validar y Calcular</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+
 </div>

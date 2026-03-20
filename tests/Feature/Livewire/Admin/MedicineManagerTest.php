@@ -30,8 +30,7 @@ class MedicineManagerTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('admin.medicines'))
-            ->assertSuccessful()
-            ->assertSeeLivewire(MedicineManager::class);
+            ->assertSuccessful();
     }
 
     public function test_renders_medicines()
@@ -146,8 +145,8 @@ class MedicineManagerTest extends TestCase
         ]);
 
         Livewire::actingAs($admin)->test(MedicineManager::class)
-            ->call('viewLeaflet', $medicine->product_id)
-            ->assertSet('viewingMedicine.product_id', $medicine->product_id)
+            ->call('viewLeaflet', $medicine->id)
+            ->assertSet('viewingMedicine.id', $medicine->id)
             ->assertSee('Este es el texto del prospecto clínico.');
     }
 

@@ -7,6 +7,8 @@ use App\Livewire\Admin\ClientDebtManager;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\GroupManager;
 use App\Livewire\Admin\MedicineManager;
+use App\Livewire\Admin\ObraSocialManager;
+use App\Livewire\Admin\PrescriptionManager;
 use App\Livewire\Admin\ProductManager;
 use App\Livewire\Admin\ProfileManager;
 use App\Livewire\Admin\PromotionManager;
@@ -40,7 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         if (auth()->user()->hasPermissionTo('caja.acceder')) {
-            return redirect()->route('user.dashboard');
+            return redirect()->route('user.caja');
         }
 
         abort(403, 'Tu cuenta no tiene permisos operativos asignados. Por favor, contacta a un administrador.');
@@ -51,7 +53,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('admin.dashboard');
     });
 
-    Route::get('user/dashboard', UserDashboard::class)->name('user.dashboard')->middleware('permission:caja.acceder');
+    Route::get('user/caja', UserDashboard::class)->name('user.caja')->middleware('permission:caja.acceder');
 
     // Módulo de Administración Principal
     Route::middleware(['permission:roles.acceder'])->group(function () {
@@ -80,8 +82,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Caja y Ventas
     Route::get('admin/cajas', CajaManager::class)->name('admin.cajas')->middleware('permission:admin-cajas.acceder');
-    Route::get('admin/ventas', SalesManager::class)->name('admin.sales')->middleware('permission:admin-ventas.acceder');
+
+    Route::middleware(['permission:admin-ventas.acceder'])->group(function () {
+        Route::get('admin/ventas', SalesManager::class)->name('admin.sales');
+    });
+
     Route::get('admin/promociones', PromotionManager::class)->name('admin.promotions')->middleware('permission:admin-promociones.acceder');
+
+    Route::get('admin/obras-sociales', ObraSocialManager::class)->name('admin.obras-sociales')->middleware('permission:obrasocial.acceder');
+
+    Route::get('admin/recetas', PrescriptionManager::class)->name('admin.prescriptions')->middleware('permission:recetas.acceder');
+
     Route::get('user/ventas', VentaManager::class)->name('ventas.pos')->middleware('permission:facturacion.acceder');
 
     // Acciones específicas emitiendo factura

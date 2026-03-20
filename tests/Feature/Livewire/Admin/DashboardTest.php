@@ -8,6 +8,7 @@ use App\Models\User;
 use Database\Seeders\RoleAndPermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -111,8 +112,23 @@ class DashboardTest extends TestCase
         ]);
     }
 
+    public function test_admin_cannot_deactivate_self()
+    {
+        $admin = User::factory()->create();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin->assignRole($adminRole);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->call('deactivateUser', $admin->id)
+            ->assertDispatched('notify', message: 'Seguridad: No puedes desactivar tu propia cuenta.', type: 'error');
+
+        $this->assertTrue($admin->fresh()->is_active);
+    }
+
     public function test_admin_can_save_roles()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -131,6 +147,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_save_permissions()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -149,6 +166,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_save_profiles()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -167,6 +185,7 @@ class DashboardTest extends TestCase
 
     public function test_admin_can_edit_and_update_user()
     {
+        Event::fake();
         $admin = User::factory()->create();
         $admin->assignRole('admin');
 
@@ -192,6 +211,69 @@ class DashboardTest extends TestCase
             'email' => 'new@mail.com',
             'is_active' => false,
         ]);
+    }
+
+    public function test_admin_cannot_deactivate_self_via_update_user()
+    {
+        Event::fake();
+        $admin = User::factory()->create();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin->assignRole($adminRole);
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->set('editingUser', $admin)
+            ->set('editUserContext', [
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'is_active' => false, // Attempt to deactivate
+            ])
+            ->call('updateUser')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($admin->fresh()->is_active);
+    }
+
+    public function test_cannot_assign_super_admin_role_to_others()
+    {
+        Event::fake();
+        $admin = User::factory()->create();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin->assignRole($adminRole);
+
+        $targetUser = User::factory()->create();
+        Role::findOrCreate('super-admin', 'web');
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->set('editingUser', $targetUser)
+            ->set('selectedRoles', ['super-admin'])
+            ->call('saveRoles')
+            ->assertHasNoErrors();
+
+        $this->assertFalse($targetUser->fresh()->hasRole('super-admin'));
+    }
+
+    public function test_cannot_create_user_with_super_admin_role()
+    {
+        Event::fake();
+        $admin = User::factory()->create();
+        $adminRole = Role::findOrCreate('admin', 'web');
+        $admin->assignRole($adminRole);
+
+        Role::findOrCreate('super-admin', 'web');
+
+        Livewire::actingAs($admin)
+            ->test(Dashboard::class)
+            ->set('newUserContext.name', 'New Guy')
+            ->set('newUserContext.email', 'newguy@example.com')
+            ->set('newUserContext.role', 'super-admin')
+            ->set('newUserContext.password', 'password123')
+            ->set('newUserContext.password_confirmation', 'password123')
+            ->call('createUser')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseMissing('users', ['email' => 'newguy@example.com']);
     }
 
     public function test_admin_can_save_alert_days()

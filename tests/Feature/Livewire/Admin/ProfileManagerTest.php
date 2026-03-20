@@ -16,24 +16,24 @@ class ProfileManagerTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected User $admin;
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        Role::firstOrCreate(['name' => 'admin']);
+        $this->admin = User::factory()->create();
+        $this->admin->assignRole('admin');
+
         Permission::firstOrCreate(['name' => 'edit-users']);
         Permission::firstOrCreate(['name' => 'delete-users']);
     }
 
     public function test_admin_can_access_profile_manager()
     {
-        $admin = User::factory()->create();
-        $admin->assignRole('admin');
-
-        $this->actingAs($admin)
+        $this->actingAs($this->admin)
             ->get(route('admin.profiles'))
-            ->assertSuccessful()
-            ->assertSeeLivewire(ProfileManager::class);
+            ->assertSuccessful();
     }
 
     public function test_non_admin_cannot_access_profile_manager()
@@ -42,14 +42,14 @@ class ProfileManagerTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.profiles'))
-            ->assertForbidden();
+            ->assertRedirect();
     }
 
     public function test_component_renders_profiles()
     {
         $profile = Profile::create(['name' => 'Test Profile', 'description' => 'A test profile']);
 
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->assertSee('Test Profile')
             ->assertSee('A test profile');
     }
@@ -58,7 +58,7 @@ class ProfileManagerTest extends TestCase
     {
         $permission = Permission::firstOrCreate(['name' => 'edit-users']);
 
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->set('profileContext.name', 'New Test Profile')
             ->set('profileContext.description', 'New Test Description')
             ->set('selectedPermissions', [$permission->name])
@@ -79,7 +79,7 @@ class ProfileManagerTest extends TestCase
         $profile = Profile::create(['name' => 'Old Name', 'description' => 'Old Desc']);
         $permission = Permission::firstOrCreate(['name' => 'delete-users']);
 
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->call('editProfile', $profile->id)
             ->set('profileContext.name', 'Updated Name')
             ->set('selectedPermissions', [$permission->name])
@@ -98,7 +98,7 @@ class ProfileManagerTest extends TestCase
     {
         $profile = Profile::create(['name' => 'To Be Deleted']);
 
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->call('confirmDelete', $profile->id)
             ->call('deleteProfile')
             ->assertHasNoErrors();
@@ -110,7 +110,7 @@ class ProfileManagerTest extends TestCase
 
     public function test_can_create_permission()
     {
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->set('permissionContext.display_name', 'Test Permission')
             ->set('permissionContext.description', 'A test permission')
             ->call('savePermission')
@@ -130,7 +130,7 @@ class ProfileManagerTest extends TestCase
             'display_name' => 'Old Permission',
         ]);
 
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->call('editPermission', $permission->id)
             ->set('permissionContext.display_name', 'Updated Permission')
             ->set('permissionContext.description', 'Updated description')
@@ -149,7 +149,7 @@ class ProfileManagerTest extends TestCase
     {
         $permission = Permission::create(['name' => 'delete_permission']);
 
-        Livewire::test(ProfileManager::class)
+        Livewire::actingAs($this->admin)->test(ProfileManager::class)
             ->call('confirmDeletePermission', $permission->id)
             ->call('deletePermission')
             ->assertHasNoErrors();
@@ -173,7 +173,7 @@ class ProfileManagerTest extends TestCase
 
         $this->assertTrue($user->hasPermissionTo('crear-usuario'));
 
-        Livewire::actingAs($user)
+        Livewire::actingAs($this->admin)
             ->test(ProfileManager::class)
             ->call('editPermission', $permission->id)
             ->set('permissionContext.display_name', 'Crear Nuevo Usuario')

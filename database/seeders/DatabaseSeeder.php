@@ -3,9 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
@@ -15,37 +13,35 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::factory()->create([
-            'name' => 'Admin',
+        $admin = User::factory()->create([
+            'name' => 'Administrador Central',
             'email' => 'admin@admin.com',
-            'password' => 'password',
+            'password' => bcrypt('password'),
             'is_active' => true,
         ]);
 
         $adminRole = Role::create(['name' => 'admin']);
         $empleadoRole = Role::create(['name' => 'empleado']);
 
-        Permission::create(['name' => 'create-user']);
-        Permission::create(['name' => 'modify-user']);
+        $admin->assignRole($adminRole);
 
-        $adminRole->givePermissionTo('create-user', 'modify-user');
-
-        $user->assignRole($adminRole);
-
-        $testUser = User::factory()->create([
+        $empleado = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@test.com',
-            'password' => 'password',
+            'password' => bcrypt('password'),
             'is_active' => true,
         ]);
 
-        $testUser->assignRole($empleadoRole);
+        $empleado->assignRole($empleadoRole);
 
         $this->call([
+            RoleAndPermissionSeeder::class,
+            VademecumSeeder::class,
+            ProfileSeeder::class,
+            ObraSocialSeeder::class,
             MedioPagoSeeder::class,
             CajaHistorySeeder::class,
-            VademecumSeeder::class,
-            RoleAndPermissionSeeder::class,
+            StockSeeder::class,
         ]);
     }
 }

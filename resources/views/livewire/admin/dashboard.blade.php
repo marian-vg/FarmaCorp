@@ -1,5 +1,5 @@
 <div class="flex h-full w-full flex-1 flex-col gap-4 rounded-xl">
-    <flux:heading level="1" size="lg">Admin Dashboard</flux:heading>
+    <flux:heading level="1" size="lg">Panel de Administración</flux:heading>
     
     <div class="grid grid-cols-1 gap-4 mb-2 mt-4">
         <div class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl p-6 shadow-lg shadow-zinc-800/25">
@@ -88,8 +88,8 @@
                         <x-table.head>
                             <x-table.heading>Medicamento</x-table.heading>
                             <x-table.heading>Lote</x-table.heading>
-                            <x-table.heading class="text-right">Q. Actual</x-table.heading>
-                            <x-table.heading class="text-right">Q. Mínimo</x-table.heading>
+                            <x-table.heading class="text-right">C. Actual</x-table.heading>
+                            <x-table.heading class="text-right">C. Mínimo</x-table.heading>
                         </x-table.head>
                         <x-table.body>
                             @forelse ($lowStockBatches as $batch)
@@ -134,7 +134,7 @@
                     <flux:select.option value="inactive">Inactivos</flux:select.option>
                 </flux:select>
 
-                <flux:select wire:model.live="roleFilter" class="w-40" aria-label="Filtrar por perfil">
+                <flux:select wire:model.live="profileFilter" class="w-40" aria-label="Filtrar por perfil">
                     <flux:select.option value="">Perfiles: Todos</flux:select.option>
                     @foreach($this->allProfiles as $profile)
                         <flux:select.option value="{{ $profile->name }}">{{ str($profile->name)->headline() }}</flux:select.option>
@@ -143,7 +143,7 @@
             </div>
 
             <flux:modal.trigger name="add-user">
-                <flux:button icon="plus">New User</flux:button>
+                <flux:button icon="plus">Nuevo usuario</flux:button>
             </flux:modal.trigger>
      
             <x-add-user/>
@@ -163,7 +163,7 @@
             </x-table.head>
             <x-table.body>
                 @foreach($users as $user)
-                    <x-table.row>
+                    <x-table.row wire:key="user-row-{{ $user->id }}">
                         <x-table.cell>
                             <div class="flex items-center gap-3">
                                 <flux:avatar class="size-8 rounded-full" name="{{ $user->name }}" circle/>
@@ -182,7 +182,7 @@
                                     </flux:button>
                                     <flux:menu class="max-h-48 overflow-y-auto">
                                         @forelse ($user->roles as $role)
-                                            <flux:menu.item>
+                                            <flux:menu.item wire:key="user-{{ $user->id }}-role-{{ $role->id }}">
                                                 {{ str($role->name)->headline() }}
                                             </flux:menu.item>
                                         @empty
@@ -191,14 +191,14 @@
                                     </flux:menu>
                                 </flux:dropdown>
 
-                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editRoles({{ $user->id }})" />
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editRoles({{ $user->id }})" wire:key="btn-roles-{{ $user->id }}" />
                             </div>
                         </x-table.cell>
 
                         <x-table.cell>
                             <div class="flex gap-2">
                                 @php
-                                    $allUserPermissions = $user->getAllPermissions();
+                                    $allUserPermissions = $user->getAllEffectivePermissions();
                                 @endphp
                                 <flux:dropdown>
                                     <flux:button size="sm" class="w-40 justify-between items-center text-left" icon-trailing="chevron-down">
@@ -206,7 +206,7 @@
                                     </flux:button>
                                     <flux:menu class="max-h-48 overflow-y-auto">
                                         @forelse($allUserPermissions as $permission)
-                                            <flux:menu.item>
+                                            <flux:menu.item wire:key="user-{{ $user->id }}-perm-{{ $permission->id }}">
                                                 {{ str($permission->display_name ?? $permission->name)->headline() }}
                                             </flux:menu.item>
                                         @empty
@@ -215,7 +215,7 @@
                                     </flux:menu>
                                 </flux:dropdown>
 
-                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editPermissions({{ $user->id }})" />
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editPermissions({{ $user->id }})" wire:key="btn-perms-{{ $user->id }}"/>
                             </div>
                         </x-table.cell>
 
@@ -227,7 +227,7 @@
                                     </flux:button>
                                     <flux:menu class="max-h-48 overflow-y-auto w-40">
                                         @forelse($user->profiles as $profile)
-                                            <flux:menu.item>
+                                            <flux:menu.item wire:key="user-{{ $user->id }}-prof-{{ $profile->id }}">
                                                 {{ str($profile->name)->headline() }}
                                             </flux:menu.item>
                                         @empty
@@ -236,7 +236,7 @@
                                     </flux:menu>
                                 </flux:dropdown>
 
-                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProfiles({{ $user->id }})" />
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editProfiles({{ $user->id }})" wire:key="btn-profs-{{ $user->id }}"/>
                             </div>
                         </x-table.cell>
 
@@ -246,17 +246,19 @@
 
                         <x-table.cell class="text-right">
                             <div class="flex justify-end gap-2">
-                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editUser({{ $user->id }})" />
+                                <flux:button size="sm" icon="pencil-square" variant="ghost" wire:click="editUser({{ $user->id }})" wire:key="btn-edit-{{ $user->id }}"/>
                                 <flux:modal.trigger name="reset-password-{{ $user->id }}">
                                     <flux:button size="sm" icon="key" variant="ghost" />
                                 </flux:modal.trigger>
                                 
                                 @if($user->is_active)
-                                    <flux:modal.trigger name="confirm-deactivation-{{ $user->id }}">
-                                        <flux:button size="sm" icon="trash" variant="danger" ghost />
-                                    </flux:modal.trigger>
+                                    @if($user->id !== auth()->id())
+                                        <flux:modal.trigger name="confirm-deactivation-{{ $user->id }}">
+                                            <flux:button size="sm" icon="trash" variant="danger" ghost />
+                                        </flux:modal.trigger>
+                                    @endif
                                 @else
-                                    <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateUser({{ $user->id }})" />
+                                    <flux:button size="sm" icon="arrow-path" variant="subtle" wire:click="reactivateUser({{ $user->id }})" wire:key="btn-reactivate-{{ $user->id }}"/>
                                 @endif
 
                                 <flux:modal name="reset-password-{{ $user->id }}" class="min-w-xs">
@@ -310,7 +312,6 @@
         {{ $users->links() }}
     </div>
 
-    <!-- Centralized Modals -->
     <flux:modal name="edit-user" class="min-w-160">
         <div class="space-y-6">
             <div>
@@ -323,7 +324,12 @@
                 <flux:input wire:model="editUserContext.email" type="email" label="Correo electrónico" required />
             </div>
 
-            <flux:switch wire:model="editUserContext.is_active" label="Estado {{ $user->is_active ? 'Activo' : 'Inactivo' }}" description="Permite o bloquea el acceso al sistema." />
+            <flux:switch 
+                wire:model="editUserContext.is_active" 
+                :disabled="$editingUser && $editingUser->id === auth()->id()"
+                label="Estado {{ $editUserContext['is_active'] ? 'Activo' : 'Inactivo' }}" 
+                description="{{ $editingUser && $editingUser->id === auth()->id() ? 'No puedes desactivar tu propia cuenta.' : 'Permite o bloquea el acceso al sistema.' }}" 
+            />
 
             <flux:separator />
 
@@ -332,7 +338,7 @@
                     <flux:heading size="sm">Perfiles</flux:heading>
                     <div class="space-y-2 max-h-96 overflow-y-auto">
                         @foreach($this->allProfiles as $profile)
-                            <flux:checkbox wire:model.live="selectedProfiles" value="{{ $profile->name }}" label="{{ str($profile->name)->headline() }}" />
+                            <flux:checkbox wire:key="edituser-prof-{{ $profile->id }}" id="edituser-prof-{{ $profile->id }}" wire:model.live="selectedProfiles" value="{{ $profile->name }}" label="{{ str($profile->name)->headline() }}" />
                         @endforeach
                     </div>
                 </div>

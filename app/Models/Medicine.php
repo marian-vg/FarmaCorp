@@ -22,6 +22,7 @@ class Medicine extends Model
         'leaflet',
         'expiration_date',
         'is_psychotropic',
+        'requires_prescription',
         'group_id',
     ];
 
@@ -31,6 +32,7 @@ class Medicine extends Model
             'price' => 'decimal:2',
             'expiration_date' => 'date',
             'is_psychotropic' => 'boolean',
+            'requires_prescription' => 'boolean',
         ];
     }
 

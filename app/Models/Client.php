@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Laravel\Scout\Searchable;
 
 class Client extends Model
@@ -32,6 +33,13 @@ class Client extends Model
     public function facturas(): HasMany
     {
         return $this->hasMany(Factura::class, 'cliente_id');
+    }
+
+    public function obrasSociales(): BelongsToMany
+    {
+        return $this->belongsToMany(ObraSocial::class, 'client_obra_social')
+                    ->withPivot('affiliate_number')
+                    ->withTimestamps();
     }
 
     public function toSearchableArray()

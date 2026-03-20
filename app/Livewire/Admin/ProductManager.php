@@ -169,11 +169,17 @@ class ProductManager extends Component
     public function deactivateProduct()
     {
         if ($this->editingProduct) {
-            $this->editingProduct->delete(); // Soft delete
+            $this->editingProduct->update(['status' => false]);
             Flux::modal('confirm-deactivation-product')->close();
             $this->reset(['editingProduct']);
             $this->notify('Producto desactivado con éxito.', 'success');
         }
+    }
+
+    public function reactivateProduct(Product $product)
+    {
+        $product->update(['status' => true]);
+        $this->notify('Producto reactivado con éxito.', 'success');
     }
 
     public function render()

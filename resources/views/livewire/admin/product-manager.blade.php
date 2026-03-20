@@ -151,8 +151,9 @@
                         <flux:text size="xs" class="mt-1 text-blue-600 font-medium">Fecha de caducidad del componente químico.</flux:text>
                     </div>
 
-                    <div class="col-span-2 sm:col-span-1 flex items-center mt-6">
-                        <flux:switch wire:model="medicineContext.is_psychotropic" label="Es Psicotrópico (Requiere receta archivable)" />
+                    <div class="col-span-2 sm:col-span-1 flex flex-col gap-4 mt-6">
+                        <flux:switch wire:model="medicineContext.is_psychotropic" label="Es Psicotrópico" description="Control estricto (Libro recetario)." />
+                        <flux:switch wire:model="medicineContext.requires_prescription" label="Requiere Receta" description="Obligatorio subir PDF al vender." />
                     </div>
                 </div>
             @endif

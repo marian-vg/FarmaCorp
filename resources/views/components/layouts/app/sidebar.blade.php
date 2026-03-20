@@ -10,7 +10,7 @@
 
             {{-- VISTA ADMINISTRADOR --}}
             @can('admin-panel.acceder')
-                <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Dashboard</flux:sidebar.item>
+                <flux:sidebar.item icon="home" href="{{ route('admin.dashboard') }}" :current="request()->routeIs('admin.dashboard')">Panel de Control</flux:sidebar.item>
             @endcan
             {{-- CATEGORÍAS SEGÚN PERMISOS --}}
             @can('inventario.acceder')
@@ -42,8 +42,16 @@
                 <flux:sidebar.item icon="banknotes" href="{{ route('admin.sales') }}" :current="request()->routeIs('admin.sales')">Ventas</flux:sidebar.item>
             @endcan
 
+            @can('recetas.acceder')
+                <flux:sidebar.item icon="document-text" href="{{ route('admin.prescriptions') }}" :current="request()->routeIs('admin.prescriptions')">Archivo de Recetas</flux:sidebar.item>
+            @endcan
+
             @can('admin-promociones.acceder')
                 <flux:sidebar.item icon="receipt-percent" href="{{ route('admin.promotions') }}" :current="request()->routeIs('admin.promotions')">Config. Descuentos</flux:sidebar.item>
+            @endcan
+
+            @can('obrasocial.acceder')
+                <flux:sidebar.item icon="building-library" href="{{ route('admin.obras-sociales') }}" :current="request()->routeIs('admin.obras-sociales')">Obras Sociales</flux:sidebar.item>
             @endcan
 
             @can('facturacion.acceder')
@@ -51,27 +59,23 @@
             @endcan
 
             @can('caja.acceder')
-                <flux:sidebar.item icon="wallet" href="{{ route('user.dashboard') }}" :current="request()->routeIs('user.dashboard')">Mi Caja Operativa</flux:sidebar.item>
+                <flux:sidebar.item icon="wallet" href="{{ route('user.caja') }}" :current="request()->routeIs('user.caja')">Mi Caja Operativa</flux:sidebar.item>
             @endcan
 
             @can('admin-cajas.acceder')
                 <flux:sidebar.item icon="archive-box" href="{{ route('admin.cajas') }}" :current="request()->routeIs('admin.cajas')">Administración de Cajas</flux:sidebar.item>
             @endcan
 
-            @role('super-admin')
-                <flux:sidebar.item icon="wrench-screwdriver" href="{{ route('admin.backup') }}" :current="request()->routeIs('admin.backup')">Base de Datos</flux:sidebar.item>
-            @endrole
-
             <flux:spacer/>
             <flux:separator/>
 
             <flux:sidebar.item icon="cog-6-tooth" href="{{ route('settings.index') }}" :current="request()->routeIs('settings.index')">Configuración</flux:sidebar.item>
-            <flux:sidebar.item icon="book-open" href="{{ route('manual') }}" :current="request()->routeIs('manual')">Documentación</flux:sidebar.item>
+            <flux:sidebar.item icon="book-open" href="{{ route('manual') }}" :current="request()->routeIs('manual')" target="_blank">Documentación</flux:sidebar.item>
 
             <form method="POST" action="{{ route('logout') }}" class="w-full">
                 @csrf
                 <flux:sidebar.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full" data-test="logout-button">
-                    {{ __('Log Out') }}
+                    {{ __('Salir') }}
                 </flux:sidebar.item>
             </form>
         </flux:sidebar>
@@ -80,6 +84,7 @@
             {{ $slot }}
         </main>       
 
+        @livewire('chat.chat-widget')
         <x-toast/>
         @fluxScripts
     </body>

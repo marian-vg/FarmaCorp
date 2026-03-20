@@ -15,10 +15,23 @@ class BackupManager extends Component
 
     public $backups = [];
     public $destination = 'local';
+    public $auto_frequency = 'none';
+    public $auto_destination = 'local';
 
     public function mount()
     {
         $this->cargarListaBackups();
+        // Cargamos la configuración guardada
+        $this->auto_frequency = \App\Models\Setting::where('key', 'backup_frequency')->first()?->value ?? 'none';
+        $this->auto_destination = \App\Models\Setting::where('key', 'backup_auto_destination')->first()?->value ?? 'local';
+    }
+
+    public function saveSettings()
+    {
+        \App\Models\Setting::updateOrCreate(['key' => 'backup_frequency'], ['value' => $this->auto_frequency]);
+        \App\Models\Setting::updateOrCreate(['key' => 'backup_auto_destination'], ['value' => $this->auto_destination]);
+
+        $this->notify('Configuración de automatización guardada.', 'success');
     }
 
     public function cargarListaBackups()
@@ -93,23 +106,32 @@ class BackupManager extends Component
 
     private function sendToEmail($path, $name)
     {
-        $user = auth()->user();
+        $user = auth()->user() ?? \App\Models\User::role('admin')->first();
+        
+        if (!$user) return;
 
-        // Verificación de seguridad
-        if (!$user) {
-            throw new \Exception("No hay una sesión activa para enviar el correo.");
-        }
-
-        // Si el usuario no tiene first_name, usamos el email o un genérico
-        $userName = $user->first_name ?? $user->name ?? 'Administrador';
-
+        $userName = $user->first_name ?? 'Admin FarmaCorp';
         Mail::to($user->email)->send(new BackupMail($path, $name, $userName));
     }
 
     private function uploadToCloud($name, $content)
     {
-        // Simulamos Supabase Storage usando un disco dedicado o carpeta externa
-        Storage::disk('local')->put('supabase_cloud_mock/' . $name, $content);
+        try {
+            // Sinceridad de Analista: Validamos el retorno del put
+            $resultado = Storage::disk('supabase')->put($name, $content);
+
+            if (!$resultado) {
+                // Si devuelve false, forzamos una excepción manual
+                throw new \Exception("El disco 'supabase' devolvió FALSE. Revisar conexión o permisos del Bucket.");
+            }
+            
+            // Log opcional para ver en storage/logs/laravel.log
+            \Illuminate\Support\Facades\Log::info("Backup subido con éxito a Supabase: " . $name);
+
+        } catch (\Exception $e) {
+            // Ahora este error sí llegará al componente y verás el cartel rojo
+            throw new \Exception("Error al subir a Supabase: " . $e->getMessage());
+        }
     }
 
     private function sincronizarSecuencias()

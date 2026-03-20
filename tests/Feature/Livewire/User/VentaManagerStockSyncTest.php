@@ -21,10 +21,10 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     if (! Role::where('name', 'admin')->exists()) {
-        Role::create(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'admin']);
     }
     if (! Role::where('name', 'empleado')->exists()) {
-        Role::create(['name' => 'empleado']);
+        Role::firstOrCreate(['name' => 'empleado']);
     }
 
     $this->admin = User::factory()->create();
@@ -91,7 +91,7 @@ it('broadcasts StockActualizado event when stock egress is saved', function () {
 it('VentaManager reacts to generic stock refresh event listener', function () {
     Livewire::actingAs($this->employee)
         ->test(VentaManager::class)
-        ->dispatch('refrescarMedicamentosListener')
+        ->dispatch('echo:stock-channel,.stock.actualizado')
         ->assertStatus(200);
 });
 
@@ -124,7 +124,7 @@ it('refreshes medicine stock display when Echo event is received', function () {
     Stock::where('medicine_id', $this->medicine->id)
         ->update(['cantidad_actual' => 100]);
 
-    $component->dispatch('refrescarMedicamentosListener')
+    $component->dispatch('echo:stock-channel,.stock.actualizado')
         ->assertSee('100 disponibles');
 });
 
@@ -136,6 +136,6 @@ it('refreshes medicine stock display when manual listener receives event', funct
     Stock::where('medicine_id', $this->medicine->id)
         ->update(['cantidad_actual' => 100]);
 
-    $component->dispatch('refrescarMedicamentosListener')
+    $component->dispatch('echo:stock-channel,.stock.actualizado')
         ->assertSee('100 disponibles');
 });

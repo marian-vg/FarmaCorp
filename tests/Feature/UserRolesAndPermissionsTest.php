@@ -36,7 +36,7 @@ class UserRolesAndPermissionsTest extends TestCase
     public function test_user_can_have_a_role_assigned(): void
     {
         $user = User::factory()->create();
-        $role = Role::create(['name' => 'editor']);
+        $role = Role::firstOrCreate(['name' => 'editor']);
 
         $user->assignRole($role);
 
@@ -46,8 +46,8 @@ class UserRolesAndPermissionsTest extends TestCase
     public function test_user_can_have_multiple_roles(): void
     {
         $user = User::factory()->create();
-        Role::create(['name' => 'editor']);
-        Role::create(['name' => 'moderator']);
+        Role::firstOrCreate(['name' => 'editor']);
+        Role::firstOrCreate(['name' => 'moderator']);
 
         $user->assignRole('editor', 'moderator');
 
@@ -80,7 +80,7 @@ class UserRolesAndPermissionsTest extends TestCase
 
     public function test_role_can_have_permissions(): void
     {
-        $role = Role::create(['name' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'admin']);
         Permission::create(['name' => 'create-user']);
         Permission::create(['name' => 'modify-user']);
 
@@ -93,7 +93,7 @@ class UserRolesAndPermissionsTest extends TestCase
     public function test_user_inherits_permissions_from_role(): void
     {
         $user = User::factory()->create();
-        $role = Role::create(['name' => 'admin']);
+        $role = Role::firstOrCreate(['name' => 'admin']);
         Permission::create(['name' => 'create-user']);
         Permission::create(['name' => 'modify-user']);
 
@@ -108,7 +108,7 @@ class UserRolesAndPermissionsTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $adminRole = Role::create(['name' => 'admin']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
         Permission::create(['name' => 'create-user']);
         Permission::create(['name' => 'modify-user']);
 
@@ -123,7 +123,7 @@ class UserRolesAndPermissionsTest extends TestCase
     public function test_basic_user_does_not_have_admin_permissions(): void
     {
         $basicUser = User::factory()->create();
-        Role::create(['name' => 'basic']);
+        Role::firstOrCreate(['name' => 'basic']);
         Permission::create(['name' => 'create-user']);
         Permission::create(['name' => 'modify-user']);
 
@@ -138,7 +138,7 @@ class UserRolesAndPermissionsTest extends TestCase
     public function test_user_role_can_be_removed(): void
     {
         $user = User::factory()->create();
-        Role::create(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'admin']);
 
         $user->assignRole('admin');
         $this->assertTrue($user->hasRole('admin'));
@@ -162,8 +162,8 @@ class UserRolesAndPermissionsTest extends TestCase
     public function test_user_roles_can_be_synced(): void
     {
         $user = User::factory()->create();
-        Role::create(['name' => 'admin']);
-        Role::create(['name' => 'basic']);
+        Role::firstOrCreate(['name' => 'admin']);
+        Role::firstOrCreate(['name' => 'basic']);
 
         $user->assignRole('admin');
         $this->assertTrue($user->hasRole('admin'));

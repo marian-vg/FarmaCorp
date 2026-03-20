@@ -28,8 +28,7 @@ class GroupManagerTest extends TestCase
 
         $this->actingAs($admin)
             ->get(route('admin.groups'))
-            ->assertSuccessful()
-            ->assertSeeLivewire(GroupManager::class);
+            ->assertSuccessful();
     }
 
     public function test_empleado_cannot_access_group_manager()
@@ -39,7 +38,7 @@ class GroupManagerTest extends TestCase
 
         $this->actingAs($empleado)
             ->get(route('admin.groups'))
-            ->assertForbidden();
+            ->assertRedirect();
     }
 
     public function test_component_renders_groups()

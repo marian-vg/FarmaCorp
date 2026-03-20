@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::after(function ($user, $ability) {
             // Check if any of the user's assigned custom profiles have the requested permission.
             foreach ($user->profiles as $profile) {
-                if ($profile->hasPermissionTo($ability)) {
+                if ($profile->hasDirectPermission($ability)) {
                     return true;
                 }
             }

@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Livewire\Admin;
+
+use App\Models\Prescription;
+use App\Traits\Notifies;
+use Illuminate\Support\Facades\Storage;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class PrescriptionManager extends Component
+{
+    use Notifies, WithPagination;
+
+    public $search = '';
+
+    public function download($id)
+    {
+        $this->authorize('recetas.crear_editar');
+        try {
+            $prescription = Prescription::findOrFail($id);
+
+            // Sinceridad de Analista: Nunca confíes en que el archivo está ahí solo porque lo dice la DB
+            if (! Storage::disk('supabase')->exists($prescription->file_path)) {
+                $this->notify('El archivo físico no se encuentra en la nube. Contacte a soporte.', 'error');
+
+                return;
+            }
+
+            return Storage::disk('supabase')->download($prescription->file_path, "Receta-Venta-{$prescription->factura_id}.pdf");
+
+        } catch (\Exception $e) {
+            $this->notify('Error al intentar descargar: '.$e->getMessage(), 'error');
+        }
+    }
+
+    public function render()
+    {
+        $prescriptions = Prescription::with(['cliente', 'factura.details.product'])
+            ->whereHas('cliente', function ($q) {
+                $q->where('first_name', 'ilike', "%{$this->search}%")
+                    ->orWhere('last_name', 'ilike', "%{$this->search}%");
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return view('livewire.admin.prescription-manager', compact('prescriptions'))->layout('layouts.app');
+    }
+}

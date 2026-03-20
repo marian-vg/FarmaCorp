@@ -9,14 +9,16 @@
         "price": 3500.00,
         "level": "400mg",
         "leaflet": "Tomar 1 cada 8 horas en caso de dolor leve a moderado. No exceder dosis.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": false
       },
       {
         "presentation_name": "Ibuprofeno 600mg x 20 Comp",
         "price": 6000.00,
         "level": "600mg",
         "leaflet": "Venta bajo receta. Tomar 1 cada 12 horas.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": true
       }
     ]
   },
@@ -30,14 +32,16 @@
         "price": 8500.00,
         "level": "500mg",
         "leaflet": "Tomar con o sin comida. Evitar si hay historial de alergia a penicilinas.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": true
       },
       {
         "presentation_name": "Amoxicilina 875mg / Ácido Clavulánico x 14 Comp",
         "price": 14200.00,
         "level": "875mg",
         "leaflet": "Indicado para infecciones respiratorias. Completar siempre el ciclo.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": true
       }
     ]
   },
@@ -51,14 +55,16 @@
         "price": 2800.00,
         "level": "500mg",
         "leaflet": "No exceder los 4g diarios. Precaución en insuficiencia hepática.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": false
       },
       {
         "presentation_name": "Paracetamol 1g x 10 Comp Rápida Acción",
         "price": 4100.00,
         "level": "1g",
         "leaflet": "Alivio rápido del dolor y fiebre.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": false
       }
     ]
   },
@@ -72,14 +78,16 @@
         "price": 7500.00,
         "level": "0.5mg",
         "leaflet": "Uso estrictamente regulado. Puede causar somnolencia.",
-        "is_psychotropic": true
+        "is_psychotropic": true,
+        "requires_prescription": true
       },
       {
         "presentation_name": "Clonazepam 2mg x 30 Comp",
         "price": 12000.00,
         "level": "2mg",
         "leaflet": "Evitar consumo de alcohol durante el tratamiento.",
-        "is_psychotropic": true
+        "is_psychotropic": true,
+        "requires_prescription": true
       }
     ]
   },
@@ -93,14 +101,16 @@
         "price": 6000.00,
         "level": "20mg",
         "leaflet": "Tomar 30 minutos antes del desayuno para mejor absorción.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": false
       },
       {
         "presentation_name": "Omeprazol 40mg x 14 Caps",
         "price": 8900.00,
         "level": "40mg",
         "leaflet": "Tratamiento intensivo para reflujo gastroesofágico severo.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": true
       }
     ]
   },
@@ -114,7 +124,8 @@
         "price": 2500.00,
         "level": "10mg",
         "leaflet": "No produce somnolencia significativa en dosis estándar.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": false
       }
     ]
   },
@@ -128,7 +139,8 @@
         "price": 9500.00,
         "level": "50mg",
         "leaflet": "Monitorizar la presión arterial periódicamente.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": true
       }
     ]
   },
@@ -142,7 +154,8 @@
         "price": 11000.00,
         "level": "850mg",
         "leaflet": "Tomar junto con las comidas para reducir molestias gastrointestinales.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": true
       }
     ]
   },
@@ -156,7 +169,8 @@
         "price": 3200.00,
         "level": "100mg",
         "leaflet": "Previene la formación de trombos cardiovasculares en terapia de bajo nivel.",
-        "is_psychotropic": false
+        "is_psychotropic": false,
+        "requires_prescription": false
       }
     ]
   },
@@ -170,7 +184,361 @@
         "price": 14500.00,
         "level": "50mg",
         "leaflet": "Estrictamente recetado. El efecto terapéutico completo toma de 2 a 4 semanas.",
-        "is_psychotropic": true
+        "is_psychotropic": true,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Atorvastatina",
+    "description": "Fármaco de la familia de las estatinas utilizado para disminuir los niveles de colesterol",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Atorvastatina 20mg x 30 Comp",
+        "price": 12500.00,
+        "level": "20mg",
+        "leaflet": "Tomar una vez al día, preferentemente a la misma hora.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      },
+      {
+        "presentation_name": "Atorvastatina 40mg x 30 Comp",
+        "price": 18000.00,
+        "level": "40mg",
+        "leaflet": "Uso bajo supervisión médica para hipercolesterolemia severa.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Enalapril",
+    "description": "Inhibidor de la enzima convertidora de angiotensina (IECA)",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Enalapril 10mg x 30 Comp",
+        "price": 4500.00,
+        "level": "10mg",
+        "leaflet": "Utilizado para el tratamiento de la hipertensión arterial.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Pantoprazol",
+    "description": "Inhibidor de la bomba de protones",
+    "group": "Gastrointestinales",
+    "medicines": [
+      {
+        "presentation_name": "Pantoprazol 40mg x 28 Comp",
+        "price": 9800.00,
+        "level": "40mg",
+        "leaflet": "Protector gástrico de amplio espectro.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Levotiroxina",
+    "description": "Hormona tiroidea sintética",
+    "group": "Metabólicos",
+    "medicines": [
+      {
+        "presentation_name": "Levotiroxina 100mcg x 50 Comp",
+        "price": 8200.00,
+        "level": "100mcg",
+        "leaflet": "Tomar en ayunas, al menos 30 minutos antes del desayuno.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Alprazolam",
+    "description": "Ansiolítico de la familia de las benzodiazepinas",
+    "group": "Psicotrópicos",
+    "medicines": [
+      {
+        "presentation_name": "Alprazolam 0.5mg x 30 Comp",
+        "price": 6800.00,
+        "level": "0.5mg",
+        "leaflet": "Tratamiento de estados de ansiedad y pánico. Venta bajo receta archivada.",
+        "is_psychotropic": true,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Diclofenac",
+    "description": "Antiinflamatorio no esteroideo (AINE)",
+    "group": "Analgésicos",
+    "medicines": [
+      {
+        "presentation_name": "Diclofenac Sódico 75mg x 15 Comp",
+        "price": 5400.00,
+        "level": "75mg",
+        "leaflet": "Potente antiinflamatorio. Tomar con abundante agua.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Dipirona",
+    "description": "Analgésico y antipirético",
+    "group": "Analgésicos",
+    "medicines": [
+      {
+        "presentation_name": "Dipirona 500mg x 10 Comp",
+        "price": 3100.00,
+        "level": "500mg",
+        "leaflet": "Eficaz contra la fiebre alta y dolores intensos.",
+        "is_psychotropic": false,
+        "requires_prescription": false
+      }
+    ]
+  },
+  {
+    "name": "Rosuvastatina",
+    "description": "Estatina de alta potencia para el control del colesterol",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Rosuvastatina 10mg x 30 Comp",
+        "price": 15600.00,
+        "level": "10mg",
+        "leaflet": "Ayuda a reducir el colesterol LDL y triglicéridos.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Bromhexina",
+    "description": "Expectorante y mucolítico",
+    "group": "Respiratorios",
+    "medicines": [
+      {
+        "presentation_name": "Bromhexina Jarabe 120ml",
+        "price": 4200.00,
+        "level": "Adultos",
+        "leaflet": "Ayuda a eliminar la mucosidad de las vías respiratorias.",
+        "is_psychotropic": false,
+        "requires_prescription": false
+      }
+    ]
+  },
+  {
+    "name": "Salbutamol",
+    "description": "Broncodilatador de acción rápida",
+    "group": "Respiratorios",
+    "medicines": [
+      {
+        "presentation_name": "Salbutamol Aerosol 100mcg/dosis x 200 Dosis",
+        "price": 7900.00,
+        "level": "100mcg",
+        "leaflet": "Alivio rápido del broncoespasmo. Agitar antes de usar.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Budesonide",
+    "description": "Corticoide de acción local",
+    "group": "Respiratorios",
+    "medicines": [
+      {
+        "presentation_name": "Budesonide Aerosol Nasal 50mcg",
+        "price": 9200.00,
+        "level": "50mcg",
+        "leaflet": "Tratamiento de la rinitis alérgica estacional.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Ciprofloxacina",
+    "description": "Antibiótico de amplio espectro (Fluoroquinolona)",
+    "group": "Antibióticos",
+    "medicines": [
+      {
+        "presentation_name": "Ciprofloxacina 500mg x 10 Comp",
+        "price": 8800.00,
+        "level": "500mg",
+        "leaflet": "Utilizado para diversas infecciones bacterianas.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Azitromicina",
+    "description": "Antibiótico macrólido",
+    "group": "Antibióticos",
+    "medicines": [
+      {
+        "presentation_name": "Azitromicina 500mg x 3 Comp",
+        "price": 6500.00,
+        "level": "500mg",
+        "leaflet": "Tratamiento corto de 3 días para infecciones leves a moderadas.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Metoclopramida",
+    "description": "Antiemético y procinético",
+    "group": "Gastrointestinales",
+    "medicines": [
+      {
+        "presentation_name": "Metoclopramida 10mg x 20 Comp",
+        "price": 3800.00,
+        "level": "10mg",
+        "leaflet": "Previene náuseas y vómitos.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Famotidina",
+    "description": "Antagonista H2 para reducir el ácido gástrico",
+    "group": "Gastrointestinales",
+    "medicines": [
+      {
+        "presentation_name": "Famotidina 20mg x 20 Comp",
+        "price": 4100.00,
+        "level": "20mg",
+        "leaflet": "Alivio de la acidez y ardor estomacal.",
+        "is_psychotropic": false,
+        "requires_prescription": false
+      }
+    ]
+  },
+  {
+    "name": "Valsartán",
+    "description": "Antagonista de receptores de angiotensina II",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Valsartán 160mg x 30 Comp",
+        "price": 14200.00,
+        "level": "160mg",
+        "leaflet": "Control de la presión arterial y protección renal.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Amlodipina",
+    "description": "Bloqueante de canales de calcio",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Amlodipina 5mg x 30 Comp",
+        "price": 5900.00,
+        "level": "5mg",
+        "leaflet": "Tratamiento de la hipertensión y angina de pecho.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Bisoprolol",
+    "description": "Betabloqueante selectivo",
+    "group": "Cardiovasculares",
+    "medicines": [
+      {
+        "presentation_name": "Bisoprolol 5mg x 30 Comp",
+        "price": 8700.00,
+        "level": "5mg",
+        "leaflet": "Tratamiento de la insuficiencia cardíaca y presión alta.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Fluoxetina",
+    "description": "Antidepresivo inhibidor de serotonina",
+    "group": "Psicotrópicos",
+    "medicines": [
+      {
+        "presentation_name": "Fluoxetina 20mg x 30 Comp",
+        "price": 9500.00,
+        "level": "20mg",
+        "leaflet": "Tratamiento de la depresión y trastornos obsesivos.",
+        "is_psychotropic": true,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Lorazepam",
+    "description": "Ansiolítico de acción corta",
+    "group": "Psicotrópicos",
+    "medicines": [
+      {
+        "presentation_name": "Lorazepam 2mg x 30 Comp",
+        "price": 7200.00,
+        "level": "2mg",
+        "leaflet": "Alivio sintomático de la ansiedad grave.",
+        "is_psychotropic": true,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Diazepam",
+    "description": "Ansiolítico y relajante muscular",
+    "group": "Psicotrópicos",
+    "medicines": [
+      {
+        "presentation_name": "Diazepam 10mg x 30 Comp",
+        "price": 8100.00,
+        "level": "10mg",
+        "leaflet": "Utilizado para espasmos musculares y ansiedad.",
+        "is_psychotropic": true,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Prednisona",
+    "description": "Corticoide sistémico",
+    "group": "Inmunomoduladores",
+    "medicines": [
+      {
+        "presentation_name": "Prednisona 20mg x 20 Comp",
+        "price": 6300.00,
+        "level": "20mg",
+        "leaflet": "Potente antiinflamatorio esteroide.",
+        "is_psychotropic": false,
+        "requires_prescription": true
+      }
+    ]
+  },
+  {
+    "name": "Dexametasona",
+    "description": "Corticoide de alta potencia",
+    "group": "Inmunomoduladores",
+    "medicines": [
+      {
+        "presentation_name": "Dexametasona 4mg x 10 Comp",
+        "price": 4800.00,
+        "level": "4mg",
+        "leaflet": "Tratamiento de afecciones inflamatorias severas.",
+        "is_psychotropic": false,
+        "requires_prescription": true
       }
     ]
   }
